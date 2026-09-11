@@ -1,0 +1,262 @@
+# Reactive Hypoglycemia Tracker — Handover
+
+## Status: 🟡 pre-code, waiting on research handoff
+
+**Objective:** A mobile-first personal tool for reactive hypoglycemia, grounded in Scott's own
+medical evidence, `DVA New Master`'s medical-evidence material, and existing open-source JS/Python
+approaches — with an AI-assisted section once a dedicated Anthropic key is wired in.
+
+## 2026-09-12 — Claude (project created)
+
+### Completed
+- Folder created, git initialised (no commits yet — ask Scott before making the first one).
+- `CLAUDE.md` written (session-starter, folder-boundary rule, reading order, Cowork-link note).
+- `research/` created as the landing zone for the Cowork research handoff; `.gitignore` added
+  (blocks `.env`/keys/`node_modules`/`__pycache__` from ever being committed, ahead of the
+  Anthropic key that's coming).
+- Added to `SCOTT-START-HERE.html` (new "Reactive Hypoglycemia Tracker" card, Health tag),
+  `PROJECT-REGISTRY.md` (section 13 + quick-reference row + cross-refs in sections 4 and 5), and
+  `MASTER_HANDOVER.md`'s Active projects table.
+- Checked whether the Cowork research session (session ID `cse_01SH3uMcFJ2Kt4E9nejDK31F`, per
+  Scott) is directly reachable from a Claude Code session — it isn't (not a listed peer session).
+  Confirmed the handoff has to happen through a file, not a live link.
+- Scott granted folder access to `DVA Research/` and `DVA New Master/` and asked which are
+  actually needed. Confirmed: `DVA New Master/` is the right one — active, well-organised medical
+  archive (`Medical Records`, `Medical History`, `Doctors Reports`, `X-Rays to Show`, its own
+  `HANDOVER.md`/`CLAUDE.md`/`INDEX.md`), and per root `PROJECT-REGISTRY.md` section 4 already
+  contains `Medical History/Hospital_Doctor_Cheat_Sheet_Blackout_Episodes.txt`, which documents a
+  hypoglycemia finding (BGL 2.7 during a blackout episode) — directly relevant. `DVA Research/` is
+  **not** needed: checked its actual contents (`ls`) and it's ADF pay-rates and claims-remuneration
+  PDFs, unrelated to medical evidence — confirms the registry's standing note that it's a probable
+  stale/duplicate folder, deferred since 2026-09-07. Also worth knowing: Scott has a local **DVA
+  Evidence Manager** tool (`http://localhost:8765`, Desktop shortcut `DVA Evidence Manager.webloc`)
+  that does full-text/OCR search across `DVA New Master/` with smart medical categories — likely a
+  faster way for the Cowork research session (or a future session here) to locate hypoglycemia-
+  relevant documents than browsing the raw folder tree.
+- **Research handoff received (2026-09-12).** The Cowork research session produced a full brief
+  ("Reactive Hypoglycemia-Aware Glucose & Food Tracker") and pasted it directly into chat rather
+  than dropping a file into `research/` — saved verbatim to
+  `research/2026-09-12-research-brief-glucose-food-tracker.md` so it isn't lost.
+
+### Open / Next
+- **Research received — no longer waiting on Cowork.** Full brief covers: glucose input (manual
+  entry v1; official LibreLinkUp polling once the Libre 2 Plus is active; Nightscout/xDrip+
+  deferred), food logging (photo via Claude vision + native mobile dictation, both needing a
+  visible confidence indicator and correction flow — never presented as fact silently), a
+  4-persona testing plan, reusing SparkyFitness (open-source, GitHub) for food-database plumbing
+  instead of building that from scratch, and an architecture recommendation matching SfumatoART's
+  own pattern (Vite PWA + Netlify functions proxying the Anthropic key + IndexedDB local-first
+  storage). Read the saved brief for full detail — this is a summary, not a substitute.
+- **Four open decisions from the brief (§11), assessed:**
+  1. Exact finger-prick meter model — not blocking; the brief's own v1 recommendation is manual
+     entry regardless of meter.
+  2. Comfortable with official LibreLinkUp sharing — not urgent yet; Libre 2 Plus is still
+     "pending supply," v1 starts with manual entry either way.
+  3. Anthropic API budget — no figure from Scott yet; proceeding on a personal-use-volume
+     assumption (a handful of photo/voice calls a day) unless told otherwise.
+  4. **Surgery timeline — genuinely needs Scott, can't default this one.** Does the GP/anaesthetist
+     export report need to exist by a specific date? Changes build order (report-first vs.
+     logging-first).
+- Not yet started: no `package.json`, no Vite scaffold, no Netlify functions — this handover and
+  the saved brief are the full state so far. Recommended next step: a Claude Code session opened
+  directly in this folder (the `SCOTT-START-HERE.html` card already set up for it) to do the
+  actual scaffolding — keeps npm/git/dev-server preview cleanly rooted here rather than
+  continuing via cross-project absolute paths from the SfumatoART worktree this setup was done in.
+- Scott will generate a dedicated Anthropic API key for this project once the AI section is
+  actually being built — not needed yet.
+- Worth a conscious call with Scott (not assumed): `PROJECT-REGISTRY.md` section 5 ("Personal
+  Dashboard," parked, lists blood-sugar monitoring as a must-include) and section 4 ("DVA Folder,"
+  which flagged 2026-09-07 that its medical file was meant to feed a new program) may overlap with
+  this project. Surfaced, not merged — his call.
+- Two items from the registry's own "NEW PROJECT CHECKLIST" are Scott's own manual steps, not done
+  here: creating a claude.ai Project for this work (if he wants that layer) and uploading key files
+  to it. Not required for the Claude Code side to work, just noted so the checklist isn't silently
+  half-done.
+
+### Do not overwrite
+- `research/2026-09-12-research-brief-glucose-food-tracker.md` — Cowork's original output, saved
+  verbatim. Treat as a source document; put corrections or updates in this HANDOVER.md instead of
+  editing the brief itself.
+
+## 2026-09-12 — Scott's scope additions (same day, after reviewing the brief above)
+
+Scott added three requirements directly in chat — not from the Cowork brief, layered on top of it:
+
+1. **Diary/journal.** A free-text log kept alongside the structured glucose and food entries — for
+   notes, context, how he was feeling, anything not captured by a structured field. **Add to v1
+   scope**, not deferred.
+2. **Reminder system (audible and/or visual)**, to prompt him to (a) actually do a finger-prick
+   test and (b) check/interact with his CGM sensor, on some schedule. **Add to v1 scope.**
+   - Worth clarifying, not blocking: the saved brief (§3.2) found the Libre 2/2 Plus needs an NFC
+     tap only once, to pair — after that it streams via Bluetooth automatically, no repeat
+     tapping. Scott's own phrasing ("tap... to get the data from there") suggests he may be
+     expecting repeated scans — could be a different/older device, a safety-margin habit, or just
+     not yet aware of the auto-streaming behaviour. Don't assume either way; ask him directly when
+     build-scoping starts. Design the reminder system to cover both a "do a manual test" reminder
+     and a "check the sensor" reminder regardless — costs nothing to support both.
+   - Build note: this is a PWA (per §7's architecture pick) — OS-level push notifications on an
+     iOS home-screen PWA have historically been limited/version-gated. Needs a concrete check
+     against Scott's actual iOS version before relying on push alone; an in-app/badge fallback may
+     be needed either way.
+3. **Equipment is supplied via ADACare** (Scott's DVA-approved supplier), based on the DVA product
+   list plus whatever the doctor has prescribed. This resolves part of brief §11.1 (exact meter
+   model): it's a knowable fact (check ADACare's supply paperwork / ask them), not an open research
+   question — just not confirmed yet.
+   - **New architecture requirement, Scott's own framing:** equipment changes over time (DVA
+     product list updates, doctor changes the prescription, a device goes obsolete) — the app's
+     glucose-data-source layer needs to be built as a pluggable/extensible concept from the start
+     (an abstraction over "where a reading comes from"), not hardcoded to whichever meter/CGM is
+     first supported. First-class design constraint for whenever scaffolding starts, not something
+     bolted on later.
+
+Not yet actioned in code — captured here for whoever scopes the actual build.
+
+### Follow-up (same day) — Scott's answers + one more addition
+
+- **Equipment/Bluetooth (re: point 3 above):** Scott doesn't know the technical details of what
+  ADACare will actually supply, and that's fine — not something he needs to track. His preference,
+  plainly stated: **use Bluetooth if the supplied device supports it**, since that's obviously
+  better than manual entry. Confirms the plan already in the brief and above: check the actual
+  device once it's in hand, prefer Bluetooth when available, manual entry is always the fallback
+  regardless (v1 isn't blocked by not knowing the model yet).
+- **Push-notification dependency (re: reminder build note above):** Scott confirmed ("yes") he
+  understands reminders behave differently depending on whether he has the phone on him vs. is at
+  home — treat this as a real platform behaviour to verify during build, not something to design
+  around blindly now.
+- **New: preload common food/nutrition data.** Scott wants the app to already know about common
+  items (soft drinks, sugared vs non-sugared, cereals, carbohydrates, etc.) rather than treating
+  every logged food as something to work out from scratch — saves time during logging. **This
+  doesn't need new research** — brief §6 already identified solid free sources for exactly this
+  (Open Food Facts for packaged/barcode Australian goods, AUSNUT for generic Australian foods,
+  SparkyFitness as prior art that's already wired these in). Confirmed as v1 scope, not a new
+  research task.
+- **Reconfirmed: the Cowork-handoff mechanism is already in place and reusable.** Scott asked again
+  whether he and a Cowork/chat session need a new handoff file each time, or whether "the two work
+  together" automatically. Answer, restated plainly for the record: no automatic link exists (see
+  `CLAUDE.md`'s "How the Cowork research session links up" section) — but nothing new needs to be
+  built for it. The recipe for any future research round: open a chat/Cowork session, tell it to
+  read this `HANDOVER.md` first, do the research, then save its findings as a new dated file in
+  `research/` — same pattern as the first handoff. No new setup required each time.
+
+## 2026-09-12 — Recovery check (Claude app hung, Scott force-quit)
+
+Right after the entry above was written, the Claude app locked up and Scott had to force-close it.
+Checked immediately after, from a separate session (SfumatoART's worktree, cross-project access
+explicitly granted by Scott for this one check): **nothing lost.**
+- This `HANDOVER.md` reads complete and coherent through the entry above — no sign of a mid-write
+  truncation.
+- `research/2026-09-12-research-brief-glucose-food-tracker.md` (22KB) and `research/README.md` both
+  intact.
+- `git status` — still zero commits, all four items (`.gitignore`, `CLAUDE.md`, `HANDOVER.md`,
+  `research/`) untracked, exactly as the "Completed" section above describes. Nothing to reconcile.
+
+Conclusion: the freeze was a UI/app-level hang, not a data-loss event — Write/Edit-style file saves
+had already completed before the lockup. Safe to pick this project back up exactly where the entry
+above leaves it; no re-work needed.
+
+## 2026-09-12 — Corrected brief (v2) received; build phase started
+
+Scott shared a revised brief from Cowork: `research/2026-09-12-research-brief-glucose-food-tracker-v2.md`.
+**Do not overwrite either brief file** — v1 stays as the original record, v2 is the corrected one to
+build from. Diffed the two; the only substantive change is important:
+
+- **License correction on SparkyFitness.** v1 called it a "strong candidate to fork." v2 corrects
+  this: it's under a **custom non-commercial license**, not MIT — explicitly forbids commercial
+  use. Since §1 of the brief states Scott's long-term intent to possibly sell this, **this build
+  must not copy/fork any SparkyFitness source.** Study its architecture for ideas only; write
+  original code for anything shipped. Re-check its LICENSE file at build time in case terms change.
+- Open Food Facts has official installable packages (`@openfoodfacts/openfoodfacts-nodejs`,
+  `openfoodfacts` on PyPI) — permissively licensed, safe to actually depend on.
+- cgmquantify/Glucose360 (Python, glycemic-variability metrics) and Nightscout's `cgm-remote-monitor`
+  (Node, MIT) confirmed as real, installable/cloneable — not just concepts — for later if needed.
+
+**Scott's go-ahead (same session, in chat):** build as autonomously as possible, mobile-first,
+design tooling optional/my call, Cowork stays the research channel for any open-source-library
+questions that come up mid-build. He's stepping away and checking in periodically, not blocking on
+each step.
+
+### Plan for this build pass (v1 scope, per brief §10 + Scott's 3 additions from the entry above)
+- Vite vanilla-JS PWA, same pattern as SfumatoART (Netlify + serverless function proxying the
+  Anthropic key once Scott provides one; IndexedDB local-first storage).
+- Manual glucose entry now; glucose-source layer built as a pluggable abstraction (Scott's explicit
+  requirement) so LibreLinkUp/Bluetooth can slot in later without a rewrite.
+- Food logging: text/dictation entry first (native mobile STT is a browser-level concern, not
+  something to fake in v1), photo entry wired to a Netlify function stub (can't call Claude for
+  real until Scott's dedicated API key exists — build the plumbing, not a live call).
+- Diary/journal free-text log (Scott's addition #1).
+- Reminder scaffolding (Scott's addition #2) — local/in-app first; iOS PWA push is unreliable per
+  brief §3.2 build note, needs a real device check later, not solvable by guessing now.
+- Simple chronological timeline (food + glucose + diary together) rather than a correlation graph —
+  matches "keep v1 descriptive" (brief §5/§8) and avoids over-building before real data exists.
+- No prescriptive/advisory logic anywhere (regulatory + safety guardrail, brief §5/§8).
+- Skipping a separate design-tool pass for this round — going straight to a working mobile-first UI
+  in code so there's something real to try; can loop in design tooling later if Scott wants a polish
+  pass. His call, not treating this as final.
+
+### Built and verified (same session)
+**Status: 🟢 working v1 — first commit made.** Vite vanilla-JS PWA scaffolded and running
+(`npm install` done, `npm run dev` on :5173, `npm run build` clean). Tested end-to-end in a mobile
+viewport (375×812): saved a glucose reading, a food entry (text), and a diary note — all three
+appear correctly merged and time-sorted on the Timeline. Settings (glucose-source list, reminder
+toggle/time, notification-permission button, mmol/L↔mg/dL unit) and Export (CSV + printable
+summary) all wired and checked.
+
+**Structure:**
+- `index.html` + `src/style.css` — single-page app, bottom tab nav (Timeline / Glucose / Food /
+  Diary / Export / Settings), light+dark via `prefers-color-scheme`, safe-area insets for iOS.
+- `src/db.js` — small IndexedDB wrapper (3 stores: glucose, food, diary).
+- `src/glucose.js` — the pluggable glucose-source registry Scott asked for (`glucoseSources[]`,
+  currently just `manual`) plus save/list.
+- `src/food.js` — save/list + `parseFoodWithAI()`, which calls `/.netlify/functions/ai-proxy` and
+  degrades honestly to `{configured: false, error}` rather than breaking — correct today (no key
+  yet) and correct later (a plain `vite` dev server has no functions endpoint even once a key
+  exists; needs `netlify dev` or a real deploy to test the live call).
+- `src/diary.js`, `src/timeline.js` (merge + render, `entryBody()` shared with export), `src/
+  export.js` (CSV + `printSummary()`), `src/reminders.js` (in-app-only check, explicitly not
+  relying on background push).
+- `netlify/functions/ai-proxy.js` — Claude vision/text food-parsing proxy, model
+  `claude-haiku-4-5-20251001` (cheap/fast — brief's own open question #3 flagged API cost as
+  unresolved, so defaulting cheap rather than to Sonnet/Opus). Returns `{configured:false}` with no
+  key set; never throws to the client.
+- No nutrition-database lookups (Open Food Facts/AUSNUT) wired yet — not in the brief's §10 v1 list,
+  correlation is food-timing-vs-glucose, not calorie counting. Fast-follow if Scott wants it.
+- Deliberately did **not** add any low/normal/high glucose color-coding or threshold logic — that
+  would be Claude inventing a clinical judgment, which is exactly what brief §5/§8 says v1 must not
+  do. Timeline shows the raw number only. If Scott (or his doctor) wants a visual flag later, that's
+  a fast follow built around a value *he* sets, not one guessed here.
+
+**One bug found and fixed during testing:** the printable-summary export originally used
+`window.open()` to show the report in a new window/tab. That's unreliable for a PWA running
+standalone on an iPhone home screen (no normal browser chrome for a new window) and can be caught
+by ordinary popup blockers. Replaced with an in-page `#print-summary` element + a `@media print`
+CSS rule + a direct `window.print()` call — works the same everywhere, no popup permission needed.
+Verified the fix by monkey-patching `window.print` in the console rather than actually triggering
+the OS print dialog (which, correctly, blocks everything until a human deals with it — fine on
+Scott's phone, not something safe to trigger from an automated test).
+
+**First git commit made** (was previously blocked pending Scott's go-ahead — now given, in chat,
+2026-09-12: "work as autonomously as you can"). Not pushed anywhere (no remote configured).
+
+### Open / Next (build phase)
+- **Not yet live-testable:** AI food parsing needs Scott's dedicated Anthropic key (still not
+  generated, per earlier entry) plus either `netlify dev` locally or a real Netlify deploy — a plain
+  `vite` dev server can't reach `/.netlify/functions/*`.
+- **Not built yet, deferred from this pass, not forgotten:**
+  - The §4.3 restaurant clarifying-question *loop* (multi-turn: Claude asks, Scott answers, entry
+    updates) — current AI parse is single-shot with a `clarifyingQuestion` field returned but not
+    yet wired back into a follow-up UI turn. Real feature, deserves its own pass rather than being
+    rushed here.
+  - Real app icons (shipped a simple placeholder SVG in `public/icon.svg` — installs fine on
+    Android/desktop; iOS `apple-touch-icon` support for SVG is inconsistent across iOS versions, so
+    the home-screen icon may look plain on Scott's phone until real PNG icons are made — cosmetic
+    only, doesn't block using the app).
+  - LibreLinkUp polling, Bluetooth meter source (both explicitly deferred in the brief; the
+    `glucoseSources` registry is ready for them).
+  - Apple Health / Google Health Connect sync (brief §3.3).
+- **Still genuinely needs Scott, not decided here:** the surgery-timeline question from the entry
+  above (does the GP/anaesthetist export report need to exist by a specific date). Also worth his
+  call whenever convenient, not blocking: exact ADACare meter model once it arrives, Anthropic
+  budget ballpark.
+- Next actions when picking this back up: either keep building (restaurant clarifying-question
+  loop, real icons, nutrition-database lookups) or pause here and let Scott try the v1 slice first
+  — his call when he checks back in.

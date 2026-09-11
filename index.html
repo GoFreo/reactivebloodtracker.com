@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b6e6a" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Glucose &amp; Food Tracker</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <h1 id="view-title">Timeline</h1>
+    </header>
+
+    <main id="views">
+      <section id="view-timeline" class="view" data-view="timeline">
+        <div id="reminder-banner" class="banner" hidden></div>
+        <div id="timeline-list" class="timeline-list"></div>
+      </section>
+
+      <section id="view-glucose" class="view" data-view="glucose" hidden>
+        <form id="glucose-form" class="entry-form">
+          <label>
+            Reading
+            <div class="reading-input-row">
+              <input type="number" step="0.1" inputmode="decimal" id="glucose-value" required autofocus />
+              <select id="glucose-unit">
+                <option value="mmol/L" selected>mmol/L</option>
+                <option value="mg/dL">mg/dL</option>
+              </select>
+            </div>
+          </label>
+          <label>
+            When
+            <input type="datetime-local" id="glucose-time" required />
+          </label>
+          <label>
+            Note (optional)
+            <textarea id="glucose-note" rows="2" placeholder="e.g. before breakfast, felt shaky"></textarea>
+          </label>
+          <button type="submit">Save reading</button>
+        </form>
+      </section>
+
+      <section id="view-food" class="view" data-view="food" hidden>
+        <form id="food-form" class="entry-form">
+          <label>
+            Describe what you ate
+            <textarea id="food-text" rows="3" placeholder="Tap the mic on your keyboard to dictate, or type here"></textarea>
+          </label>
+          <label class="photo-label">
+            Or add a photo
+            <input type="file" accept="image/*" capture="environment" id="food-photo" />
+          </label>
+          <img id="food-photo-preview" class="photo-preview" hidden />
+          <label>
+            When
+            <input type="datetime-local" id="food-time" required />
+          </label>
+          <div class="button-row">
+            <button type="button" id="food-parse-btn">Parse with AI</button>
+            <button type="submit">Save entry</button>
+          </div>
+          <div id="food-ai-result" class="ai-result" hidden></div>
+        </form>
+      </section>
+
+      <section id="view-diary" class="view" data-view="diary" hidden>
+        <form id="diary-form" class="entry-form">
+          <label>
+            Note
+            <textarea id="diary-text" rows="4" placeholder="Anything not captured above — how you're feeling, context, etc."></textarea>
+          </label>
+          <label>
+            When
+            <input type="datetime-local" id="diary-time" required />
+          </label>
+          <button type="submit">Save note</button>
+        </form>
+      </section>
+
+      <section id="view-export" class="view" data-view="export" hidden>
+        <form id="export-form" class="entry-form">
+          <label>
+            From
+            <input type="date" id="export-from" required />
+          </label>
+          <label>
+            To
+            <input type="date" id="export-to" required />
+          </label>
+          <div class="button-row">
+            <button type="submit" id="export-csv-btn" value="csv">Download CSV</button>
+            <button type="submit" id="export-print-btn" value="print">Printable summary</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="view-settings" class="view" data-view="settings" hidden>
+        <h2>Glucose source</h2>
+        <div id="glucose-source-list"></div>
+        <p class="field-hint" id="glucose-source-hint"></p>
+
+        <h2>Reminders</h2>
+        <div class="entry-form">
+          <label class="checkbox-label">
+            <input type="checkbox" id="reminder-enabled" />
+            Remind me to log a reading
+          </label>
+          <label>
+            Reminder time
+            <input type="time" id="reminder-time" value="12:00" />
+          </label>
+          <p class="field-hint">
+            Checked only while the app is open (in-app banner above). Background push notifications
+            on an iPhone home-screen app are unreliable — this does not rely on them.
+          </p>
+          <button type="button" id="notification-permission-btn">Enable browser notifications too</button>
+          <p class="field-hint" id="notification-status"></p>
+        </div>
+
+        <h2>Unit</h2>
+        <div class="entry-form">
+          <label class="checkbox-label">
+            <input type="radio" name="default-unit" id="unit-mmol" value="mmol/L" checked />
+            mmol/L (default)
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" name="default-unit" id="unit-mgdl" value="mg/dL" />
+            mg/dL
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button data-nav="timeline" class="nav-btn active" aria-label="Timeline">
+        <span class="nav-icon">📋</span><span>Timeline</span>
+      </button>
+      <button data-nav="glucose" class="nav-btn" aria-label="Add glucose reading">
+        <span class="nav-icon">🩸</span><span>Glucose</span>
+      </button>
+      <button data-nav="food" class="nav-btn" aria-label="Add food entry">
+        <span class="nav-icon">🍽️</span><span>Food</span>
+      </button>
+      <button data-nav="diary" class="nav-btn" aria-label="Add diary note">
+        <span class="nav-icon">📝</span><span>Diary</span>
+      </button>
+      <button data-nav="export" class="nav-btn" aria-label="Export report">
+        <span class="nav-icon">📤</span><span>Export</span>
+      </button>
+      <button data-nav="settings" class="nav-btn" aria-label="Settings">
+        <span class="nav-icon">⚙️</span><span>Settings</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="print-summary"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
