@@ -260,3 +260,10 @@ Scott's phone, not something safe to trigger from an automated test).
 - Next actions when picking this back up: either keep building (restaurant clarifying-question
   loop, real icons, nutrition-database lookups) or pause here and let Scott try the v1 slice first
   — his call when he checks back in.
+- **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
+  Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
+  this session can't do. Manual care taken instead in the code that's there: user text/photos never
+  go into `innerHTML`/`document.write` unescaped (`escapeHtml()` in `export.js`, `textContent` in
+  `timeline.js`), the Anthropic key stays server-side in the Netlify function and is gitignored, no
+  secrets committed. Worth an actual HawkScan pass once `hawk` is set up and there's a real deployed
+  target to point it at.
