@@ -55,6 +55,7 @@ function showView(name) {
     document.getElementById("glucose-time").value = nowForDatetimeLocal();
   } else if (name === "food") {
     document.getElementById("food-time").value = nowForDatetimeLocal();
+    resetFoodAiState();
   } else if (name === "diary") {
     document.getElementById("diary-time").value = nowForDatetimeLocal();
   } else if (name === "timeline") {
@@ -110,14 +111,48 @@ const foodForm = document.getElementById("food-form");
 const foodPhotoInput = document.getElementById("food-photo");
 const foodPhotoPreview = document.getElementById("food-photo-preview");
 const foodAiResultEl = document.getElementById("food-ai-result");
+const foodClarifyEl = document.getElementById("food-clarify");
+const foodClarifyQuestionEl = document.getElementById("food-clarify-question");
+const foodClarifyAnswerInput = document.getElementById("food-clarify-answer");
 let currentFoodPhotoBlob = null;
 let currentAiResult = null;
+let foodParseContextText = "";
+
+function resetFoodAiState() {
+  currentAiResult = null;
+  foodParseContextText = "";
+  foodAiResultEl.hidden = true;
+  foodClarifyEl.hidden = true;
+}
+
+// Renders one AI parse result and, if Claude asked a clarifying question (brief
+// §4.3 — "the single most important UX pattern"), shows the follow-up box so
+// Scott can answer and get a refined estimate rather than a one-shot guess.
+function renderAiResult(result) {
+  currentAiResult = result;
+  if (result.configured === false) {
+    foodAiResultEl.textContent = `AI parsing not available yet: ${result.error}\n\nYour entry will still save — you can fill in details yourself.`;
+    foodClarifyEl.hidden = true;
+    return;
+  }
+  const lines = [`${result.foodName} — ${result.confidencePercent}% confidence`];
+  if (result.portionEstimate) lines.push(`Portion: ${result.portionEstimate}`);
+  if (result.assumptions) lines.push(`Assumptions: ${result.assumptions}`);
+  foodAiResultEl.textContent = lines.join("\n");
+
+  if (result.clarifyingQuestion) {
+    foodClarifyQuestionEl.textContent = `Claude asks: ${result.clarifyingQuestion}`;
+    foodClarifyAnswerInput.value = "";
+    foodClarifyEl.hidden = false;
+  } else {
+    foodClarifyEl.hidden = true;
+  }
+}
 
 foodPhotoInput.addEventListener("change", () => {
   const file = foodPhotoInput.files[0];
   currentFoodPhotoBlob = file || null;
-  currentAiResult = null;
-  foodAiResultEl.hidden = true;
+  resetFoodAiState();
   if (file) {
     foodPhotoPreview.src = URL.createObjectURL(file);
     foodPhotoPreview.hidden = false;
@@ -131,21 +166,30 @@ document.getElementById("food-parse-btn").addEventListener("click", async () => 
   if (!text && !currentFoodPhotoBlob) {
     foodAiResultEl.hidden = false;
     foodAiResultEl.textContent = "Add a description or a photo first.";
+    foodClarifyEl.hidden = true;
     return;
   }
+  foodParseContextText = text;
   foodAiResultEl.hidden = false;
   foodAiResultEl.textContent = "Asking Claude…";
-  const result = await parseFoodWithAI({ text, photoBlob: currentFoodPhotoBlob });
-  currentAiResult = result;
-  if (result.configured === false) {
-    foodAiResultEl.textContent = `AI parsing not available yet: ${result.error}\n\nYour entry will still save — you can fill in details yourself.`;
-  } else {
-    const lines = [`${result.foodName} — ${result.confidencePercent}% confidence`];
-    if (result.portionEstimate) lines.push(`Portion: ${result.portionEstimate}`);
-    if (result.assumptions) lines.push(`Assumptions: ${result.assumptions}`);
-    if (result.clarifyingQuestion) lines.push(`Claude asks: ${result.clarifyingQuestion}`);
-    foodAiResultEl.textContent = lines.join("\n");
+  foodClarifyEl.hidden = true;
+  renderAiResult(await parseFoodWithAI({ text: foodParseContextText, photoBlob: currentFoodPhotoBlob }));
+});
+
+foodClarifyAnswerInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("food-clarify-submit").click();
   }
+});
+
+document.getElementById("food-clarify-submit").addEventListener("click", async () => {
+  const answer = foodClarifyAnswerInput.value.trim();
+  if (!answer || !currentAiResult?.clarifyingQuestion) return;
+  foodParseContextText = `${foodParseContextText}\n\nQ: ${currentAiResult.clarifyingQuestion}\nA: ${answer}`;
+  foodAiResultEl.textContent = "Asking Claude…";
+  foodClarifyEl.hidden = true;
+  renderAiResult(await parseFoodWithAI({ text: foodParseContextText, photoBlob: currentFoodPhotoBlob }));
 });
 
 foodForm.addEventListener("submit", async (e) => {
@@ -158,9 +202,8 @@ foodForm.addEventListener("submit", async (e) => {
   });
   foodForm.reset();
   foodPhotoPreview.hidden = true;
-  foodAiResultEl.hidden = true;
   currentFoodPhotoBlob = null;
-  currentAiResult = null;
+  resetFoodAiState();
   showView("timeline");
 });
 

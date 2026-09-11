@@ -241,11 +241,13 @@ Scott's phone, not something safe to trigger from an automated test).
 - **Not yet live-testable:** AI food parsing needs Scott's dedicated Anthropic key (still not
   generated, per earlier entry) plus either `netlify dev` locally or a real Netlify deploy — a plain
   `vite` dev server can't reach `/.netlify/functions/*`.
+- **§4.3 clarifying-question loop: now built.** When Claude's parse comes back with a
+  `clarifyingQuestion`, the Food screen shows it with an answer box; submitting re-calls the AI with
+  the original text plus the Q&A appended, and repeats if another question comes back. Verified with
+  a mocked AI response (low-confidence "mixed pasta dish" → answered "tomato-based" → refined to
+  82% confidence, question cleared) since there's still no live key to test the real call. Saved
+  food entries correctly carry the *final* (post-clarification) result, not the first guess.
 - **Not built yet, deferred from this pass, not forgotten:**
-  - The §4.3 restaurant clarifying-question *loop* (multi-turn: Claude asks, Scott answers, entry
-    updates) — current AI parse is single-shot with a `clarifyingQuestion` field returned but not
-    yet wired back into a follow-up UI turn. Real feature, deserves its own pass rather than being
-    rushed here.
   - Real app icons (shipped a simple placeholder SVG in `public/icon.svg` — installs fine on
     Android/desktop; iOS `apple-touch-icon` support for SVG is inconsistent across iOS versions, so
     the home-screen icon may look plain on Scott's phone until real PNG icons are made — cosmetic

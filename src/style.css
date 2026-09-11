@@ -139,7 +139,7 @@ button:active {
   gap: 10px;
 }
 
-.button-row button {
+.button-row > * {
   flex: 1;
 }
 
