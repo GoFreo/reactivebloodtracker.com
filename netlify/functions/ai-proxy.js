@@ -54,13 +54,22 @@ export const handler = async (event) => {
   contentBlocks.push({ type: "text", text: text || "No text description provided — use the photo alone." });
 
   try {
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    };
+    // Some Anthropic accounts issue keys that aren't tied to a default workspace,
+    // in which case the API requires this header naming which workspace to bill
+    // usage to. Optional — only added if Scott sets it; not a secret (it's just
+    // an identifier, not a credential), so a plain env var is fine.
+    if (process.env.ANTHROPIC_WORKSPACE_ID) {
+      headers["anthropic-workspace-id"] = process.env.ANTHROPIC_WORKSPACE_ID;
+    }
+
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
+      headers,
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 400,
