@@ -166,11 +166,30 @@ conscious call with Scott first, not a default assumption that "more helpful AI"
 Mobile-first — this is the primary way Scott will actually use it day to day. Mac support matters
 but is secondary. Keep that priority in mind for any framework/UI decisions once building starts.
 
-## Next steps (PICK UP HERE)
+## Testing — run before every deploy (added 2026-09-12)
 
-- Waiting on the Cowork research handoff to land in `research/` (see above — nothing there yet).
-- Once it lands: read it, update `HANDOVER.md` with what it says, then scope the actual build
-  (data model, mobile framework choice, where AI fits) before writing code.
+A real Playwright smoke-test suite exists (`tests/smoke.spec.js`, 10 tests): app shell/navigation,
+glucose entry, diary entry, food entry (both the AI-unavailable graceful-degradation path and the
+full clarify-question loop, via a mocked `/.netlify/functions/ai-proxy` route — never hits the real
+paid Anthropic API in tests), settings (unit propagation, reminder banner), and export (CSV content,
+printable summary — `window.print` is stubbed in the test, never actually triggered, since the real
+dialog blocks the browser and will hang a test run).
+
+**Run `npm test` before every deploy, no exceptions.** It builds and serves the real production
+bundle (`playwright.config.js`'s `webServer`, not the dev server) — a true pre-deploy gate, not a
+dev-mode sanity check. All 10 passed as of 2026-09-12. If a deploy is proposed without this having
+been run against the current code, run it first; don't skip on the assumption "it's a small change."
+Add a new test case when a new feature ships — this suite is meant to grow, not stay frozen at 10.
+
+## Next steps (PICK UP HERE) — updated 2026-09-12
+
+- **Genuinely needs Scott:** surgery-timeline date for the export report (does it need to exist by
+  a specific date?); whether/when to pursue a real custom domain or anything beyond the current
+  `reactive-hypoglycemia-tracker.netlify.app`.
+- **Deferred, not forgotten** (see `HANDOVER.md` for full detail on each): the §4.3 restaurant
+  clarifying-question loop is built; still open are LibreLinkUp/Bluetooth glucose sources,
+  nutrition-database lookups (Open Food Facts/AUSNUT), Apple Health/Google Health Connect sync, and
+  turning the reviewed mobile design-canvas mockups into the real `index.html`/`src/style.css`.
 - Cross-reference, not yet resolved either way: `PROJECT-REGISTRY.md` (root) section 5 "Personal
   Dashboard" already lists "blood sugar monitoring" as a must-include for a parked personal-
   dashboard idea, and section 4 "DVA Folder" flagged 2026-09-07 that its medical file was "meant

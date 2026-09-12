@@ -345,6 +345,16 @@ in this project instead:
     segment is the real tap target, not just the visible icon; (4) a `--warn-border` token in
     `Food.dc.html` was defined but never used — wired it onto the low-confidence AI-result card's
     border instead of deleting it, since the card is showing exactly that state.
+- **Real automated smoke-test suite added (2026-09-12).** Everything up to now had been manual
+  clicking-through in the Browser pane — Scott explicitly asked for real, repeatable smoke tests
+  before deploys. Added Playwright (`tests/smoke.spec.js`, `playwright.config.js`), `npm test`
+  script. 10 tests, all passing against a real production build+preview (not the dev server):
+  app shell/nav, glucose entry, diary entry, food entry (AI-unavailable path + the full
+  clarify-question loop via a mocked network route — no real Anthropic calls in tests), settings
+  (unit propagation, reminder banner), export (CSV content checked, printable summary checked with
+  `window.print` stubbed so it can't hang the test run the way it hung manual browser testing
+  earlier). This is now a standing pre-deploy gate — see `CLAUDE.md`'s "Testing" section. Grow this
+  suite with every new feature; don't let it go stale.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
