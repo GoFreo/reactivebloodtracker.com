@@ -310,3 +310,10 @@ document.getElementById("glucose-unit").value = savedUnit;
 renderGlucoseSources();
 loadReminderSettings();
 refreshTimeline();
+
+// Brief splash (icon + tagline) on every load, then straight into the Timeline —
+// not a loading gate (the app underneath is already rendered), just a moment of
+// calm identity before landing in the data.
+setTimeout(() => {
+  document.getElementById("splash").classList.add("hidden");
+}, 900);
