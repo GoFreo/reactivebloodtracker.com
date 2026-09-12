@@ -302,11 +302,19 @@ in this project instead:
   `npx @netlify/mcp` command run locally to actually upload/build). Verified live: 200s on the
   page and both assets. `SCOTT-START-HERE.html`'s "Open the App" button now points here instead
   of the earlier LAN-IP stopgap — works from anywhere now, not just Scott's home WiFi.
-  - **AI key still not set** — that's Scott's own step (Netlify dashboard → Site settings →
-    Environment variables → `ANTHROPIC_API_KEY`), never something to do on his behalf even if he
-    pastes the value in chat. See `CLAUDE.md`'s "AI / Anthropic key" section for the full Phase 1
-    (his own key) vs Phase 2 (bring-your-own-key, if this ever goes public) model — confirmed by
-    Scott the same session, several messages, now consolidated there.
+  - **AI key added by Scott himself (2026-09-12), in progress.** He added `ANTHROPIC_API_KEY` as a
+    Secret env var (same value for all deploy contexts) — verified via the Netlify connector that
+    it's actually set (never saw the value itself). Hit a real Anthropic account issue testing it
+    live: `"This API key is not scoped to a workspace..."` — his key needs an
+    `anthropic-workspace-id` header. Added optional `ANTHROPIC_WORKSPACE_ID` env-var support to
+    `ai-proxy.js` for this (sent as a header only if set; redeployed). **Still needs Scott:**
+    either generate a new key from inside a specific workspace in console.anthropic.com (simplest,
+    no further code changes needed — just replace the `ANTHROPIC_API_KEY` value), or find his
+    workspace ID and give it to me to set as `ANTHROPIC_WORKSPACE_ID`. Not yet confirmed working
+    end-to-end — retest with `curl -X POST https://reactive-hypoglycemia-tracker.netlify.app/
+    .netlify/functions/ai-proxy -H "Content-Type: application/json" -d '{"text":"..."}'` once
+    either fix lands. See `CLAUDE.md`'s "AI / Anthropic key" section for the full Phase 1 (his own
+    key) vs Phase 2 (bring-your-own-key, if this ever goes public) model.
 - **Mobile design pass (2026-09-12, same session).** Scott asked for a genuinely better, calmer
   visual design (his current CSS is "plain functional"). Drafted 7 mobile mockup screens via
   Claude Design's canvas — Timeline (with a "latest reading" hero card), a redesigned quick-add
