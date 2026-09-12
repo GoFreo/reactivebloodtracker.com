@@ -18,7 +18,22 @@ tracking/analysing it. Mobile-first (used mostly on Scott's phone), with a Mac-u
 Will call the Anthropic API for its AI-driven sections — Scott is generating a fresh, dedicated key
 for this project once that part is actually being built; don't hardcode or ask for one before then.
 
-**Status as of 2026-09-12: pre-code.** Nothing has been built yet.
+**Status as of 2026-09-12: working v1 built** (Vite PWA, `npm run dev`/`npm run build` both work).
+See `HANDOVER.md` for what's built, tested, and open.
+
+## Product scope (confirmed by Scott, 2026-09-12)
+
+**Phase 1, now: just for Scott.** He's the actual reactive-hypoglycemia patient — "the guinea
+pig" — and wants the tool made as good as it can be for his own daily use first, not held back or
+padded out for hypothetical other users. **Phase 2, later, only if Phase 1 proves worthwhile:**
+possibly turn it into something other people could use. Not decided, not being built toward yet.
+
+**How this should shape decisions:** prioritize Scott's own UX/quality over any multi-user,
+onboarding, or productization work — none of that is needed and none should be built speculatively
+(same "don't build for hypothetical future requirements" principle, applied to scope, not just
+code). The SparkyFitness non-commercial-license caution in `HANDOVER.md` still applies regardless
+of timeline: writing clean original code now avoids having to rip out borrowed code later if
+Phase 2 ever happens — costs nothing today, removes a real risk later.
 
 ## Reading order — do BEFORE writing any code
 
