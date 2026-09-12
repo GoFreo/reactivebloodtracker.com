@@ -372,6 +372,39 @@ in this project instead:
   **not** build a multi-reminder UI from a guess at the structure; wait for him to specify it
   further (how many, meal-relative vs fixed times, editable list vs fixed slots) before touching
   `reminders.js`/Settings.
+- **Landing page concept drafted (2026-09-12).** Scott asked for a marketing landing page, "between
+  you and design." Checked `research/` first for the competitor-analysis task he separately gave
+  Cowork — nothing new has landed (still just the two brief versions), so built this from the
+  brief's own §9 competitive-landscape table (real researched pros/cons on MySugr, Levels,
+  Nutrisense/Signos, generic AI calorie apps) rather than waiting idle or inventing claims.
+  Published as a separate design canvas (private, view/export only — same unconfirmed-saving
+  caveat as the mobile mockups): `https://claude.ai/code/artifact/be976b72-3e52-4bef-9bff-7445333b385f`.
+  Framed honestly as "not yet publicly available" with a mailto CTA (`[your contact email]`
+  placeholder — Scott needs to decide what address, if any, before this could ever go live) rather
+  than a fake signup form with no backend behind it. **If/when Cowork's competitor research does
+  land in `research/`, revisit this page's comparison section against it** — it may have more
+  current or detailed findings than the original brief's §9.
+- **Product-direction idea, not built (2026-09-12): separate mobile + desktop experiences with
+  shared data.** Scott's framing: mobile stays quick-entry (like now); a desktop version (same
+  pattern as SfumatoART working better on a computer) could add richer glucose/food trend graphs —
+  which is exactly the "descriptive correlation" feature already planned in the "Descriptive, not
+  prescriptive" section above, just needs a real home once there's enough logged data to chart.
+  **The real open question, not resolved:** "shared data between the two" means syncing between
+  Scott's own devices, which is a genuinely bigger architecture piece than exists today — current
+  storage is local-only per-device by design (his own privacy principle, `data/*` gitignored, no
+  backend). Some form of cross-device sync (even just between his own phone and Mac, never a
+  third party) would need real design work, not a quick add-on. Scott called this "food for
+  thought," not a build request — don't start architecting sync without him deciding he wants it.
+- **Custom domain in progress (2026-09-12): reactivebloodtracker.com.** Scott registered it
+  ($17/yr) and set it as the Netlify project's primary domain himself. DNS confirmed correctly
+  pointed at Netlify (same IP as the `.netlify.app` URL). **HTTPS certificate not yet issued** —
+  the domain was still serving Netlify's generic `*.netlify.app` wildcard cert as of this check,
+  which browsers reject for the custom hostname. This is normal immediately after adding a domain
+  and usually resolves on its own; if it's still not working after a while, check Netlify's
+  domain/HTTPS settings for a "Verify DNS configuration" option. **Do not switch
+  `SCOTT-START-HERE.html`'s "Open the App" button or any other reference over to
+  `reactivebloodtracker.com` until HTTPS is confirmed working** — the `.netlify.app` URL remains
+  the reliable one until then.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
