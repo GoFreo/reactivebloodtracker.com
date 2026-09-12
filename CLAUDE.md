@@ -84,11 +84,41 @@ handoff only happens through a file: Scott (or the Cowork session, if he exports
 its findings into `research/`, and that's the only way this project sees them. If `research/` is
 empty, the research hasn't come across yet — don't assume or invent findings.
 
-## AI / Anthropic key
+## AI / Anthropic key — Phase 1 vs Phase 2 (confirmed by Scott, 2026-09-12)
 
-Not configured yet. Don't hardcode a key, don't ask Scott for one in chat — when he's generated the
-dedicated key for this project he'll provide it through normal config (e.g. an env var / `.env`,
-already gitignored here). Until then, don't build anything that assumes a live API call succeeds.
+**Phase 1, now: one personal key, Scott's own.** Deployed on Netlify
+(`reactive-hypoglycemia-tracker.netlify.app`, team `smfraser60`, site id
+`0b9a9624-13b7-4441-8056-0807f9cbbf7c`). Scott picked Anthropic himself ("I like their policies").
+The key is a server-side env var (`ANTHROPIC_API_KEY`) read by `netlify/functions/ai-proxy.js` —
+architecture already built for exactly this, nothing to change. **Not configured yet.**
+
+**Whoever picks this up: do not enter the key value yourself, in any tool, ever — not into
+Netlify's env vars, not into a `.env` file, not anywhere.** Handling API keys/secrets on Scott's
+behalf is off-limits regardless of whether he pastes the value in chat and asks — tell him to add
+it himself directly in Netlify's dashboard (Site settings → Environment variables →
+`ANTHROPIC_API_KEY`), or run `netlify env:set` himself. Until it's set, `ai-proxy.js` correctly
+returns `{configured: false}` — that's working as designed, not a bug to chase.
+
+**Phase 2, later, only if this goes public — bring-your-own-key model:**
+- Each user supplies their **own** Anthropic key — never a shared/pooled key covering everyone.
+  Scott's reasoning: keeps each person's data under their own control, gives them choice of where
+  their key comes from, and means Scott (as the app's builder) never becomes the custodian of
+  everyone else's AI-routed health data or bears everyone's API cost.
+- **At setup, before any key is entered:** show a plain-language security-risk disclosure — using
+  AI features means their food photos/text get sent to Anthropic using their own key. Let them do
+  their own research and decide they're comfortable, before the key-entry field appears, not after.
+- The app can **guide** them on how to get an Anthropic key (a link to Anthropic's docs/console)
+  but never supplies, generates, or stores a key on their behalf — sourcing the key is entirely
+  their own personal choice/action.
+- **Without a key, the app still fully works** — manual glucose/food/diary entry, timeline, export
+  — it "just becomes a data storage system" (Scott's own words). Only AI-dependent features (photo
+  food analysis, text AI-parsing, the clarifying-question loop) are unavailable.
+- **Real architecture change this implies, not built yet:** Phase 1's single server-side env-var
+  key doesn't work for Phase 2 — each user's key would need to be supplied per-request (e.g.
+  entered client-side, sent with each call) rather than baked into one shared server config. Don't
+  build this now; it's meaningless with one user, and premature per this project's own "don't build
+  for hypothetical future requirements" rule. Just don't build anything in Phase 1 that would make
+  this harder to add later (e.g. don't hardcode the assumption that there's exactly one global key).
 
 ## Platform target
 

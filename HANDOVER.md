@@ -294,6 +294,19 @@ in this project instead:
     dev server are both on and his phone is on the same network. Real phone access from anywhere
     needs an actual deploy (Netlify, same pattern as SfumatoART) — asked Scott, not done
     unilaterally, since deploy has always been his call on other projects.
+- **Deployed to Netlify (2026-09-12, same session).** Live at
+  `https://reactive-hypoglycemia-tracker.netlify.app` (team `smfraser60`, site id
+  `0b9a9624-13b7-4441-8056-0807f9cbbf7c`) — created and deployed via the Netlify Claude-Desktop
+  connector (`netlify-project-services-updater` → `create-new-project`, then
+  `netlify-deploy-services-updater` → `deploy-site`, which handed back a scoped
+  `npx @netlify/mcp` command run locally to actually upload/build). Verified live: 200s on the
+  page and both assets. `SCOTT-START-HERE.html`'s "Open the App" button now points here instead
+  of the earlier LAN-IP stopgap — works from anywhere now, not just Scott's home WiFi.
+  - **AI key still not set** — that's Scott's own step (Netlify dashboard → Site settings →
+    Environment variables → `ANTHROPIC_API_KEY`), never something to do on his behalf even if he
+    pastes the value in chat. See `CLAUDE.md`'s "AI / Anthropic key" section for the full Phase 1
+    (his own key) vs Phase 2 (bring-your-own-key, if this ever goes public) model — confirmed by
+    Scott the same session, several messages, now consolidated there.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
