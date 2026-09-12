@@ -175,6 +175,14 @@ paid Anthropic API in tests), settings (unit propagation, reminder banner), and 
 printable summary — `window.print` is stubbed in the test, never actually triggered, since the real
 dialog blocks the browser and will hang a test run).
 
+**Runs across 4 projects** (`playwright.config.js`): Desktop Chrome + Mobile Chrome (Pixel 7) for
+Chromium/Android coverage, Desktop Safari + Mobile Safari (iPhone 14) for WebKit/iOS/Mac coverage —
+40 test runs total, per Scott's explicit ask for real cross-device confidence, not just whatever
+engine Playwright defaults to. `serviceWorkers: "block"` is set in the test context deliberately —
+the app's real service worker (`src/main.js`) can intercept fetches before Playwright's
+`page.route()` sees them under WebKit specifically (not Chromium), which broke the AI-mocking tests
+silently until this was found. Keep this setting; don't remove it as unnecessary.
+
 **Run `npm test` before every deploy, no exceptions.** It builds and serves the real production
 bundle (`playwright.config.js`'s `webServer`, not the dev server) — a true pre-deploy gate, not a
 dev-mode sanity check. All 10 passed as of 2026-09-12. If a deploy is proposed without this having

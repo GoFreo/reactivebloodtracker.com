@@ -405,6 +405,46 @@ in this project instead:
   `SCOTT-START-HERE.html`'s "Open the App" button or any other reference over to
   `reactivebloodtracker.com` until HTTPS is confirmed working** — the `.netlify.app` URL remains
   the reliable one until then.
+- **Landing page rebuilt as a real responsive page (2026-09-12), replacing the design-canvas
+  draft.** Scott reported the design-canvas version didn't scale properly to different window
+  sizes — correct: it was a fixed 1440px-wide mockup, and the canvas tool's own editor chrome
+  (fixed artboard frames, expand/fit-vs-fill) isn't the right vehicle for "something I can pull up
+  and show a doctor on any device" anyway. Rebuilt from scratch as a plain, directly-published
+  Artifact (fluid CSS, `clamp()` type scale, real `@media` breakpoints, no design-canvas editor
+  involved) — genuinely responsive at any real window size: `https://claude.ai/code/artifact/7042f69a-fb21-4738-930e-bf0084828741`.
+  - Did brief competitive-design research first (levelshealth.com, ouraring.com) rather than
+    guessing at "flashy" — landed on an editorial direction distinct from both: near-black/warm-
+    stone palette, Newsreader (serif headlines) + IBM Plex Sans/Mono (body/data), and a hero built
+    around an actual glucose-response curve (rise → crash → recovery) as the dominant visual —
+    genuinely subject-specific, not a stock hero image or generic gradient.
+  - Added a small spring-coil detail under the nav logo's drop, per Scott's ask — works fine at
+    that slightly-larger logo size; the tiny 60px home-screen app icon stays without it (a literal
+    coil doesn't read at that size, confirmed earlier).
+  - **Real bugs found and fixed while checking the render before publishing** (per the artifact
+    design process's "look once" step): an invalid `height="auto"` SVG attribute (SVG doesn't
+    accept that as a presentation attribute the way CSS does) that silently broke the hero chart;
+    a `stroke-dashoffset`-based line-draw animation that left the hero's main visual invisible
+    until the animation finished — exactly the "hidden until JS/animation completes" anti-pattern
+    to avoid, since a fast screenshot, slow load, or PDF export would show nothing there (replaced
+    with an always-visible curve + a non-hiding pulse on the marker dot only); an `align-items:
+    center` on the two-column hero that created an odd empty-looking gap in the shorter column
+    once scrolled to mid-height (changed to `align-items:start`).
+  - Softened a specific "$125/yr" competitor-pricing callout to a general "Subscriptions" stat,
+    consistent with the same fix already applied to the comparison table — a named competitor's
+    exact price, stated as fact with no citation, risks being wrong or stale.
+  - Contact CTA still uses a `[your contact email]` placeholder — needs Scott's decision before
+    this could ever be shared beyond this private link.
+- **Playwright suite expanded to real cross-browser/cross-device coverage (2026-09-12).** Was
+  Chromium-only. Scott asked for confidence across Android/iOS/Mac/PC specifically. Added Desktop
+  Safari and Mobile Safari (iPhone 14) projects alongside the existing Desktop Chrome and Mobile
+  Chrome (Pixel 7) ones — Chromium engine stands in for Chrome/Android, WebKit for Safari/iOS/Mac.
+  **This immediately found a real issue**: the clarify-loop test's mocked AI-proxy route was
+  silently not intercepted under WebKit specifically — the app's own service worker (registered in
+  `src/main.js`) was grabbing the fetch first, a known WebKit-vs-Chromium Playwright difference.
+  Not a product bug (the real deployed AI integration was already verified working via curl against
+  the live site) but a real test-isolation gap that only cross-engine testing surfaces — fixed with
+  `serviceWorkers: "block"` in `playwright.config.js`'s test context. All 40 tests (10 tests × 4
+  projects) pass. `npm test` now runs this full matrix by default.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
