@@ -35,6 +35,34 @@ code). The SparkyFitness non-commercial-license caution in `HANDOVER.md` still a
 of timeline: writing clean original code now avoids having to rip out borrowed code later if
 Phase 2 ever happens — costs nothing today, removes a real risk later.
 
+## Privacy & data-sharing principles (confirmed by Scott, 2026-09-12 — read before touching storage or sharing features)
+
+This is medical data. Scott was explicit about the model, and it governs every future storage or
+sharing feature, not just what exists today:
+
+1. **Local by default, not an "internet recording."** This is a *personal* recording, not
+   something that lives on the internet unless the person using it chooses that. Matches what's
+   already built: IndexedDB on-device, no backend database, no accounts, nothing uploaded
+   automatically. If cloud backup/sync is ever added, it must be **opt-in** — off by default, a
+   deliberate choice the user makes, never silently on. Don't build an "always syncs to the cloud"
+   feature even if it seems convenient.
+2. **Nothing is shared unless the user explicitly asks.** No document, no data leaves the device
+   on its own. Sharing with a nurse, doctor, or anyone else happens only through an explicit user
+   action — this is exactly what the Export screen already is (CSV, or the printable/PDF-style
+   summary). Sharing channel is the user's choice at that moment: print/PDF, email, USB/file
+   transfer, whatever suits them — the app's job is to produce a clean exportable document on
+   request, not to pick or automate a delivery channel itself.
+3. **Per-person data isolation, if it's ever more than one person.** Phase 1 is Scott alone, so
+   this doesn't affect anything being built right now — but if Phase 2 (see above) ever happens,
+   each person's records must be fully separate, isolated entries, never commingled across people.
+   Design any future multi-user data model around that from the start; don't retrofit it. This is
+   also a real legal requirement, not just a preference — see the research brief's §8 (Australian
+   Privacy Act: health-service providers are covered regardless of business size, unlike the usual
+   small-business exemption).
+4. **The data is for the individual's own medical benefit first.** Sharing/export is a secondary
+   feature serving that primary purpose (his own tracking, his own doctor visits) — not the other
+   way around.
+
 ## Reading order — do BEFORE writing any code
 
 1. `HANDOVER.md` (this folder) — current status, what's decided, what's still open.

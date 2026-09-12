@@ -279,6 +279,21 @@ in this project instead:
   own IndexedDB on his phone once it's actually deployed — `data/` exists only because that's not
   built/deployed yet. Once it is, the real next step is importing today's `data/*.md` entries into
   the app rather than continuing the file-based log indefinitely.
+- **Cross-doc handover pass done (2026-09-12, same session).** Scott asked for this explicitly:
+  everything from today recorded and consistent across files, not just in this one.
+  - `CLAUDE.md`: added "Privacy & data-sharing principles" (local-by-default, export-only sharing,
+    per-person isolation if ever multi-user — Scott's own words, confirmed in chat) and the
+    Phase 1/Phase 2 product-scope section from the entry above.
+  - Root `PROJECT-REGISTRY.md` (section 13 + quick-reference row) and `MASTER_HANDOVER.md`
+    (Active projects table) both updated from "pre-code" to today's actual working-v1 state —
+    they were stale, describing the state from before this session's build work.
+  - `SCOTT-START-HERE.html`: added a green "🩸 Open the App" button next to the existing black
+    "Ask Claude to Build/Fix" one, matching the SfumatoART/Ukulele card pattern. Added
+    `vite.config.js` (`server.host = true`) and restarted the dev server so it's reachable at
+    `http://172.16.1.70:5173` over LAN WiFi — **temporary**, only works while Scott's Mac and the
+    dev server are both on and his phone is on the same network. Real phone access from anywhere
+    needs an actual deploy (Netlify, same pattern as SfumatoART) — asked Scott, not done
+    unilaterally, since deploy has always been his call on other projects.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
