@@ -84,9 +84,13 @@ export const handler = async (event) => {
     }
 
     const rawText = data.content?.[0]?.text || "";
+    // The system prompt asks for raw JSON with no markdown fences, but the model
+    // sometimes wraps it in ```json ... ``` anyway — strip that before parsing
+    // rather than failing on otherwise-perfectly-good output.
+    const jsonText = rawText.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
     let parsed;
     try {
-      parsed = JSON.parse(rawText);
+      parsed = JSON.parse(jsonText);
     } catch {
       return {
         statusCode: 502,
