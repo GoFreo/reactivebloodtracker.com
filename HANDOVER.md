@@ -323,6 +323,20 @@ in this project instead:
   **Not yet implemented in the real codebase** — this is a design reference for Scott to review
   first; next step (his call) is either "build this into `index.html`/`src/style.css` as-is" or
   iterate on the mockups first.
+  - **Reviewed and fixed before calling it done.** A read-only review pass (background agent, per
+    the design skill's own "check complex work afterwards" step) found real issues, all fixed and
+    republished to the same link: (1) six CTA/FAB shadows were hardcoded to the light-mode teal's
+    RGB instead of a token, so they wouldn't adapt in dark mode — added an `--accent-rgb` token
+    pair (light `27,110,106` / dark `79,195,188`) to every artboard's own token set and routed the
+    shadows through it; (2) several tap targets were under the 44px minimum the brief itself
+    called for — back-chevrons and the mic icon had no hit-area padding, the clarify send button
+    was 40px, the clarify answer field and Glucose's unit/time pills were ~30-36px tall, Export's
+    date fields were ~41px; all bumped to 44px+; (3) the bottom-nav links in Main/Export/Settings
+    only wrapped their icon+label content (~39px) despite the bar looking 82px tall, because the
+    container used `align-items:flex-start` — changed each link to `height:82px` so the entire bar
+    segment is the real tap target, not just the visible icon; (4) a `--warn-border` token in
+    `Food.dc.html` was defined but never used — wired it onto the low-confidence AI-result card's
+    border instead of deleting it, since the card is showing exactly that state.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
