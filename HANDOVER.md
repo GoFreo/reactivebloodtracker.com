@@ -259,9 +259,26 @@ Scott's phone, not something safe to trigger from an automated test).
   above (does the GP/anaesthetist export report need to exist by a specific date). Also worth his
   call whenever convenient, not blocking: exact ADACare meter model once it arrives, Anthropic
   budget ballpark.
-- Next actions when picking this back up: either keep building (restaurant clarifying-question
-  loop, real icons, nutrition-database lookups) or pause here and let Scott try the v1 slice first
-  — his call when he checks back in.
+- Next actions when picking this back up: either keep building (real icons, nutrition-database
+  lookups) or pause here and let Scott try the v1 slice first — his call when he checks back in.
+
+### Real data started (2026-09-12, same session) — read this before touching `data/`
+Scott started actually using this as a real log the same day it was scaffolded, ahead of an
+upcoming nurse visit — a real day's glucose/food sequence, with more readings added through the
+day. The app itself isn't deployed anywhere yet (no Netlify site, nothing on his phone), so there
+was nowhere durable to log it *in the app*. Handled it as a **local, gitignored `data/` folder**
+in this project instead:
+- `data/2026-09-12.md` — source of truth, one row per reading/event, meant to be appended to
+  through the day (more readings, or new dates as new `data/YYYY-MM-DD.md` files).
+- `data/2026-09-12-log.csv` and `data/2026-09-12-log.html` — generated from the `.md`, sent to
+  Scott directly (`.html` is print-to-PDF-able) for the nurse. Regenerate both after every append.
+- **`data/` is gitignored — never commit anything in it.** This is Scott's real health data; it
+  doesn't belong in git history the way the app's own source code does.
+- This is a stopgap, not the intended architecture. Brief §7 and Scott's own "health data
+  shouldn't default to a shared cloud database" preference both point to this living in the app's
+  own IndexedDB on his phone once it's actually deployed — `data/` exists only because that's not
+  built/deployed yet. Once it is, the real next step is importing today's `data/*.md` entries into
+  the app rather than continuing the file-based log indefinitely.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never

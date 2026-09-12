@@ -8,3 +8,7 @@ __pycache__/
 .DS_Store
 dist/
 .netlify/
+
+# Scott's real glucose/food/diary data — never belongs in git history.
+# Local-only until the app is deployed and this lives in IndexedDB on his phone instead.
+data/
