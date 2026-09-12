@@ -355,6 +355,23 @@ in this project instead:
   `window.print` stubbed so it can't hang the test run the way it hung manual browser testing
   earlier). This is now a standing pre-deploy gate — see `CLAUDE.md`'s "Testing" section. Grow this
   suite with every new feature; don't let it go stale.
+- **Splash screen added (2026-09-12).** Scott's ask: don't land straight in Timeline with no
+  identity — icon + brief tagline first. Fixed teal overlay (`#splash` in `index.html`), ~900ms
+  hold then a 400ms fade (`src/style.css`, `src/main.js`), reveals the already-rendered app
+  underneath — not a real loading gate. Verified the smoke suite still passes with it in place.
+- **"Ask Gemini / New Tab / All Tabs" — not this app.** Scott described a confusing "black box"
+  screen mentioning these. That's his phone browser's own toolbar (Chrome), not anything in this
+  codebase — a website cannot rename or remove another app's UI. Told him **Add to Home Screen**
+  opens the PWA standalone with zero browser chrome, which should resolve the confusion entirely.
+  Noting this here so a future session doesn't go looking for "Ask Gemini" in the source — it was
+  never there.
+- **Feature request, deliberately not built yet: multiple meal-timed reminders** (2026-09-12).
+  Scott wants reminders tied to each meal through the day (before breakfast, after breakfast, 2nd/
+  3rd/4th/5th meal, etc.), not just the single daily on/off + time that exists now
+  (`src/reminders.js`). He explicitly said he's still thinking through the exact shape of it — do
+  **not** build a multi-reminder UI from a guess at the structure; wait for him to specify it
+  further (how many, meal-relative vs fixed times, editable list vs fixed slots) before touching
+  `reminders.js`/Settings.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
