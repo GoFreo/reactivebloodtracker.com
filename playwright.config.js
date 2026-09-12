@@ -9,8 +9,24 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     trace: "retain-on-failure",
+    // The app registers a real service worker (src/main.js). WebKit's Playwright
+    // implementation has a known quirk where an active SW can intercept fetches
+    // before page.route() sees them — Chromium doesn't have this problem, which
+    // is exactly why testing only on Chromium missed it. Blocking SW registration
+    // for the test context keeps this a test of the app's own logic, not an
+    // accidental test of SW/route interaction that has nothing to do with it.
+    serviceWorkers: "block",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // Covers the real spread of devices Scott actually uses/wants this verified on:
+  // Chromium engine stands in for Windows/Mac/Android Chrome, WebKit for Safari on
+  // Mac and iOS. Not a substitute for trying it on an actual phone, but a real,
+  // repeatable check across both rendering engines and both desktop/mobile viewports.
+  projects: [
+    { name: "Desktop Chrome (Mac/PC)", use: { ...devices["Desktop Chrome"] } },
+    { name: "Desktop Safari (Mac)", use: { ...devices["Desktop Safari"] } },
+    { name: "Mobile Safari (iPhone)", use: { ...devices["iPhone 14"] } },
+    { name: "Mobile Chrome (Android)", use: { ...devices["Pixel 7"] } },
+  ],
   webServer: {
     command: "npm run build && npm run preview -- --port 4173",
     url: "http://localhost:4173",

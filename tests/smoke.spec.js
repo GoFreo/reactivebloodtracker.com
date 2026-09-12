@@ -63,7 +63,10 @@ test.describe("food entry + AI clarify loop", () => {
 
   test("shows a low-confidence result and lets the user answer the clarifying question", async ({ page }) => {
     let call = 0;
-    await page.route("**/.netlify/functions/ai-proxy", async (route) => {
+    // A URL-predicate function, not a glob string — the glob form was flaky on
+    // WebKit specifically (route silently not applied, real fetch went through
+    // instead), while the predicate form matches reliably across engines.
+    await page.route((url) => url.pathname.endsWith("/ai-proxy"), async (route) => {
       call += 1;
       const body =
         call === 1
