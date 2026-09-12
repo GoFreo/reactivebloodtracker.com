@@ -13,6 +13,17 @@ export const handler = async (event) => {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
+  // Optional, opt-in guard: once a real API key is set, this endpoint is otherwise an
+  // open, unauthenticated proxy to it — anyone who finds the URL could call it and burn
+  // Scott's budget, even though they'd never see any actual health data (that's all
+  // client-side, never touches this function). Set APP_SHARED_SECRET in Netlify + the
+  // same value as VITE_APP_SHARED_SECRET at build time to require this header; if unset,
+  // this check is skipped entirely so it never adds a new required setup step.
+  const sharedSecret = process.env.APP_SHARED_SECRET;
+  if (sharedSecret && event.headers["x-app-secret"] !== sharedSecret) {
+    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return {

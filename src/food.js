@@ -27,9 +27,14 @@ export async function parseFoodWithAI({ text, photoBlob }) {
   }
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    // Only present if VITE_APP_SHARED_SECRET was set at build time — see ai-proxy.js.
+    const sharedSecret = import.meta.env.VITE_APP_SHARED_SECRET;
+    if (sharedSecret) headers["x-app-secret"] = sharedSecret;
+
     const res = await fetch("/.netlify/functions/ai-proxy", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body),
     });
     const data = await res.json();
