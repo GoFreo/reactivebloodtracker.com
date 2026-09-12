@@ -120,6 +120,47 @@ returns `{configured: false}` — that's working as designed, not a bug to chase
   for hypothetical future requirements" rule. Just don't build anything in Phase 1 that would make
   this harder to add later (e.g. don't hardcode the assumption that there's exactly one global key).
 
+## Glucose/meter connectivity — technical reality (clarified with Scott, 2026-09-12)
+
+Scott asked directly whether the app can talk to the Libre 2 Plus over Bluetooth and to a
+finger-prick meter. Answered plainly, recorded here so it isn't over-promised later:
+
+- **Libre 2 Plus is not a direct-Bluetooth-to-this-app situation.** The sensor streams over
+  Bluetooth to Abbott's own app, not to arbitrary third-party apps. The real integration path —
+  already the brief's own §3.2 recommendation — is **LibreLinkUp**: once the sensor is active and
+  Scott turns on sharing from the official app, a backend job can poll LibreLinkUp for the latest
+  reading every few minutes. Not live-streaming, not built yet, and can't be tested until the
+  sensor is actually active (still pending supply).
+- **Finger-prick meter (Accu-Chek or whatever ADACare supplies) Bluetooth support depends entirely
+  on the exact model**, still unconfirmed — and even a Bluetooth-capable meter may keep its
+  protocol closed/proprietary rather than open to third-party apps. Manual entry is the reliable
+  fallback regardless of model.
+- **Equipment WILL change over time — this is exactly why `glucoseSources` in `src/glucose.js` is
+  a registry, not a hardcoded meter/CGM** (Scott's own explicit requirement, captured earlier in
+  this file's history and in `HANDOVER.md`). When LibreLinkUp polling or a specific meter's
+  Bluetooth connection eventually gets built, it's a new entry added to that registry — manual
+  entry keeps working as the fallback, and swapping equipment later (a different meter, a
+  different CGM brand) means adding/swapping a source, never a rewrite. Reaffirmed in this
+  conversation specifically so the CGM/meter work, whenever it happens, actually gets built this
+  way and not hardcoded to Libre/Accu-Chek specifically.
+
+## Descriptive, not prescriptive — reaffirmed against a specific ask (2026-09-12)
+
+Scott asked for the AI to eventually tell him "the amount of food you can eat without raising or
+lowering your sugar too quickly" — i.e. a safe-portion recommendation. **This is out of scope, not
+deferred-and-forgotten — explicitly declined, for the same reason brief §5/§8 already gave:** an
+AI guessing wrong about a safe portion for someone with reactive hypoglycemia is a real safety
+risk, and offering that kind of guidance pushes the app into TGA-regulated
+software-as-a-medical-device territory. Both reasons hold regardless of how good the AI seems.
+
+**What to build instead, once there's enough logged history to show it from:** surface the
+*pattern* as plain fact, not advice — e.g. "the last 4 times you logged white bread, your next
+reading was below 4.0 mmol/L within 90 minutes." Descriptive correlation between food and glucose
+response, drawn from Scott's own real logged data, is exactly what this app is for (see brief
+§1/§10). The line is: show what happened: yes. Tell him what's safe to eat: no. Any future work
+suggesting portion sizes, meal timing advice, or anything phrased as a recommendation needs a
+conscious call with Scott first, not a default assumption that "more helpful AI" is the goal.
+
 ## Platform target
 
 Mobile-first — this is the primary way Scott will actually use it day to day. Mac support matters

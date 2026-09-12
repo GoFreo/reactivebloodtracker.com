@@ -307,6 +307,22 @@ in this project instead:
     pastes the value in chat. See `CLAUDE.md`'s "AI / Anthropic key" section for the full Phase 1
     (his own key) vs Phase 2 (bring-your-own-key, if this ever goes public) model — confirmed by
     Scott the same session, several messages, now consolidated there.
+- **Mobile design pass (2026-09-12, same session).** Scott asked for a genuinely better, calmer
+  visual design (his current CSS is "plain functional"). Drafted 7 mobile mockup screens via
+  Claude Design's canvas — Timeline (with a "latest reading" hero card), a redesigned quick-add
+  bottom sheet, Glucose entry, Food entry (showing the AI clarify-question loop as a chat bubble,
+  not a form), Diary, Export, and Settings — published at
+  `https://claude.ai/code/artifact/9b701ac7-5d68-443b-ab2b-e076651be8ee`. **Could not confirm
+  saving is enabled in that preview** (no capability roster came back) — treat it as view/export
+  only until checked. **One real UX change proposed, not yet built in the real app:** bottom nav
+  simplified from 6 tabs to 4 (Timeline, a central "+" quick-add opening a sheet with
+  Glucose/Food/Diary, Export, Settings) — fewer, larger, calmer targets. Kept the current teal
+  accent (`#1b6e6a`) and the same light/dark-via-`prefers-color-scheme` approach already in
+  `src/style.css`; extended it with a softer warm-neutral background, custom SVG icons in place of
+  emoji, and a confidence-bar + chat-bubble treatment for the AI clarify flow.
+  **Not yet implemented in the real codebase** — this is a design reference for Scott to review
+  first; next step (his call) is either "build this into `index.html`/`src/style.css` as-is" or
+  iterate on the mockups first.
 - **HawkScan (automated security scan) couldn't run**, not skipped by choice: no `hawk` CLI, no
   Docker, no `HAWK_API_KEY` in this environment, and `hawk init` needs an interactive browser login
   this session can't do. Manual care taken instead in the code that's there: user text/photos never
