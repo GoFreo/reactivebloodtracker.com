@@ -452,3 +452,325 @@ in this project instead:
   `timeline.js`), the Anthropic key stays server-side in the Netlify function and is gitignored, no
   secrets committed. Worth an actual HawkScan pass once `hawk` is set up and there's a real deployed
   target to point it at.
+
+## 2026-09-14 — Undocumented artifact found and logged: competitor UX teardown
+
+Picked this project back up per Scott's standing "check artifacts each time" instruction — found a
+"Glucose App Teardown" artifact dated 13 Sep 2026
+(`https://claude.ai/code/artifact/a423ccf8-f703-42e9-a3f2-9b47a468802a`) that was never logged here.
+Made from a different kind of Claude session (its own closing note says it tried and failed to get
+folder access to this project via a device bridge — a limitation this Code session doesn't have),
+so the handoff only existed as the artifact link itself. Read in full (it embeds five App Store
+screenshots as base64 images, stripped those out to read the actual analysis text).
+
+**Content:** a genuine layout audit comparing five real apps' actual App Store screens (not
+marketing sites) — mySugr, Levels, Nutrisense, FreeStyle LibreLink, and Cal AI (photo-food-logging
+only, not glucose). Six patterns flagged as worth reusing: (1) LibreLink's one-number/one-band/
+one-arrow "right now" screen kept separate from a "today's chart" screen rather than merged into
+one crowded view; (2) Nutrisense shading the safe range and recoloring the line/number on leaving
+it; (3) Levels labelling the spike value directly on the chart ("+68") instead of making the reader
+do the maths; (4) Cal AI's labelled leader-lines drawn on the actual photo before asking for
+confirmation — the closest live example of this app's own "show your work, then let the person
+correct it" rule (see "Descriptive, not prescriptive" above); (5) one home screen with every input
+method one tap away; (6) 7d/14d/30d/90d chips answering "today" and "is this a pattern" on one chart.
+
+**The actual point of the teardown:** all five apps are built for diabetes, where the danger is
+highs — lows get a thin line at best, nowhere near the visual weight highs get. This app's danger
+runs the opposite way, which is exactly the gap none of the five fill. Recommends giving lows the
+same visual treatment (red band/number/down-arrow) — **not implemented, and shouldn't be without
+Scott picking the actual threshold value first**, per this file's existing "Descriptive, not
+prescriptive" rule reserving clinical-adjacent judgment calls for him, not an invented default.
+
+**Still open:** this sits alongside the 2026-09-12 mobile-mockup review
+(`9b701ac7-5d68-443b-ab2b-e076651be8ee`) as unbuilt design input — neither has been turned into the
+real `index.html`/`src/style.css` yet. The live site (`reactive-hypoglycemia-tracker.netlify.app`)
+is up and verified responding as of this check, so a future session can do the before/after
+screenshot comparison the teardown's own closing note asked for, directly, without re-asking Scott
+for screenshots.
+
+## 2026-09-14 — Accu-Chek meter connectivity: Scott actively trying to hook it up, research done
+
+Scott has an Accu-Chek meter physically connected to his Mac right now, in what he calls "PC mode,"
+and wants the Tracker to read glucose data directly from the meter rather than manual entry. He'd
+already looked at Accu-Chek's own apps online and found it hard to tell which one matches his meter.
+**Model not yet confirmed** — asked him for the exact name printed on the meter itself (Guide, Guide
+Me, Instant, Aviva, Aviva Connect, Performa, Performa Nano, Mobile, etc. all exist and connect
+differently); update this entry once known.
+
+**Researched today, real findings, not guesses:**
+- **The wired "PC mode" / USB path has no public protocol.** Roche does not publish it — a developer
+  who asked directly and offered to sign an NDA was still refused (see sources below). Meters that
+  use this path talk to Roche's own Smart Pix reader or Accu-Chek 360° software, not to arbitrary
+  third-party apps. Treat "read the raw signal off the wire" for this path as not realistically
+  buildable without reverse-engineering — fragile, unofficial, and not something to promise Scott.
+- **The Bluetooth path is genuinely different and more promising, if his model has it.** Several
+  Accu-Chek meters (Guide, Guide Me, Instant, Aviva Connect) use standard Bluetooth Low Energy and
+  the Bluetooth SIG's own standard **Glucose Service** profile — a public spec any BLE client can
+  read, independent of Roche. This is confirmed working in the wild (a public Python example reads
+  an Accu-Chek meter this way over BLE). If Scott's model has this, the app could read it directly
+  via the **Web Bluetooth API** — but only from Chrome (Mac or Android); **Safari/iOS has never
+  supported Web Bluetooth**, an Apple platform restriction, not something buildable around. Given
+  Scott is on an iPhone day-to-day (per this file's PWA/iOS notes elsewhere), this path would only
+  work from his Mac in Chrome, not from his phone.
+- **Realistic fallback that works regardless of model, buildable now:** whatever Roche software his
+  cable/PC-mode setup already exports to (Smart Pix or Accu-Chek 360°) can save a report/CSV file.
+  Adding a "import from file" option to the `glucoseSources` registry in `src/glucose.js` — built
+  for exactly this kind of new-source addition — would let Scott load a batch of readings from that
+  export instead of typing each one by hand, without needing any undocumented protocol at all.
+- Sources checked: [Accu-Chek Smart Pix Software](https://www.accu-cheklatam.com/en/products/apps-software/smart-pix-software) · [RocheDiabetes Care Platform Connectivity Guide (PDF)](https://www.accu-chek.co.uk/hcp/sites/g/files/papvje326/files/2024-05/RocheDiabetes%20Care%20Platform%20Connectivity%20Guide%20-%20December%202023.pdf) · [Accu-Chek Guide Me Meter](https://www.accu-chek.com/products/meters/guide-me) · [Reading Glucose Data from an Accu-Chek Meter using BLE and Python](https://medium.com/@victoradrianjimenez/reading-glucose-data-from-an-accu-chek-meter-using-bluetooth-low-energy-and-python-acf199a7535e) · [Decoding the Accu-Chek Active IR Protocol](https://people.bath.ac.uk/enpsgp/Zaurus/accu-chek.html) (old model, reverse-engineered, illustrates why Roche's protocols are treated as closed).
+
+**Not yet actioned in code** — waiting on the model confirmation from Scott before building anything
+(CSV import vs. Web-Bluetooth-on-Mac-only are different features with different scope).
+
+## 2026-09-14 — Meter model confirmed: Accu-Chek Guide Me (correcting an earlier wrong guess)
+
+**Correction, not just an update:** earlier today, from a photo of the meter's rear label (SN/GTIN/MODEL/PIN
+fields, Mannheim-Germany manufacturing, a biohazard mark), this file's prior entry guessed the device
+was an **Accu-Chek Inform II** — Roche's hospital point-of-care meter, not a personal device. That
+guess was inference from indirect label styling, not a confirmed match (the exact GTIN never turned
+up in search), and it turned out to be wrong. **Direct confirmation from ADACare (Amy, on a recorded
+call with Scott, 2026-09-14) says the device is an Accu-Chek Guide Me** — Scott confirmed "that's
+what I've got in my hand." Trust this over the earlier label-based inference; correcting the record
+here rather than leaving two contradictory entries standing.
+
+**What this actually means, confirmed via search (not the same device as the wrong earlier guess):**
+- Guide Me is a real consumer meter with **two independent connections**: Bluetooth (pairs with
+  Roche's own mySugr app) and a **USB port for PC transfer** — this is what Scott saw as "PC mode"
+  and the "mini USB jack on the side" he described to the ADACare nurse. Source:
+  [Accu-Chek Guide Me — Bluetooth & USB Data Transfer](https://xeteor.com/roche-accu-chek-guide-me-meter-bluetooth-capability/),
+  [mySugr: Connect Accu-Chek Guide Me](https://support.mysugr.com/hc/en-us/articles/360004201280-How-to-Connect-Accu-Chek-Guide-Me-with-the-mySugr-app).
+- The Bluetooth side is the promising path: Guide/Guide Me meters are documented in the diabetes-tech
+  community as using the Bluetooth SIG's standard **Glucose Service** profile (see the earlier
+  2026-09-14 entry above citing a public Python BLE example reading an Accu-Chek meter this way) —
+  a public spec, independent of needing mySugr or any Roche blessing. If confirmed for this exact
+  meter, the Tracker could read it directly via the **Web Bluetooth API** — but only from Chrome
+  (Scott's Mac or an Android phone), never from Safari/iOS, which has never implemented Web Bluetooth
+  (an Apple platform restriction, unrelated to Roche or this app). Scott is mobile-first on an
+  iPhone day-to-day, so this path would only work when he's specifically on his Mac in Chrome.
+- The USB/PC-transfer side: real, but no more documented for this specific model than the general
+  finding already in the 2026-09-14 entry above (Roche does not publish the wire protocol even to
+  developers who ask directly). Don't assume Guide Me's USB side is more open just because the
+  device itself turned out to be a normal consumer meter — that hasn't been separately confirmed.
+- **Not yet built either path** — this is confirmation of what's possible, not new code. Next step
+  when picked up: try pairing the Guide Me with a Chrome browser's own Bluetooth device picker (from
+  Scott's Mac) to see whether it actually exposes the standard Glucose Service, before writing any
+  Web Bluetooth code against it.
+
+## 2026-09-14 — Libre 2 Plus supply status (from the same ADACare call)
+
+Sensors were dispatched by Abbott on **Monday 2026-09-07**. ADACare followed up Friday 2026-09-11
+with no reply, followed up again urgently the morning of this call (2026-09-14) — no tracking number
+yet, unusual delay by ADACare's own account (possibly related to Abbott mid-transition between the
+Libre 2+/3+ model lines, per the call). ADACare will email Scott (smfraser60@gmail.com, replacing an
+earlier contact "Alex" who has left) with a tracking number once Abbott responds. Still "pending
+supply," per the standing note elsewhere in this file — no change to build priorities from this, just
+a real ETA data point. ADACare's test-strip supply defaults to a 3-month auto-resupply cadence sized
+to 3 tests/day unless Scott calls to adjust it up or down — general life-admin context, not something
+the app needs to model.
+
+## 2026-09-14 — Major build session: Home screen rebuild, thresholds, Bluetooth, barcode scanning
+
+Scott gave a large batch of product direction in one sitting (an unrelated AID-app screenshot for
+UI inspiration, the ADACare phone-call transcript above, then a prioritized "just get it done, I'm
+leaving you to it" instruction), then stepped away. This entry captures everything built, tested,
+and decided in that session — read it in full before touching Home/Readings/Settings again, since
+it supersedes several earlier "not built yet" notes above. `npm test` was green (100/100) at the
+end of every step described below, not just at the very end.
+
+### Home screen rebuilt around one working screen (Scott's explicit spec)
+
+Replaced the old Timeline/Glucose/Food tab split with a single Home screen: a "latest reading" card
+up top, a glucose quick-entry form, then a food quick-entry form (text + camera + barcode + save)
+directly underneath — matches what Scott described in detail ("one big working screen... different
+ways of inputting data placed in the correct area"). Nav is now three tabs — **Home · Readings ·
+Settings** — with Diary and Export reachable as smaller secondary links from Home rather than
+top-level tabs (kept, not dropped — Scott didn't ask to remove either, and Export is what goes to
+his nurse). **This supersedes the earlier 2026-09-12 4-tab-+-FAB mobile mockup review
+(`9b701ac7-...`) as the actual build direction** — that mockup was never built into real code, and
+today's direction came directly from Scott, more specific and further along than the mockup.
+
+**Home screen pieces:**
+- Latest-reading card: big number + unit, a **freshness label** ("4 min ago" → "2h ago" → falls
+  back to a full date past 24h), and a **trend delta** ("+0.6"/"−0.3") against the previous
+  reading — both ideas came from the AID-app screenshot Scott shared; its insulin-dosing specifics
+  (carb boluses, units/hour) don't apply here, but the glanceability pattern does. Delta converts
+  units first (`convertUnit`) so a mixed mmol/L-then-mg/dL history still compares correctly.
+- Food entry got **recent/frequent suggestion chips** (`src/foodSuggestions.js`) — no AI, pure
+  local frequency+recency over what's already saved — tap one to reuse a common meal instead of
+  retyping it. Matches Scott's "if it becomes a regular thing" ask.
+- Camera button restyled from a bare file input into a proper icon button (same underlying AI-photo
+  flow, unchanged). **Barcode button is now real** — see below, not a placeholder.
+- Every entry (glucose, food) keeps its own independently-editable time field — already true before
+  today but reconfirmed as intentional: Scott wants "was this before or after breakfast" to always
+  be his own call per entry.
+
+### Readings screen: list/graph toggle + time-range chips
+
+Renamed from Timeline. List view unchanged in substance. Added a **Graph view** — a hand-rolled
+inline SVG line chart (no charting library; this app's own descriptive-not-fancy correlation
+principle doesn't need one) with **2h/4h/6h/12h/24h/7d range chips** (`GRAPH_RANGES` in
+`src/timeline.js`), again from the screenshot Scott shared. Default range is 24h. Display mode
+(list vs graph) is a Settings-level choice, persisted, also directly togglable from the Readings
+screen itself.
+
+### Glucose warning thresholds — built, with a floor Scott explicitly designed
+
+Settings now has Low/High threshold fields (`src/thresholds.js`), **blank by default** — nothing
+gets colored anywhere (Home's latest-reading card, the Readings list's left-border, the graph's dot
+colors) until Scott fills them in himself. This is the "give lows the same visual weight as highs"
+feature the 2026-09-13 competitor teardown recommended, built the way this file's "Descriptive, not
+prescriptive" section already required: the app never invents the clinical number.
+
+**The floor rule (Scott's own explicit design, his driving-limit analogy — "I drive to a 5 limit
+even though the real risk starts around 4.6-4.7"):** the **low** threshold can be raised above a
+recognized standard for extra personal margin, but this app will not let it go *below* that
+standard. Anchored to the ADA's cited hypoglycemia alert value, 3.9 mmol/L / 70 mg/dL (same source
+as the earlier meter-research entry above) — chosen because that's the figure already sourced and
+shown in the Settings copy, not a new number invented for this. Trying to enter something lower
+snaps back to the floor with a visible explanation, not a silent correction. No equivalent ceiling
+exists on the **high** side — Scott didn't ask for one, and this app's core danger direction is
+lows. `LOW_THRESHOLD_FLOOR` in `thresholds.js` is the one place this would ever need to change
+(e.g., if Scott's doctor gives a personal number that's actually *lower* than the generic standard
+— a real, unresolved tension, flagged rather than silently decided; ask Scott first if it comes up).
+Now also a standing rule in `CLAUDE.md`'s "Descriptive, not prescriptive" section, since it's a
+narrow, deliberate exception to that rule, not a precedent to extend without asking him again.
+
+Each glucose card that crosses a threshold gets a colored left border/background plus a small
+"ⓘ why" toggle explaining which threshold it crossed — never an unexplained color alone.
+
+### Sound: built-in alarm tones (custom user tones deferred, honestly)
+
+Scott asked for custom user-uploaded alarm tones. Built instead, as a clearly-scoped v1
+(`src/sound.js`): three **distinct built-in tones** (Web Audio oscillator beeps, no audio files to
+ship) — one for the daily reminder banner's hidden→shown transition, two more (different pitch,
+double-beep) for a glucose save that lands low or high. A Settings checkbox turns all of it off.
+**Custom uploaded sound files are a real next step, not built** — flagged to Scott directly as
+bigger scope (upload, storage, playback UI) than this pass, alongside a genuine platform constraint:
+no website can override a phone's own *system* notification sound, so even a custom tone can only
+ever play while this app is open, not as a background OS-level alert.
+
+### Date format setting
+
+Settings → Date format: Automatic (follows the phone's own locale, unchanged default) or a locked
+DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD (`src/dateformat.js`). Built after Scott clarified this
+wasn't the speculative Phase-2 "different users, different countries" feature it first looked
+like — his actual case is personal: he wants a format that doesn't silently change when his own
+phone's region setting shifts while travelling. Every place in the app that draws a date now routes
+through `formatDate()` so the lock actually holds everywhere at once (Home, Readings, Export CSV
+and printable summary) — the one thing it **can't** touch is the native `<input type="date">`
+picker on the Export screen's From/To fields, the phone's own OS calendar control, not something a
+website can restyle.
+
+### Meter identified, corrected, and a real Bluetooth source built against the actual spec
+
+**Correction to the earlier entry above:** the "Accu-Chek Inform II" identification from the
+photographed label was a wrong inference (indirect label styling, no confirmed GTIN match) — the
+ADACare phone call above confirms the actual device is an **Accu-Chek Guide Me**, a genuine
+consumer meter with both Bluetooth (to Roche's mySugr app) and the USB port Scott had noticed.
+Trust this over the earlier guess; `CLAUDE.md` has been corrected to match.
+
+Built a real Bluetooth glucose source against this (`src/bluetoothGlucose.js`), added to the
+`glucoseSources` registry as `bluetooth-meter`, gated on `"bluetooth" in navigator` (Chrome on
+Mac/Android only — Safari/iOS has never implemented Web Bluetooth, an Apple restriction, so this
+entry correctly reports "Not available" there). A "Connect via Bluetooth & pull readings" button
+in Settings appears only when available; it opens Chrome's own device picker, connects to the
+standard Bluetooth SIG **Glucose Service** (0x1808, a public spec — not Roche's undocumented USB
+protocol), and pulls the meter's full stored history via the Record Access Control Point, not just
+whatever it reads next.
+
+**This is built strictly to the published Bluetooth GATT spec (byte layout confirmed against the
+official spec before writing any parsing code — sources cited in the module's own header comment)
+but has NOT been run against Scott's actual meter — there's no way to verify that without the
+physical device.** Every parsed value is range-checked (1-40 mmol/L) before being offered for
+saving, specifically so a spec-reading mistake can't silently produce a wrong glucose number — the
+one safety property any future change here must keep. The pure SFLOAT-decoding math has real
+unit-test coverage (`tests/bluetoothGlucose.spec.js`, hand-constructed byte arrays matching the
+spec) since that's the part that could otherwise fail silently; the actual device-pairing handshake
+could not be tested this way and is the genuine next step — **treat the first real connection
+attempt as a test, not a known-working feature.**
+
+### Barcode scanning: built for real, not the honest-placeholder message from earlier
+
+Replaced the earlier "isn't built yet" message with an actual scanner: `src/barcode.js` uses ZXing
+(`@zxing/browser`) to decode from live camera frames via canvas analysis — deliberately **not** the
+native `BarcodeDetector` Shape Detection API, which Safari/iOS still doesn't support and would have
+left Scott's own phone without a working scanner. `src/nutrition.js` looks up a decoded barcode
+against **Open Food Facts** (free, no API key, already the brief's own §6 recommendation, real
+Australian-market coverage) and formats a descriptive line — product name, sugar/carbs per 100g —
+into the food-text field. Purely descriptive, per this app's own rule: no portion-size or
+"how much is safe" logic anywhere in it.
+
+**Bundle-size catch, fixed same session:** ZXing added ~500KB (pre-gzip) to the main JS bundle
+before this was noticed — barcode scanning is a secondary, occasional-use feature, so making every
+page load pay for it upfront was wrong. Fixed with a dynamic `import("./barcode.js")` on first tap
+instead of a static top-level import; Vite now code-splits it into its own chunk, main bundle back
+to ~29KB. Worth remembering as a pattern if another heavy, occasional-use dependency gets added
+later — check `npm run build`'s own chunk-size output, it flags this.
+
+**Tested:** the pure lookup/formatting logic (`tests/nutrition.spec.js`, mocked `fetch`, no network
+or camera). **Not testable from here, needs Scott's real device:** the actual camera-scan-a-real-
+barcode flow — Playwright's headless run has no camera, so the existing test only confirms the
+scanner UI opens and closes cleanly, not that a real decode works end-to-end.
+
+### CSV Import (the realistic version of "transfer between devices")
+
+Scott asked for automatic transfer when his phone connects to his Mac — **not possible**, flagged
+directly: no website can detect a cabled phone or reach into another device's browser storage, an
+inherent web-platform limit, not something buildable around. Built the realistic version instead:
+Export's CSV gained extra structured columns (Timestamp/Value/Unit/Note/Text, additive — the
+original human-readable Type/When/Detail columns are unchanged) so a new **Import** control on the
+Export screen can read a previously-exported file back in losslessly, with duplicate-skipping by
+timestamp+value/text (`importCSV` in `src/export.js`). Workflow: export on one device, hand the
+file over (AirDrop/email/Files), import on the other.
+
+### Bugs found and fixed this session (all now covered by regression tests)
+
+- **Datetime fields never defaulted on first load.** Init called `refreshHome()` directly instead
+  of `showView("home")`, so the required `datetime-local` fields stayed blank until a nav click —
+  silently blocked every save attempt on a fresh page load with no visible error. Fixed by routing
+  init through `showView("home")`.
+- **A recurring CSS specificity gotcha, three separate times** (`.timeline-list`, `.latest-reading`,
+  and pre-emptively guarded against for `#barcode-scanner`): an element's own explicit
+  `display: flex` has equal specificity to the browser's default `[hidden] { display: none }` and
+  wins by coming later in the cascade — setting `.hidden = true` on such an element silently does
+  nothing visually. Pattern to remember for any *new* element that (a) gets `display` set
+  explicitly in this stylesheet and (b) ever has `hidden` toggled directly on it (not just
+  inherited from a hidden ancestor): always pair it with an explicit
+  `.the-class[hidden] { display: none; }` rule. Found the first two by actually looking at the
+  running app in a browser, not just by tests passing — the Playwright assertions on `.hidden`
+  (the JS property) were all green throughout, because they were checking the DOM attribute, not
+  the resulting visual state.
+- **Same-minute readings picked the wrong one as "latest."** `nowForDatetimeLocal()` zeroes seconds
+  (matching the datetime-local input's own minute-only granularity), so two readings logged
+  moments apart can share an identical stored timestamp — a plain timestamp sort's stable tiebreak
+  then favoured insertion order (oldest-first) over recency. Fixed with `compareRecentFirst()` in
+  `src/db.js`, a shared comparator every "most recent" sort in the app now uses, falling back to
+  comparing `id` (always millisecond-precise from `makeId()`) when timestamps tie.
+
+### Test suite: grown from 10 to 100
+
+`npm test` now runs 25 test cases × 4 browser projects. New files: `tests/bluetoothGlucose.spec.js`
+(pure SFLOAT/byte-layout unit tests, no browser needed) and `tests/nutrition.spec.js` (pure lookup/
+formatting, mocked fetch). `tests/smoke.spec.js` grew to cover the rebuilt Home/Readings screens,
+the threshold floor rule, the date-format lock, and the barcode scanner's open/close. All 100 pass
+as of this entry — run `npm test` before trusting any of the above still holds after further edits.
+
+### Still open — nothing here is silently dropped
+
+- **Country-aware food database** (Open Food Facts + AUSNUT for Australia, "know where I am and
+  what foods to expect") — not started. Open Food Facts is confirmed to support country-based
+  filtering already, so this is realistic, just separate scope from today's barcode-lookup work.
+- **Real PNG app icons** (replacing the placeholder SVG) — not started this session; no image-
+  generation tool was available to do this properly, flagged rather than faked with a low-effort
+  substitute.
+- **Meal-timed multiple reminders** — still waiting on Scott to specify the exact shape (see the
+  2026-09-12 entry above); do not guess at this.
+- **LibreLinkUp polling** — blocked on the Libre 2 Plus sensor physically arriving (see the
+  ADACare-call entry above; still no tracking number as of that call).
+- **Apple Health / Google Health Connect sync** — brief §3.3, not started, no new information this
+  session.
+- **Custom domain HTTPS** (`reactivebloodtracker.com`) — status as of 2026-09-12 was "certificate
+  not yet issued"; not re-checked this session, worth a look before pointing anything at it.
+- **Landing-page contact email** — still a `[your contact email]` placeholder; Scott now has a
+  known email on file (used with ADACare) but publishing a personal address on a public landing
+  page is his call to make explicitly, not something to default to quietly.
