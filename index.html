@@ -118,6 +118,7 @@
         <div class="secondary-links">
           <button type="button" data-nav="diary">📝 Diary note</button>
           <button type="button" data-nav="export">📤 Export</button>
+          <button type="button" data-nav="food-guidance">🍎 Food guidance</button>
         </div>
       </section>
 
@@ -179,6 +180,58 @@
             <input type="file" accept=".csv,text/csv" id="import-file" />
           </label>
           <p class="field-hint" id="import-status"></p>
+        </div>
+      </section>
+
+      <section id="view-food-guidance" class="view" data-view="food-guidance" hidden>
+        <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
+        <p class="field-hint">
+          General information from published medical sources — not personal advice, and not based
+          on your own data. For anything specific to you, confirm with your own doctor. Your own
+          Readings, once there's enough logged history, are the more accurate guide to what
+          actually affects you personally.
+        </p>
+
+        <h2>Everyday eating</h2>
+        <div class="entry-form">
+          <ul class="guidance-list">
+            <li>Nothing is strictly off-limits — the combination matters more than any single food.</li>
+            <li>Known trigger: a big hit of simple/refined carbs on their own — white bread, white pasta, white rice, pastries, sugary drinks, juice, lollies — especially on an empty stomach.</li>
+            <li>Steadier pattern: pair complex carbs with protein, fat, or fibre — wholegrains, legumes, nuts and seeds, vegetables — to soften the rise so there's less to crash from.</li>
+            <li>Smaller, more frequent meals (roughly every 3 hours) tend to work better than a few large ones.</li>
+          </ul>
+        </div>
+
+        <h2>Alcohol</h2>
+        <div class="entry-form">
+          <ul class="guidance-list">
+            <li>Not all off the table, but there's a real mechanism at play: alcohol makes your liver prioritise breaking it down over topping up blood sugar, so it can trigger or worsen a crash on its own.</li>
+            <li>One study found a specific higher-risk combination: alcohol with a sugary mixer (their example was gin and tonic) — a starch-based drink like beer didn't provoke the same drop.</li>
+            <li>Risk increases alongside other factors — age, other health conditions, exercise around the same time.</li>
+            <li>General takeaway: drink with food rather than on an empty stomach, and be more cautious with sweet mixers and cocktails than plainer drinks.</li>
+          </ul>
+        </div>
+
+        <h2>Eating out &amp; social occasions</h2>
+        <div class="entry-form">
+          <ul class="guidance-list">
+            <li>Check the menu ahead of time so you're not deciding under pressure at the table.</li>
+            <li>Grilled, baked, or steamed on a balanced plate tends to beat fried or sugar-heavy dishes — most places will happily swap a side.</li>
+            <li>Don't arrive starving — skipping a meal before a dinner out is a common setup for overeating simple carbs and crashing afterward.</li>
+          </ul>
+        </div>
+
+        <h2>Sources</h2>
+        <div class="entry-form">
+          <ul class="guidance-list guidance-sources">
+            <li><a href="https://www.nth.nhs.uk/resources/reactive-hypoglycaemia/" target="_blank" rel="noopener">Dietary advice for reactive hypoglycaemia — NHS North Tees and Hartlepool</a></li>
+            <li><a href="https://health.clevelandclinic.org/how-to-treat-reactive-hypoglycemia" target="_blank" rel="noopener">How to Treat Reactive Hypoglycemia — Cleveland Clinic</a></li>
+            <li><a href="https://www.mayoclinic.org/diseases-conditions/diabetes/expert-answers/reactive-hypoglycemia/faq-20057778" target="_blank" rel="noopener">Reactive hypoglycemia: What causes it? — Mayo Clinic</a></li>
+            <li><a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jdi.13375" target="_blank" rel="noopener">Alcohol and glucose combined as a risk for reactive hypoglycemia — Journal of Diabetes Investigation</a></li>
+            <li><a href="https://academic.oup.com/alcalc/article/19/1/45/111413" target="_blank" rel="noopener">Alcohol-potentiated reactive hypoglycaemia depends on carbohydrate type — Alcohol and Alcoholism</a></li>
+            <li><a href="https://www.medicalnewstoday.com/articles/alcohol-and-hypoglycemia" target="_blank" rel="noopener">Alcohol and hypoglycemia: Link, signs, and treatment — Medical News Today</a></li>
+            <li><a href="https://www.glucosense.ai/blog/social-pressures-and-food-choices-with-diabetes" target="_blank" rel="noopener">5 Tips for Dining Out: Social Pressure &amp; Food Choices — GlucoSense</a></li>
+          </ul>
         </div>
       </section>
 

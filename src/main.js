@@ -46,6 +46,7 @@ const VIEW_TITLES = {
   readings: "Readings",
   diary: "Add diary note",
   export: "Export report",
+  "food-guidance": "Food Guidance",
   settings: "Settings",
 };
 

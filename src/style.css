@@ -229,6 +229,20 @@ button:active {
   margin: -4px 0 0;
 }
 
+.guidance-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.guidance-sources a {
+  color: var(--accent);
+}
+
 .banner {
   background: var(--banner-bg);
   color: var(--banner-text);

@@ -30,6 +30,16 @@ test.describe("app shell", () => {
     await page.locator('#view-home button[data-nav="export"]').click();
     await expect(page.locator("#view-title")).toHaveText("Export report");
   });
+
+  test("Food guidance is reachable from Home and lists its sources", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('#view-home button[data-nav="food-guidance"]').click();
+    await expect(page.locator("#view-title")).toHaveText("Food Guidance");
+    await expect(page.locator("#view-food-guidance h2")).toContainText(["Everyday eating", "Alcohol", "Eating out & social occasions", "Sources"]);
+    await expect(page.locator(".guidance-sources a").first()).toHaveAttribute("href", /^https:\/\//);
+    await page.locator('#view-food-guidance button[data-nav="home"]').click();
+    await expect(page.locator("#view-title")).toHaveText("Home");
+  });
 });
 
 test.describe("glucose entry", () => {
