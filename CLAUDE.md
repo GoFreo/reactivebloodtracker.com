@@ -1,5 +1,16 @@
 # Reactive Hypoglycemia Tracker — Claude Session Starter
 
+## End every session (or work stoppage) with a SITREP (added 2026-09-14, Scott's explicit instruction)
+
+At the end of any session, or whenever a work stretch stops/pauses — not just when the whole
+project wraps up — publish a SITREP as an artifact and leave it on screen. Don't wait to be asked;
+this is standing, proactive practice from here on. Scott's own definition of "sitrep": a short
+intro, then a plain **done / not-done** list, then a small **follow-up report** going into more
+detail on whatever the session actually touched, plus an honest section on any errors, bugs, or
+access limitations hit along the way (don't omit friction to make the session look cleaner than it
+was). If a sitrep artifact already exists for this project, republish to the same URL rather than
+creating a new one each time.
+
 ## Folder-boundary rule (read first)
 
 > Work ONLY inside this folder (`Reactive Hypoglycemia Tracker/`). Do not read, search, or

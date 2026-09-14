@@ -310,11 +310,15 @@ in this project instead:
     `ai-proxy.js` for this (sent as a header only if set; redeployed). **Still needs Scott:**
     either generate a new key from inside a specific workspace in console.anthropic.com (simplest,
     no further code changes needed — just replace the `ANTHROPIC_API_KEY` value), or find his
-    workspace ID and give it to me to set as `ANTHROPIC_WORKSPACE_ID`. Not yet confirmed working
-    end-to-end — retest with `curl -X POST https://reactive-hypoglycemia-tracker.netlify.app/
-    .netlify/functions/ai-proxy -H "Content-Type: application/json" -d '{"text":"..."}'` once
-    either fix lands. See `CLAUDE.md`'s "AI / Anthropic key" section for the full Phase 1 (his own
-    key) vs Phase 2 (bring-your-own-key, if this ever goes public) model.
+    workspace ID and give it to me to set as `ANTHROPIC_WORKSPACE_ID`. See `CLAUDE.md`'s "AI /
+    Anthropic key" section for the full Phase 1 (his own key) vs Phase 2 (bring-your-own-key, if
+    this ever goes public) model.
+  - **Confirmed working end-to-end (checked 2026-09-14):** `curl -X POST
+    https://reactive-hypoglycemia-tracker.netlify.app/.netlify/functions/ai-proxy -H
+    "Content-Type: application/json" -d '{"text":"a slice of toast"}'` returns a real
+    `configured:true` Claude response (food name, portion estimate, confidence, clarifying
+    question) — whatever fix Scott applied between 2026-09-12 and now resolved the workspace-id
+    issue. The AI photo/text food-parsing feature is genuinely live, not just plumbing-in-place.
 - **Mobile design pass (2026-09-12, same session).** Scott asked for a genuinely better, calmer
   visual design (his current CSS is "plain functional"). Drafted 7 mobile mockup screens via
   Claude Design's canvas — Timeline (with a "latest reading" hero card), a redesigned quick-add
@@ -395,16 +399,14 @@ in this project instead:
   backend). Some form of cross-device sync (even just between his own phone and Mac, never a
   third party) would need real design work, not a quick add-on. Scott called this "food for
   thought," not a build request — don't start architecting sync without him deciding he wants it.
-- **Custom domain in progress (2026-09-12): reactivebloodtracker.com.** Scott registered it
-  ($17/yr) and set it as the Netlify project's primary domain himself. DNS confirmed correctly
-  pointed at Netlify (same IP as the `.netlify.app` URL). **HTTPS certificate not yet issued** —
-  the domain was still serving Netlify's generic `*.netlify.app` wildcard cert as of this check,
-  which browsers reject for the custom hostname. This is normal immediately after adding a domain
-  and usually resolves on its own; if it's still not working after a while, check Netlify's
-  domain/HTTPS settings for a "Verify DNS configuration" option. **Do not switch
-  `SCOTT-START-HERE.html`'s "Open the App" button or any other reference over to
-  `reactivebloodtracker.com` until HTTPS is confirmed working** — the `.netlify.app` URL remains
-  the reliable one until then.
+- **Custom domain: reactivebloodtracker.com — HTTPS confirmed working (checked 2026-09-14).**
+  Scott registered it ($17/yr, 2026-09-12) and set it as the Netlify project's primary domain
+  himself. As of 2026-09-12 the certificate hadn't issued yet (serving Netlify's generic wildcard
+  cert). **Now resolved:** `curl -v https://reactivebloodtracker.com/` shows a real cert issued for
+  `CN=reactivebloodtracker.com`, verified OK, expiring 2026-12-11, serving HTTP/2 200. The earlier
+  caution about not switching references over from the `.netlify.app` URL no longer applies — the
+  custom domain is safe to use/link now, Scott's call on whether/when to actually switch
+  `SCOTT-START-HERE.html`'s button or anything else over to it.
 - **Landing page rebuilt as a real responsive page (2026-09-12), replacing the design-canvas
   draft.** Scott reported the design-canvas version didn't scale properly to different window
   sizes — correct: it was a fixed 1440px-wide mockup, and the canvas tool's own editor chrome
@@ -769,8 +771,55 @@ as of this entry — run `npm test` before trusting any of the above still holds
   ADACare-call entry above; still no tracking number as of that call).
 - **Apple Health / Google Health Connect sync** — brief §3.3, not started, no new information this
   session.
-- **Custom domain HTTPS** (`reactivebloodtracker.com`) — status as of 2026-09-12 was "certificate
-  not yet issued"; not re-checked this session, worth a look before pointing anything at it.
+- ~~Custom domain HTTPS~~ — **resolved, see the corrected 2026-09-12 entry above**: confirmed
+  working (valid cert, HTTP/2 200) on a live check later the same day as this entry was written.
 - **Landing-page contact email** — still a `[your contact email]` placeholder; Scott now has a
   known email on file (used with ADACare) but publishing a personal address on a public landing
   page is his call to make explicitly, not something to default to quietly.
+
+## 2026-09-14 — Live Bluetooth debugging session with Scott and the real meter
+
+Scott had the actual Guide Me in hand, in genuine pairing mode (confirmed: two-circles + spinner
+icon, the correct indicator per mySugr's own docs — his pairing procedure was never the problem).
+First real end-to-end test surfaced a real bug, plus one hard platform boundary worth knowing about
+before anyone tries to script around it again.
+
+**Bug found and fixed:** `connectAndFetchReadings` in `src/bluetoothGlucose.js` originally called
+`requestDevice({ filters: [{ services: ['glucose'] }] })` — Chrome's picker can only filter by
+services a device *advertises*, and this meter apparently doesn't advertise the Glucose Service
+openly even though it supports it once connected (common for single-purpose BLE health devices).
+Changed to `{ acceptAllDevices: true, optionalServices: ['glucose'] }` so the picker shows every
+nearby device by name and Scott picks the meter manually — `optionalServices` still grants access
+to the Glucose Service after connecting. Settings' Bluetooth section got a matching hint explaining
+the picker now shows everything, not a pre-filtered list.
+
+**Deploy tooling has a real gotcha with this project's setup:** the Netlify MCP deploy tool
+packages the current working directory as a git repo to upload — and this project lives in a git
+**worktree**, which it can't handle (`fatal: not a git repository`, trying to init against the
+worktree's `.git` file instead of a real `.git` directory). Workaround used: copy the project
+(excluding `.git`/`node_modules`) into a clean scratch folder, `git init` a plain throwaway repo
+there, and run the deploy from that copy instead. Worked — deploy succeeded, confirmed live by
+checking the served JS bundle directly for the fix. **If a future deploy fails with this exact
+error, this is why — same workaround applies.**
+
+**Hard platform boundary, not a bug — don't try to script around this again:** attempted to drive
+Scott's real Chrome via the Claude-in-Chrome extension to click "Connect via Bluetooth" and watch
+what the native device picker showed. The click correctly reached `requestDevice()` (confirmed: it
+returned `"User cancelled the requestDevice() chooser"`), but **Chrome will not let any automated
+tool — extension-driven or OS-level — interact with the native Bluetooth/hardware-permission
+chooser dialog.** This is deliberate browser security, not a gap in tooling. That dialog can only
+ever be operated by the human physically at the keyboard. Confirmed the button and code path are
+wired correctly; the actual "does the meter appear in the list" question can only be answered by
+Scott clicking it himself and looking.
+
+**Status at time of writing: still not connected.** Scott has retried multiple times with the
+meter genuinely in pairing mode; macOS's own System Settings → Bluetooth "Nearby Devices" list also
+shows nothing during the same window (searching, but empty) — this was initially read as ruling out
+a browser-specific cause, but that reasoning was corrected mid-session: macOS's Settings panel is a
+curated consumer list that's known to omit single-purpose BLE peripherals even when they're
+genuinely advertising, so an empty list there doesn't actually confirm anything about what Chrome's
+own (different, lower-level) scan would see. **Next step, needs Scott at the keyboard:** click
+Connect himself while the meter is in pairing mode and report exactly what Chrome's picker shows —
+empty entirely, other devices but not the meter, or the meter itself. That result is the one
+missing piece needed to know whether this is a device/range issue or something still fixable in
+code.

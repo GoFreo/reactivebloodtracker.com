@@ -497,11 +497,14 @@ function renderGlucoseSources() {
   }
   const hint = document.getElementById("glucose-source-hint");
   const btn = document.getElementById("bluetooth-connect-btn");
+  const connectHint = document.getElementById("bluetooth-connect-hint");
   if (isBluetoothAvailable()) {
     btn.hidden = false;
+    connectHint.hidden = false;
     hint.textContent = "";
   } else {
     btn.hidden = true;
+    connectHint.hidden = true;
     hint.textContent =
       "Bluetooth needs Chrome (on your Mac or an Android phone) — Safari/iPhone doesn't support Web Bluetooth at all, an Apple platform limit, not something this app can work around.";
   }

@@ -92,8 +92,16 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
   }
 
   onStatus("Choose your meter in the browser's device picker…");
+  // acceptAllDevices, not a service filter: Chrome's picker can only filter by
+  // services a device actively broadcasts in its advertisement packet, and
+  // plenty of BLE health devices (this meter included, going by Scott's
+  // "nothing shows up" report 2026-09-14) don't advertise the Glucose Service
+  // openly even though they support it once connected — a filter would hide
+  // the device entirely rather than fail loudly. optionalServices is what
+  // actually grants access to the service after connecting.
   const device = await navigator.bluetooth.requestDevice({
-    filters: [{ services: [GLUCOSE_SERVICE] }],
+    acceptAllDevices: true,
+    optionalServices: [GLUCOSE_SERVICE],
   });
 
   onStatus(`Connecting to ${device.name || "meter"}…`);
