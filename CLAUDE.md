@@ -231,14 +231,12 @@ guarded against pre-emptively for `#barcode-scanner`) — see HANDOVER.md's 2026
 ## Next steps (PICK UP HERE) — updated 2026-09-14
 
 - **Genuinely needs Scott:** surgery-timeline date for the export report (still unanswered from
-  2026-09-12); **Resolved 2026-09-15:** `reactivebloodtracker.com` was showing a stale pre-redesign build because
-  an old deploy had been re-published to production by mistake — fixed by republishing the correct
-  Sep 14 deploy via Netlify's dashboard (same site all along, `0b9a9624-13b7-4441-8056-0807f9cbbf7c`,
-  no second site involved). **Still open:** today's newest work (Food Guidance, Home hero redesign)
-  isn't deployed anywhere yet — blocked on git being broken system-wide on this Mac (`sudo
-  xcodebuild -license` needs to be run by Scott himself) and the Netlify deploy MCP tool's
-  undocumented schema. See HANDOVER.md's 2026-09-15 entry for the full detail and the two ways to
-  unblock it;
+  2026-09-12); **Resolved 2026-09-15:** the stale-deploy issue is fixed and today's work (Food Guidance, Home
+  redesign, photo import, Bluetooth sync badge) is live on `reactivebloodtracker.com`. Deploy
+  method going forward: `npm run build` then `npx netlify-cli deploy --prod --dir=dist
+  --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c` — this Mac already has an authenticated `netlify-cli`
+  session, no git required, much simpler than the old scratch-copy workaround. See HANDOVER.md's
+  2026-09-15 entries for the full diagnosis;
   whether to publish a real contact email on the landing page (a known address exists now — used
   with ADACare — but putting a personal address on a public page is his call, not a default);
   confirming the Bluetooth Guide Me connection actually works against the physical meter (built to

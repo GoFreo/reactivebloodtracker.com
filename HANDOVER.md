@@ -994,3 +994,14 @@ failure that was happening silently (no error shown, nothing saved, nothing visi
 Business for the app(s) — held off per the project's standing rule against configuring account/
 security infrastructure directly; asked him to clarify the actual goal (a forwarding address on an
 existing mailbox vs. a new subscription) before doing anything here.
+
+**Deployed, and a much better deploy method found.** Once git was working again, tried the Netlify
+CLI directly (`npx netlify-cli`) instead of the old scratch-copy-git workaround — turns out this
+Mac already has an authenticated `netlify-cli` session linked to the right project
+(`reactivebloodtracker`, confirmed via `npx netlify-cli status`). A plain
+`npx netlify-cli deploy --prod --dir=dist --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c` (after
+`npm run build`) deployed cleanly in ~40s — no git repo needed at all, sidesteps the whole
+worktree-packaging problem that caused the original 2026-09-14 deploy failure. **This should be the
+default deploy method going forward**, not the scratch-copy workaround — much simpler, and doesn't
+depend on git working. Confirmed live via `curl`: today's Home redesign, sync badge, photo import,
+and Bluetooth diagnostics are all now on `reactivebloodtracker.com`.
