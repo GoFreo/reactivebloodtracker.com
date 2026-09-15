@@ -195,20 +195,23 @@ but is secondary. Keep that priority in mind for any framework/UI decisions once
 
 ## Testing — run before every deploy (added 2026-09-12, grown heavily 2026-09-14)
 
-A real Playwright test suite exists — three files, 25 test cases: `tests/smoke.spec.js` (full
+A real Playwright test suite exists — four files, 30 test cases: `tests/smoke.spec.js` (full
 app-shell/UI flows: Home's glucose+food quick-entry, Readings list/graph, the threshold-floor rule,
-date-format lock, barcode scanner open/close, settings, export+import), `tests/bluetoothGlucose.spec.js`
-(pure SFLOAT/byte-layout decoding unit tests against hand-built byte arrays, no browser needed —
-this is the safety-critical parsing logic that can't be verified against Scott's real meter from
-here), and `tests/nutrition.spec.js` (Open Food Facts lookup/formatting, mocked `fetch`, no network
-call). The AI-proxy route is mocked in tests the same way (`/.netlify/functions/ai-proxy`) — never
-hits the real paid Anthropic API. `window.print` is stubbed, never actually triggered (the real
-dialog blocks the browser and would hang a run).
+date-format lock, barcode scanner open/close, photo import, settings, export+import),
+`tests/bluetoothGlucose.spec.js` (pure SFLOAT/byte-layout decoding unit tests against hand-built
+byte arrays, no browser needed — this is the safety-critical parsing logic that can't be verified
+against Scott's real meter from here), `tests/nutrition.spec.js` (Open Food Facts lookup/formatting,
+mocked `fetch`, no network call), and `tests/photoImport.spec.js` (EXIF date parsing against
+hand-built JPEG/EXIF byte arrays). The AI-proxy route is mocked in tests the same way
+(`/.netlify/functions/ai-proxy`) — never hits the real paid Anthropic API. `window.print` is
+stubbed, never actually triggered (the real dialog blocks the browser and would hang a run).
 
 **Runs across 4 projects** (`playwright.config.js`): Desktop Chrome + Mobile Chrome (Pixel 7) for
 Chromium/Android coverage, Desktop Safari + Mobile Safari (iPhone 14) for WebKit/iOS/Mac coverage —
-100 test runs total, per Scott's explicit ask for real cross-device confidence, not just whatever
-engine Playwright defaults to. `serviceWorkers: "block"` is set in the test context deliberately —
+120 test runs total (2 deliberately skipped on WebKit only — see HANDOVER.md's 2026-09-15 entry on
+the real Safari IndexedDB Blob-storage bug found there), per Scott's explicit ask for real
+cross-device confidence, not just whatever engine Playwright defaults to. `serviceWorkers: "block"`
+is set in the test context deliberately —
 the app's real service worker (`src/main.js`) can intercept fetches before Playwright's
 `page.route()` sees them under WebKit specifically (not Chromium), which broke the AI-mocking tests
 silently until this was found. Keep this setting; don't remove it as unnecessary.
@@ -228,9 +231,14 @@ guarded against pre-emptively for `#barcode-scanner`) — see HANDOVER.md's 2026
 ## Next steps (PICK UP HERE) — updated 2026-09-14
 
 - **Genuinely needs Scott:** surgery-timeline date for the export report (still unanswered from
-  2026-09-12); whether/when to pursue a real custom domain beyond the current
-  `reactive-hypoglycemia-tracker.netlify.app` (a `reactivebloodtracker.com` purchase and DNS
-  pointing happened 2026-09-12, but its HTTPS certificate status hasn't been re-checked since);
+  2026-09-12); **Resolved 2026-09-15:** `reactivebloodtracker.com` was showing a stale pre-redesign build because
+  an old deploy had been re-published to production by mistake — fixed by republishing the correct
+  Sep 14 deploy via Netlify's dashboard (same site all along, `0b9a9624-13b7-4441-8056-0807f9cbbf7c`,
+  no second site involved). **Still open:** today's newest work (Food Guidance, Home hero redesign)
+  isn't deployed anywhere yet — blocked on git being broken system-wide on this Mac (`sudo
+  xcodebuild -license` needs to be run by Scott himself) and the Netlify deploy MCP tool's
+  undocumented schema. See HANDOVER.md's 2026-09-15 entry for the full detail and the two ways to
+  unblock it;
   whether to publish a real contact email on the landing page (a known address exists now — used
   with ADACare — but putting a personal address on a public page is his call, not a default);
   confirming the Bluetooth Guide Me connection actually works against the physical meter (built to

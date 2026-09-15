@@ -90,11 +90,44 @@ body {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .app-header h1 {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.bt-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.bt-badge[hidden] {
+  display: none;
+}
+
+.bt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.bt-badge.synced .bt-dot {
+  background: var(--inrange);
+}
+
+.bt-badge.stale .bt-dot {
+  background: var(--high);
 }
 
 #views {
@@ -184,10 +217,16 @@ button:active {
   flex: 1;
 }
 
-#food-parse-btn {
+#food-parse-btn,
+.secondary-btn {
   background: var(--surface);
   color: var(--accent);
   border: 1px solid var(--accent);
+}
+
+.secondary-btn {
+  width: 100%;
+  margin-top: -4px;
 }
 
 #barcode-scanner {
@@ -340,9 +379,10 @@ button:active {
 
 .latest-reading {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 14px 16px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 16px 16px;
   border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -361,36 +401,46 @@ button:active {
   display: none;
 }
 
+.latest-reading-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
 .latest-reading .value {
-  font-size: 2rem;
+  font-size: 4.5rem;
   font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .latest-reading .unit {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--text-muted);
-  margin-left: 4px;
 }
 
 .latest-reading .when {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
+  margin-bottom: 4px;
 }
 
 .latest-reading .delta {
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: var(--text-muted);
-  margin-left: 8px;
+  margin-top: 2px;
 }
 
 .icon-btn-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin: 10px 0;
 }
 
 .icon-btn {
   flex: 1;
+  min-width: 100px;
   display: flex;
   align-items: center;
   justify-content: center;

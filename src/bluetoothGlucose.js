@@ -17,6 +17,22 @@ const MEASUREMENT_CHAR = "glucose_measurement";
 const RACP_CHAR = "record_access_control_point";
 const MMOL_TO_MGDL = 18.0182;
 
+// Byte 3 of a Record Access Control Point "Response Code" notification (spec
+// GLS_v1.0.1) — what the meter actually said, not just "it responded." Without
+// this, a meter reply of e.g. "no records" or "not supported" looked identical
+// to genuine success with zero readings — a real silent-failure trap Scott hit
+// 2026-09-15 (connects fine, nothing ever transfers, no visible reason why).
+const RACP_RESPONSE_PROBLEMS = {
+  2: "the meter says this type of request isn't supported",
+  3: "the meter didn't recognise the request",
+  4: "the meter says that operator isn't supported",
+  5: "the meter says the request was invalid",
+  6: "the meter has no stored records to send",
+  7: "the meter couldn't complete the operation",
+  8: "the meter says the procedure didn't finish",
+  9: "the meter says that operand isn't supported",
+};
+
 export function isBluetoothAvailable() {
   return typeof navigator !== "undefined" && "bluetooth" in navigator;
 }
@@ -125,10 +141,17 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
     racpChar.addEventListener("characteristicvaluechanged", function onRacp(event) {
       const opCode = event.target.value.getUint8(0);
       if (opCode === 6) {
-        // Response Code notification = the meter has finished sending records.
+        // Response Code notification = the meter has finished responding —
+        // but "responded" isn't "succeeded". Byte 3 is the actual outcome.
         clearTimeout(timeout);
         racpChar.removeEventListener("characteristicvaluechanged", onRacp);
-        resolve();
+        const responseValue = event.target.value.getUint8(3);
+        const problem = RACP_RESPONSE_PROBLEMS[responseValue];
+        if (problem) {
+          reject(new Error(`Meter responded but sent no records: ${problem}.`));
+        } else {
+          resolve();
+        }
       }
     });
   });

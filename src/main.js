@@ -25,6 +25,7 @@ import { getDateFormat, saveDateFormat, formatDate } from "./dateformat.js";
 import { getSoundEnabled, saveSoundEnabled, playTone } from "./sound.js";
 import { connectAndFetchReadings, isBluetoothAvailable } from "./bluetoothGlucose.js";
 import { lookupBarcode, productToFoodText } from "./nutrition.js";
+import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 
 // Dynamically imported on first use — ZXing (the barcode decoder) adds ~500KB
 // before compression, and most visits never touch the scanner. No reason to
@@ -383,6 +384,46 @@ document.getElementById("barcode-cancel-btn").addEventListener("click", async ()
   barcodeScannerEl.hidden = true;
 });
 
+// Batch import: photos taken on the phone, moved to the Mac by AirDrop or
+// iCloud Photos (a website can't reach into a phone's camera roll itself),
+// each becoming its own food entry dated by when the photo was actually
+// taken — not run through AI automatically, same manual "Parse with AI" step
+// as every other food entry, so a whole day's import can't rack up API calls
+// or cost without Scott choosing that per entry.
+const photoImportInput = document.getElementById("food-photo-import-input");
+const photoImportStatus = document.getElementById("food-photo-import-status");
+
+document.getElementById("food-photo-import-btn").addEventListener("click", () => photoImportInput.click());
+
+photoImportInput.addEventListener("change", async () => {
+  const files = photoImportInput.files;
+  if (!files.length) return;
+  photoImportStatus.hidden = false;
+  photoImportStatus.textContent = `Reading ${files.length} photo${files.length === 1 ? "" : "s"}…`;
+  const ordered = await readPhotoTimestamps(files);
+  let imported = 0;
+  let failed = 0;
+  for (const { file, timestamp } of ordered) {
+    try {
+      const blob = await toStorableBlob(file);
+      await saveFoodEntry({ text: "", photoBlob: blob, timestamp: timestamp.toISOString(), aiResult: null });
+      imported++;
+    } catch (err) {
+      console.error("Photo import: one file failed to save", err); // one bad photo shouldn't lose the rest of the batch
+      failed++;
+    }
+  }
+  photoImportInput.value = "";
+  const first = ordered[0]?.timestamp;
+  const last = ordered[ordered.length - 1]?.timestamp;
+  photoImportStatus.textContent =
+    `Imported ${imported} photo${imported === 1 ? "" : "s"}` +
+    (failed ? `, ${failed} failed to save` : "") +
+    (first && last ? `, dated ${formatRelativeTime(first.toISOString())} to ${formatRelativeTime(last.toISOString())}` : "") +
+    ` — open Readings to add descriptions or run Parse with AI on each.`;
+  await refreshHome();
+});
+
 document.getElementById("food-parse-btn").addEventListener("click", async () => {
   const text = document.getElementById("food-text").value.trim();
   if (!text && !currentFoodPhotoBlob) {
@@ -416,18 +457,32 @@ document.getElementById("food-clarify-submit").addEventListener("click", async (
 
 foodForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  await saveFoodEntry({
-    text: document.getElementById("food-text").value,
-    photoBlob: currentFoodPhotoBlob,
-    timestamp: new Date(document.getElementById("food-time").value).toISOString(),
-    aiResult: currentAiResult && currentAiResult.configured !== false ? currentAiResult : null,
-  });
-  foodForm.reset();
-  foodPhotoPreview.hidden = true;
-  currentFoodPhotoBlob = null;
-  resetFoodAiState();
-  document.getElementById("food-time").value = nowForDatetimeLocal();
-  await refreshHome();
+  try {
+    // Rebuilding a plain Blob from the photo's own bytes, rather than storing
+    // the File object straight from the input, avoids a real WebKit/Safari
+    // IndexedDB bug — "Error preparing Blob/File data to be stored in object
+    // store" — confirmed 2026-09-15 (see photoImport.js and HANDOVER.md). This
+    // is very likely the actual cause behind food photos silently failing to
+    // save on iPhone before now, not user error.
+    const storablePhoto = currentFoodPhotoBlob ? await toStorableBlob(currentFoodPhotoBlob) : null;
+    await saveFoodEntry({
+      text: document.getElementById("food-text").value,
+      photoBlob: storablePhoto,
+      timestamp: new Date(document.getElementById("food-time").value).toISOString(),
+      aiResult: currentAiResult && currentAiResult.configured !== false ? currentAiResult : null,
+    });
+    foodForm.reset();
+    foodPhotoPreview.hidden = true;
+    currentFoodPhotoBlob = null;
+    resetFoodAiState();
+    document.getElementById("food-time").value = nowForDatetimeLocal();
+    await refreshHome();
+  } catch (err) {
+    console.error("Food entry failed to save", err);
+    foodAiResultEl.hidden = false;
+    foodClarifyEl.hidden = true;
+    foodAiResultEl.textContent = `Couldn't save this entry: ${err.message}. Try again — if it keeps happening with a photo attached, try without the photo.`;
+  }
 });
 
 // --- Diary form ---
@@ -486,6 +541,31 @@ document.getElementById("import-file").addEventListener("change", async (e) => {
   }
 });
 
+const BLUETOOTH_LAST_SYNC_KEY = "rht-bluetooth-last-sync";
+
+// "Connected" would overstate what this app does — connectAndFetchReadings opens
+// the link, pulls stored records, then disconnects (see bluetoothGlucose.js); there
+// is no persistent connection to reflect. "Last synced" is the honest version of
+// the same at-a-glance reassurance: is my data current, not is a link held open.
+function updateBluetoothBadge() {
+  const badge = document.getElementById("bluetooth-status-badge");
+  const text = document.getElementById("bluetooth-status-badge-text");
+  if (!isBluetoothAvailable()) {
+    badge.hidden = true;
+    return;
+  }
+  badge.hidden = false;
+  badge.classList.remove("synced", "stale");
+  const lastSync = localStorage.getItem(BLUETOOTH_LAST_SYNC_KEY);
+  if (!lastSync) {
+    text.textContent = "Meter not synced yet";
+    return;
+  }
+  const diffHr = (Date.now() - new Date(lastSync).getTime()) / 3600000;
+  badge.classList.add(diffHr < 6 ? "synced" : "stale");
+  text.textContent = `Synced ${formatRelativeTime(lastSync)}`;
+}
+
 // --- Settings ---
 function renderGlucoseSources() {
   const container = document.getElementById("glucose-source-list");
@@ -499,21 +579,24 @@ function renderGlucoseSources() {
   const hint = document.getElementById("glucose-source-hint");
   const btn = document.getElementById("bluetooth-connect-btn");
   const connectHint = document.getElementById("bluetooth-connect-hint");
+  const homeBtn = document.getElementById("home-bluetooth-connect-btn");
   if (isBluetoothAvailable()) {
     btn.hidden = false;
     connectHint.hidden = false;
     hint.textContent = "";
+    homeBtn.hidden = false;
   } else {
     btn.hidden = true;
     connectHint.hidden = true;
     hint.textContent =
       "Bluetooth needs Chrome (on your Mac or an Android phone) — Safari/iPhone doesn't support Web Bluetooth at all, an Apple platform limit, not something this app can work around.";
+    homeBtn.hidden = true;
   }
 }
 
-document.getElementById("bluetooth-connect-btn").addEventListener("click", async () => {
-  const statusEl = document.getElementById("bluetooth-status");
-  const btn = document.getElementById("bluetooth-connect-btn");
+// Shared by the Settings button and the Home-screen shortcut — same flow,
+// just reporting into whichever status line is next to the button pressed.
+async function runBluetoothSync(btn, statusEl) {
   btn.disabled = true;
   try {
     const readings = await connectAndFetchReadings({ onStatus: (msg) => (statusEl.textContent = msg) });
@@ -530,13 +613,23 @@ document.getElementById("bluetooth-connect-btn").addEventListener("click", async
       imported++;
     }
     statusEl.textContent = `Done — ${imported} new reading${imported === 1 ? "" : "s"} imported${skipped ? `, ${skipped} already saved` : ""}.`;
+    localStorage.setItem(BLUETOOTH_LAST_SYNC_KEY, new Date().toISOString());
+    updateBluetoothBadge();
     await refreshHome();
   } catch (err) {
     statusEl.textContent = `Bluetooth connection failed: ${err.message}`;
   } finally {
     btn.disabled = false;
   }
-});
+}
+
+document.getElementById("bluetooth-connect-btn").addEventListener("click", () =>
+  runBluetoothSync(document.getElementById("bluetooth-connect-btn"), document.getElementById("bluetooth-status"))
+);
+
+document.getElementById("home-bluetooth-connect-btn").addEventListener("click", () =>
+  runBluetoothSync(document.getElementById("home-bluetooth-connect-btn"), document.getElementById("home-bluetooth-status"))
+);
 
 const reminderEnabled = document.getElementById("reminder-enabled");
 const reminderTime = document.getElementById("reminder-time");
@@ -656,6 +749,7 @@ for (const radio of document.querySelectorAll('input[name="date-format"]')) {
 // --- Init ---
 renderGlucoseSources();
 loadReminderSettings();
+updateBluetoothBadge();
 // showView (not a bare refreshHome) because Home is the landing view and needs
 // its datetime-local fields defaulted to "now" before anyone can submit either
 // form — those fields are `required`, so leaving them blank silently blocks

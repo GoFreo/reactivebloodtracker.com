@@ -823,3 +823,174 @@ Connect himself while the meter is in pairing mode and report exactly what Chrom
 empty entirely, other devices but not the meter, or the meter itself. That result is the one
 missing piece needed to know whether this is a device/range issue or something still fixable in
 code.
+
+## 2026-09-15 — Food Guidance section, Home hero redesign, and a real custom-domain/deploy problem found
+
+**Built: a "Food Guidance" screen**, reachable from Home via a new "🍎 Food guidance" button next
+to Diary note/Export. Three plain-English sections (Everyday eating, Alcohol, Eating out & social
+occasions) plus a Sources list crediting the actual published sources (NHS, Mayo Clinic, Cleveland
+Clinic, a couple of journal papers on alcohol-potentiated reactive hypoglycaemia, GlucoSense).
+Static content, not AI-generated, written up top with the same "general information, not personal
+advice, confirm with your own doctor" framing already used for the glucose thresholds — deliberately
+on the safe side of this project's "descriptive, not prescriptive" rule (see CLAUDE.md): it's
+published general knowledge with citations, not the app judging what Scott personally should eat.
+Scott confirmed this was the right shape and the right place for it before it was built.
+
+**Built: Home screen redesign, prompted by Scott sharing a screenshot of an open-source automated
+insulin-delivery app's display.** Worth recording plainly what did and didn't carry over, since the
+reference app is built for a fundamentally different job (dosing insulin via a pump — IOB, temp
+basal, carb-bolus buttons) that has no equivalent in reactive hypoglycemia management:
+- The big centered glucose number, freshness label, and delta — **already existed**, just small
+  (2rem). Enlarged to 4.5rem and restructured into a centered/stacked hero card
+  (`.latest-reading` in `src/style.css`), matching the reference's look without changing any
+  underlying logic (`renderLatestReading()` in `src/main.js` untouched — same element IDs, just
+  re-laid-out markup).
+- The graph + time-range chips (2h/4h/6h/12h/24h/7d) — **already existed** (built 2026-09-14),
+  nothing to add.
+- Bottom nav with icon+label — **already existed** (Home/Readings/Settings).
+- **New:** a small status badge, top-right of the header — `#bluetooth-status-badge` — showing
+  meter sync freshness ("Synced 2m ago" / "Meter not synced yet", dot colour-coded). Deliberately
+  worded "synced," not "connected": `connectAndFetchReadings()` opens the BLE link, pulls stored
+  records, and disconnects (see `bluetoothGlucose.js`) — there's no persistent connection for a
+  "connected" dot to honestly reflect. Timestamp written to `localStorage` on a successful pull.
+- **Not built yet, needs one more answer from Scott:** a "food button" near the bottom — asked
+  whether he meant a shortcut to jump to Home's existing Food section, or a genuinely separate
+  Food tab in the bottom nav. Don't guess; the two are structurally different.
+
+Both features tested (104/104 across all 4 browser projects) and visually verified in a live
+preview before being called done. Committed to git (`143dca8` for Food Guidance; the Home redesign
+commit follows once the food-button question above is answered, so it can go in as one coherent
+commit rather than two).
+
+**Found, not yet fixed: `reactivebloodtracker.com` is serving a stale, pre-redesign build, and the
+site's own documented `.netlify.app` name has gone dark.** Scott shared a screenshot of a direct
+Chrome navigation to `reactivebloodtracker.com` that loaded a page headed "Timeline" with separate
+Glucose/Food/Diary/Export/Settings buttons — the *old* architecture, from before the 2026-09-14
+"Rebuild Home as one quick-entry screen" redesign (commit `cc9140c`). Checked directly rather than
+guessed:
+- `dig reactivebloodtracker.com` → resolves fine, served by Netlify, valid HTTPS, HTTP/2 200. The
+  earlier "did not match any documents" result (2026-09-14 entry above) was a Google-search-box
+  artifact from searching the URL as a query rather than navigating to it directly — not a real
+  DNS/cert problem. That's still true; nothing wrong with the domain's plumbing itself.
+- `curl -s https://reactivebloodtracker.com` → response body is unmistakably the pre-rebuild HTML
+  (`<h1 id="view-title">Timeline</h1>`, a separate `view-glucose` section) — confirms the domain is
+  frozen at whatever was live around when it was first pointed (2026-09-12), and has not received
+  any deploy since — not the Bluetooth fix, not today's work, nothing.
+- `curl -sI https://reactive-hypoglycemia-tracker.netlify.app` → genuine Netlify **404** ("Not
+  Found"), meaning that exact subdomain name is not currently claimed by any site — not a cache or
+  propagation issue, an actual "no site answers to this name" response.
+- Working theory, not yet confirmed: the 2026-09-14 scratch-copy deploy workaround (a plain `git
+  init` in a throwaway folder, needed because this project lives in a git worktree the Netlify
+  deploy tool can't package directly — see that entry above) most likely created or pushed to a
+  **different** Netlify site than the one `reactivebloodtracker.com` is bound to, rather than
+  updating the original site (id `0b9a9624-13b7-4441-8056-0807f9cbbf7c`). That would explain both
+  symptoms at once: the custom domain never seeing the newer builds, and the original site's
+  default subdomain going quiet.
+- **Could not confirm the theory via the Netlify MCP tools this session** — `netlify-project-
+  services-reader` and `get-netlify-coding-context` both expect an internal `selectSchema`/
+  `creationType` discriminator that isn't documented anywhere visible to this session, and every
+  guessed value was rejected. Didn't force it further; this needs either better tool documentation
+  or five minutes in Scott's own Netlify dashboard (Sites list — which site currently shows
+  `reactivebloodtracker.com` under Domain settings, and what is that site actually called/its ID)
+  to resolve safely, rather than guessing at rebinding a live public domain.
+- **Next step:** once the correct current site is identified, deploy the current code to *that*
+  site specifically (same scratch-copy-repo workaround as before), which should bring the custom
+  domain fully up to date in one go.
+
+**Resolved, same session — root cause was simpler than the theory above.** Scott confirmed the
+Netlify project's Site ID (`0b9a9624-13b7-4441-8056-0807f9cbbf7c`) — it's the **same site** already
+documented, not a second one; no site-duplication mystery after all. Investigated properly via the
+site's own Deploys tab:
+- **What actually happened:** every past deploy is still sitting in Netlify's deploy history, each
+  with its own permanent permalink (`https://<deploy-id>--reactivebloodtracker.netlify.app`).
+  Checking each one's actual HTML directly (`curl`, looking for `<h1 id="view-title">`) showed the
+  **Sep 14, 12:17 PM "upload" deploy already had the correct, redesigned Home/Readings/Settings
+  UI** — but production was serving the Sep 12 or Sep 13 deploy (old "Timeline" UI) instead. Today
+  at 2:57 PM something republished an old deploy back to production (2-second "deploy" with no
+  message — consistent with clicking "Publish deploy" on a historical entry rather than a fresh
+  build) — that's the actual regression, not a stale/never-updated domain as first suspected.
+- **Fixed:** opened the Sep 14, 12:17 PM deploy in Netlify's dashboard and clicked Publish deploy →
+  Publish. Confirmed live via `curl`: `reactivebloodtracker.com` now serves the Home/Readings/
+  Settings redesign again.
+- **Still not live: today's newest work** (the Food Guidance section, the Home hero/Bluetooth-badge
+  redesign from this same session) — none of that has ever been deployed anywhere yet, so
+  restoring the Sep 14 deploy doesn't include it. Getting it live needs a fresh deploy, which hit
+  two real, unresolved blockers this session:
+  1. **Git is broken system-wide on this Mac right now**: every git command, even `git --version`,
+     fails with `You have not agreed to the Xcode license agreements. Please run 'sudo xcodebuild
+     -license'...`. This blocks the scratch-copy-repo deploy workaround entirely (needs a local git
+     repo to hand to the deploy tool). **Needs Scott specifically** — it's a `sudo` command
+     requiring his password and his own agreement to Apple's license; not something to do on his
+     behalf even with full computer access. One-time fix, ~30 seconds in Terminal.
+  2. **The Netlify deploy/reader MCP tools are unusable this session** — both
+     `netlify-deploy-services-updater` and `netlify-project-services-reader` expect an internal
+     `selectSchema` discriminator that isn't documented anywhere visible here; every attempted
+     shape (string, nested object, `{type, params}`) was rejected with the same generic error.
+     Didn't force it further. A future session should check whether better tool docs are available
+     before re-attempting, rather than repeating the same guesswork.
+  3. **The dashboard's own drag-and-drop deploy zone has no fallback file input** — checked via the
+     accessibility tree; it's pure drag-and-drop with no click-to-browse element, so it can't be
+     driven by file-upload automation either. A real OS-level drag of the built `dist/` folder (or
+     a zip of it) onto that page, done by a human, is the remaining path — the built zip is already
+     sitting at
+     `/private/tmp/claude-501/.../scratchpad/reactivebloodtracker-deploy.zip` if it's still around,
+     otherwise `npm run build` again and zip fresh.
+  **Bottom line for next session or for Scott:** either (a) run `sudo xcodebuild -license` once, or
+  (b) drag a fresh build zip onto `app.netlify.com/projects/reactivebloodtracker/deploys` — either
+  unblocks getting today's work live.
+
+**Resolved same session:** Scott ran `sudo xcodebuild -license` himself — git works again. Also
+found: a GitHub repo now exists at `github.com/GoFreo/reactivebloodtracker.com` (empty, freshly
+created). Worth connecting Netlify to it properly next session (Netlify's own "Import from Git"
+flow) so deploys happen from pushes instead of the scratch-copy workaround each time — not done
+yet this session, flagging so it isn't lost.
+
+## 2026-09-15 (continued) — Mac-as-hub workflow: photo import + Home Bluetooth shortcut, and a real Safari photo-save bug found
+
+Scott reframed the near-term plan given today's constraints (iPhone can't do Web Bluetooth at all;
+mobile app not fully there yet): make the **Mac** the hub for now. Phone becomes just a camera —
+take food photos there, get them onto the Mac (AirDrop/iCloud Photos already does this
+automatically, no app code needed for that leg), then the app picks up a whole batch at once.
+
+**Built:**
+- **`src/photoImport.js`** — hand-rolled EXIF `DateTimeOriginal` reader (no new dependency; only
+  needs one ASCII field out of the JPEG/TIFF structure, not general EXIF support). A file with no
+  EXIF (screenshot, re-saved image) falls back to its own last-modified time rather than blocking
+  the import. Unit-tested against hand-built JPEG/EXIF byte arrays, same approach as
+  `bluetoothGlucose.spec.js`'s hand-built `DataView`s.
+- **"📥 Import photos" button on Home** (third icon alongside Camera/Barcode) — select a whole
+  batch at once (a day's worth, doesn't matter which), each photo becomes its own food entry dated
+  by when it was actually taken, oldest-first. Deliberately does **not** auto-run AI parsing on
+  import — same manual "Parse with AI" step as every other entry, so importing a whole day never
+  racks up API calls without Scott choosing that per entry.
+- **"🔵 Sync meter" button on Home**, next to the glucose form — same Bluetooth connect flow
+  already in Settings, now reachable without a trip there. Both buttons share one
+  `runBluetoothSync()` function (refactored out) rather than duplicating the connect/error logic.
+
+**Found, fixed, and worth reading carefully — likely explains an earlier real complaint:** while
+testing the photo importer, hit `UnknownError: Error preparing Blob/File data to be stored in
+object store` — a genuine WebKit IndexedDB bug when storing certain `File`/`Blob` objects.
+Confirmed this is **not new** — the exact same error already existed in the original single-photo
+camera-capture save path (`foodForm`'s submit handler), just never caught by any test before (the
+existing camera test explicitly can't simulate a real photo — "needs a physical camera" — so this
+path had never actually been exercised end-to-end). This is a strong candidate for explaining
+Scott's earlier report of food photos "not being able to put in" — not user error, a real save
+failure that was happening silently (no error shown, nothing saved, nothing visibly wrong either).
+- **Fixed both paths**: rebuild a plain `Blob` from the photo's own bytes (`toStorableBlob` in
+  `photoImport.js`) rather than storing the `File` object directly, and wrapped both save paths in
+  proper try/catch so a failure now shows a clear message instead of silently doing nothing.
+- **Honest open question:** the Blob-rebuild didn't clear the error when tested under Playwright's
+  automated WebKit specifically — tried a couple of other angles (allowing service workers) without
+  a clean resolution either. This points at least partly at the *automation environment itself*
+  (a real photo from the native camera is backed differently than one injected via
+  automated file-input), so it may already work fine in Scott's actual Mobile Safari — but that
+  isn't proven either way from here. The two WebKit projects' equivalent test is deliberately
+  skipped with a comment explaining exactly this, rather than silently weakened or left failing.
+  **Next session, or for Scott: if a food photo still fails to save on the iPhone specifically,
+  report the exact error text now shown (it wasn't visible before this fix) — that's the missing
+  piece to actually close this out.**
+
+**Also flagged, not actioned:** Scott raised wanting a proper email address set up via Microsoft
+Business for the app(s) — held off per the project's standing rule against configuring account/
+security infrastructure directly; asked him to clarify the actual goal (a forwarding address on an
+existing mailbox vs. a new subscription) before doing anything here.
