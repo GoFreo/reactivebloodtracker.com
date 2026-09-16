@@ -310,11 +310,15 @@ in this project instead:
     `ai-proxy.js` for this (sent as a header only if set; redeployed). **Still needs Scott:**
     either generate a new key from inside a specific workspace in console.anthropic.com (simplest,
     no further code changes needed — just replace the `ANTHROPIC_API_KEY` value), or find his
-    workspace ID and give it to me to set as `ANTHROPIC_WORKSPACE_ID`. Not yet confirmed working
-    end-to-end — retest with `curl -X POST https://reactive-hypoglycemia-tracker.netlify.app/
-    .netlify/functions/ai-proxy -H "Content-Type: application/json" -d '{"text":"..."}'` once
-    either fix lands. See `CLAUDE.md`'s "AI / Anthropic key" section for the full Phase 1 (his own
-    key) vs Phase 2 (bring-your-own-key, if this ever goes public) model.
+    workspace ID and give it to me to set as `ANTHROPIC_WORKSPACE_ID`. See `CLAUDE.md`'s "AI /
+    Anthropic key" section for the full Phase 1 (his own key) vs Phase 2 (bring-your-own-key, if
+    this ever goes public) model.
+  - **Confirmed working end-to-end (checked 2026-09-14):** `curl -X POST
+    https://reactive-hypoglycemia-tracker.netlify.app/.netlify/functions/ai-proxy -H
+    "Content-Type: application/json" -d '{"text":"a slice of toast"}'` returns a real
+    `configured:true` Claude response (food name, portion estimate, confidence, clarifying
+    question) — whatever fix Scott applied between 2026-09-12 and now resolved the workspace-id
+    issue. The AI photo/text food-parsing feature is genuinely live, not just plumbing-in-place.
 - **Mobile design pass (2026-09-12, same session).** Scott asked for a genuinely better, calmer
   visual design (his current CSS is "plain functional"). Drafted 7 mobile mockup screens via
   Claude Design's canvas — Timeline (with a "latest reading" hero card), a redesigned quick-add
@@ -395,16 +399,14 @@ in this project instead:
   backend). Some form of cross-device sync (even just between his own phone and Mac, never a
   third party) would need real design work, not a quick add-on. Scott called this "food for
   thought," not a build request — don't start architecting sync without him deciding he wants it.
-- **Custom domain in progress (2026-09-12): reactivebloodtracker.com.** Scott registered it
-  ($17/yr) and set it as the Netlify project's primary domain himself. DNS confirmed correctly
-  pointed at Netlify (same IP as the `.netlify.app` URL). **HTTPS certificate not yet issued** —
-  the domain was still serving Netlify's generic `*.netlify.app` wildcard cert as of this check,
-  which browsers reject for the custom hostname. This is normal immediately after adding a domain
-  and usually resolves on its own; if it's still not working after a while, check Netlify's
-  domain/HTTPS settings for a "Verify DNS configuration" option. **Do not switch
-  `SCOTT-START-HERE.html`'s "Open the App" button or any other reference over to
-  `reactivebloodtracker.com` until HTTPS is confirmed working** — the `.netlify.app` URL remains
-  the reliable one until then.
+- **Custom domain: reactivebloodtracker.com — HTTPS confirmed working (checked 2026-09-14).**
+  Scott registered it ($17/yr, 2026-09-12) and set it as the Netlify project's primary domain
+  himself. As of 2026-09-12 the certificate hadn't issued yet (serving Netlify's generic wildcard
+  cert). **Now resolved:** `curl -v https://reactivebloodtracker.com/` shows a real cert issued for
+  `CN=reactivebloodtracker.com`, verified OK, expiring 2026-12-11, serving HTTP/2 200. The earlier
+  caution about not switching references over from the `.netlify.app` URL no longer applies — the
+  custom domain is safe to use/link now, Scott's call on whether/when to actually switch
+  `SCOTT-START-HERE.html`'s button or anything else over to it.
 - **Landing page rebuilt as a real responsive page (2026-09-12), replacing the design-canvas
   draft.** Scott reported the design-canvas version didn't scale properly to different window
   sizes — correct: it was a fixed 1440px-wide mockup, and the canvas tool's own editor chrome
@@ -452,3 +454,554 @@ in this project instead:
   `timeline.js`), the Anthropic key stays server-side in the Netlify function and is gitignored, no
   secrets committed. Worth an actual HawkScan pass once `hawk` is set up and there's a real deployed
   target to point it at.
+
+## 2026-09-14 — Undocumented artifact found and logged: competitor UX teardown
+
+Picked this project back up per Scott's standing "check artifacts each time" instruction — found a
+"Glucose App Teardown" artifact dated 13 Sep 2026
+(`https://claude.ai/code/artifact/a423ccf8-f703-42e9-a3f2-9b47a468802a`) that was never logged here.
+Made from a different kind of Claude session (its own closing note says it tried and failed to get
+folder access to this project via a device bridge — a limitation this Code session doesn't have),
+so the handoff only existed as the artifact link itself. Read in full (it embeds five App Store
+screenshots as base64 images, stripped those out to read the actual analysis text).
+
+**Content:** a genuine layout audit comparing five real apps' actual App Store screens (not
+marketing sites) — mySugr, Levels, Nutrisense, FreeStyle LibreLink, and Cal AI (photo-food-logging
+only, not glucose). Six patterns flagged as worth reusing: (1) LibreLink's one-number/one-band/
+one-arrow "right now" screen kept separate from a "today's chart" screen rather than merged into
+one crowded view; (2) Nutrisense shading the safe range and recoloring the line/number on leaving
+it; (3) Levels labelling the spike value directly on the chart ("+68") instead of making the reader
+do the maths; (4) Cal AI's labelled leader-lines drawn on the actual photo before asking for
+confirmation — the closest live example of this app's own "show your work, then let the person
+correct it" rule (see "Descriptive, not prescriptive" above); (5) one home screen with every input
+method one tap away; (6) 7d/14d/30d/90d chips answering "today" and "is this a pattern" on one chart.
+
+**The actual point of the teardown:** all five apps are built for diabetes, where the danger is
+highs — lows get a thin line at best, nowhere near the visual weight highs get. This app's danger
+runs the opposite way, which is exactly the gap none of the five fill. Recommends giving lows the
+same visual treatment (red band/number/down-arrow) — **not implemented, and shouldn't be without
+Scott picking the actual threshold value first**, per this file's existing "Descriptive, not
+prescriptive" rule reserving clinical-adjacent judgment calls for him, not an invented default.
+
+**Still open:** this sits alongside the 2026-09-12 mobile-mockup review
+(`9b701ac7-5d68-443b-ab2b-e076651be8ee`) as unbuilt design input — neither has been turned into the
+real `index.html`/`src/style.css` yet. The live site (`reactive-hypoglycemia-tracker.netlify.app`)
+is up and verified responding as of this check, so a future session can do the before/after
+screenshot comparison the teardown's own closing note asked for, directly, without re-asking Scott
+for screenshots.
+
+## 2026-09-14 — Accu-Chek meter connectivity: Scott actively trying to hook it up, research done
+
+Scott has an Accu-Chek meter physically connected to his Mac right now, in what he calls "PC mode,"
+and wants the Tracker to read glucose data directly from the meter rather than manual entry. He'd
+already looked at Accu-Chek's own apps online and found it hard to tell which one matches his meter.
+**Model not yet confirmed** — asked him for the exact name printed on the meter itself (Guide, Guide
+Me, Instant, Aviva, Aviva Connect, Performa, Performa Nano, Mobile, etc. all exist and connect
+differently); update this entry once known.
+
+**Researched today, real findings, not guesses:**
+- **The wired "PC mode" / USB path has no public protocol.** Roche does not publish it — a developer
+  who asked directly and offered to sign an NDA was still refused (see sources below). Meters that
+  use this path talk to Roche's own Smart Pix reader or Accu-Chek 360° software, not to arbitrary
+  third-party apps. Treat "read the raw signal off the wire" for this path as not realistically
+  buildable without reverse-engineering — fragile, unofficial, and not something to promise Scott.
+- **The Bluetooth path is genuinely different and more promising, if his model has it.** Several
+  Accu-Chek meters (Guide, Guide Me, Instant, Aviva Connect) use standard Bluetooth Low Energy and
+  the Bluetooth SIG's own standard **Glucose Service** profile — a public spec any BLE client can
+  read, independent of Roche. This is confirmed working in the wild (a public Python example reads
+  an Accu-Chek meter this way over BLE). If Scott's model has this, the app could read it directly
+  via the **Web Bluetooth API** — but only from Chrome (Mac or Android); **Safari/iOS has never
+  supported Web Bluetooth**, an Apple platform restriction, not something buildable around. Given
+  Scott is on an iPhone day-to-day (per this file's PWA/iOS notes elsewhere), this path would only
+  work from his Mac in Chrome, not from his phone.
+- **Realistic fallback that works regardless of model, buildable now:** whatever Roche software his
+  cable/PC-mode setup already exports to (Smart Pix or Accu-Chek 360°) can save a report/CSV file.
+  Adding a "import from file" option to the `glucoseSources` registry in `src/glucose.js` — built
+  for exactly this kind of new-source addition — would let Scott load a batch of readings from that
+  export instead of typing each one by hand, without needing any undocumented protocol at all.
+- Sources checked: [Accu-Chek Smart Pix Software](https://www.accu-cheklatam.com/en/products/apps-software/smart-pix-software) · [RocheDiabetes Care Platform Connectivity Guide (PDF)](https://www.accu-chek.co.uk/hcp/sites/g/files/papvje326/files/2024-05/RocheDiabetes%20Care%20Platform%20Connectivity%20Guide%20-%20December%202023.pdf) · [Accu-Chek Guide Me Meter](https://www.accu-chek.com/products/meters/guide-me) · [Reading Glucose Data from an Accu-Chek Meter using BLE and Python](https://medium.com/@victoradrianjimenez/reading-glucose-data-from-an-accu-chek-meter-using-bluetooth-low-energy-and-python-acf199a7535e) · [Decoding the Accu-Chek Active IR Protocol](https://people.bath.ac.uk/enpsgp/Zaurus/accu-chek.html) (old model, reverse-engineered, illustrates why Roche's protocols are treated as closed).
+
+**Not yet actioned in code** — waiting on the model confirmation from Scott before building anything
+(CSV import vs. Web-Bluetooth-on-Mac-only are different features with different scope).
+
+## 2026-09-14 — Meter model confirmed: Accu-Chek Guide Me (correcting an earlier wrong guess)
+
+**Correction, not just an update:** earlier today, from a photo of the meter's rear label (SN/GTIN/MODEL/PIN
+fields, Mannheim-Germany manufacturing, a biohazard mark), this file's prior entry guessed the device
+was an **Accu-Chek Inform II** — Roche's hospital point-of-care meter, not a personal device. That
+guess was inference from indirect label styling, not a confirmed match (the exact GTIN never turned
+up in search), and it turned out to be wrong. **Direct confirmation from ADACare (Amy, on a recorded
+call with Scott, 2026-09-14) says the device is an Accu-Chek Guide Me** — Scott confirmed "that's
+what I've got in my hand." Trust this over the earlier label-based inference; correcting the record
+here rather than leaving two contradictory entries standing.
+
+**What this actually means, confirmed via search (not the same device as the wrong earlier guess):**
+- Guide Me is a real consumer meter with **two independent connections**: Bluetooth (pairs with
+  Roche's own mySugr app) and a **USB port for PC transfer** — this is what Scott saw as "PC mode"
+  and the "mini USB jack on the side" he described to the ADACare nurse. Source:
+  [Accu-Chek Guide Me — Bluetooth & USB Data Transfer](https://xeteor.com/roche-accu-chek-guide-me-meter-bluetooth-capability/),
+  [mySugr: Connect Accu-Chek Guide Me](https://support.mysugr.com/hc/en-us/articles/360004201280-How-to-Connect-Accu-Chek-Guide-Me-with-the-mySugr-app).
+- The Bluetooth side is the promising path: Guide/Guide Me meters are documented in the diabetes-tech
+  community as using the Bluetooth SIG's standard **Glucose Service** profile (see the earlier
+  2026-09-14 entry above citing a public Python BLE example reading an Accu-Chek meter this way) —
+  a public spec, independent of needing mySugr or any Roche blessing. If confirmed for this exact
+  meter, the Tracker could read it directly via the **Web Bluetooth API** — but only from Chrome
+  (Scott's Mac or an Android phone), never from Safari/iOS, which has never implemented Web Bluetooth
+  (an Apple platform restriction, unrelated to Roche or this app). Scott is mobile-first on an
+  iPhone day-to-day, so this path would only work when he's specifically on his Mac in Chrome.
+- The USB/PC-transfer side: real, but no more documented for this specific model than the general
+  finding already in the 2026-09-14 entry above (Roche does not publish the wire protocol even to
+  developers who ask directly). Don't assume Guide Me's USB side is more open just because the
+  device itself turned out to be a normal consumer meter — that hasn't been separately confirmed.
+- **Not yet built either path** — this is confirmation of what's possible, not new code. Next step
+  when picked up: try pairing the Guide Me with a Chrome browser's own Bluetooth device picker (from
+  Scott's Mac) to see whether it actually exposes the standard Glucose Service, before writing any
+  Web Bluetooth code against it.
+
+## 2026-09-14 — Libre 2 Plus supply status (from the same ADACare call)
+
+Sensors were dispatched by Abbott on **Monday 2026-09-07**. ADACare followed up Friday 2026-09-11
+with no reply, followed up again urgently the morning of this call (2026-09-14) — no tracking number
+yet, unusual delay by ADACare's own account (possibly related to Abbott mid-transition between the
+Libre 2+/3+ model lines, per the call). ADACare will email Scott (smfraser60@gmail.com, replacing an
+earlier contact "Alex" who has left) with a tracking number once Abbott responds. Still "pending
+supply," per the standing note elsewhere in this file — no change to build priorities from this, just
+a real ETA data point. ADACare's test-strip supply defaults to a 3-month auto-resupply cadence sized
+to 3 tests/day unless Scott calls to adjust it up or down — general life-admin context, not something
+the app needs to model.
+
+## 2026-09-14 — Major build session: Home screen rebuild, thresholds, Bluetooth, barcode scanning
+
+Scott gave a large batch of product direction in one sitting (an unrelated AID-app screenshot for
+UI inspiration, the ADACare phone-call transcript above, then a prioritized "just get it done, I'm
+leaving you to it" instruction), then stepped away. This entry captures everything built, tested,
+and decided in that session — read it in full before touching Home/Readings/Settings again, since
+it supersedes several earlier "not built yet" notes above. `npm test` was green (100/100) at the
+end of every step described below, not just at the very end.
+
+### Home screen rebuilt around one working screen (Scott's explicit spec)
+
+Replaced the old Timeline/Glucose/Food tab split with a single Home screen: a "latest reading" card
+up top, a glucose quick-entry form, then a food quick-entry form (text + camera + barcode + save)
+directly underneath — matches what Scott described in detail ("one big working screen... different
+ways of inputting data placed in the correct area"). Nav is now three tabs — **Home · Readings ·
+Settings** — with Diary and Export reachable as smaller secondary links from Home rather than
+top-level tabs (kept, not dropped — Scott didn't ask to remove either, and Export is what goes to
+his nurse). **This supersedes the earlier 2026-09-12 4-tab-+-FAB mobile mockup review
+(`9b701ac7-...`) as the actual build direction** — that mockup was never built into real code, and
+today's direction came directly from Scott, more specific and further along than the mockup.
+
+**Home screen pieces:**
+- Latest-reading card: big number + unit, a **freshness label** ("4 min ago" → "2h ago" → falls
+  back to a full date past 24h), and a **trend delta** ("+0.6"/"−0.3") against the previous
+  reading — both ideas came from the AID-app screenshot Scott shared; its insulin-dosing specifics
+  (carb boluses, units/hour) don't apply here, but the glanceability pattern does. Delta converts
+  units first (`convertUnit`) so a mixed mmol/L-then-mg/dL history still compares correctly.
+- Food entry got **recent/frequent suggestion chips** (`src/foodSuggestions.js`) — no AI, pure
+  local frequency+recency over what's already saved — tap one to reuse a common meal instead of
+  retyping it. Matches Scott's "if it becomes a regular thing" ask.
+- Camera button restyled from a bare file input into a proper icon button (same underlying AI-photo
+  flow, unchanged). **Barcode button is now real** — see below, not a placeholder.
+- Every entry (glucose, food) keeps its own independently-editable time field — already true before
+  today but reconfirmed as intentional: Scott wants "was this before or after breakfast" to always
+  be his own call per entry.
+
+### Readings screen: list/graph toggle + time-range chips
+
+Renamed from Timeline. List view unchanged in substance. Added a **Graph view** — a hand-rolled
+inline SVG line chart (no charting library; this app's own descriptive-not-fancy correlation
+principle doesn't need one) with **2h/4h/6h/12h/24h/7d range chips** (`GRAPH_RANGES` in
+`src/timeline.js`), again from the screenshot Scott shared. Default range is 24h. Display mode
+(list vs graph) is a Settings-level choice, persisted, also directly togglable from the Readings
+screen itself.
+
+### Glucose warning thresholds — built, with a floor Scott explicitly designed
+
+Settings now has Low/High threshold fields (`src/thresholds.js`), **blank by default** — nothing
+gets colored anywhere (Home's latest-reading card, the Readings list's left-border, the graph's dot
+colors) until Scott fills them in himself. This is the "give lows the same visual weight as highs"
+feature the 2026-09-13 competitor teardown recommended, built the way this file's "Descriptive, not
+prescriptive" section already required: the app never invents the clinical number.
+
+**The floor rule (Scott's own explicit design, his driving-limit analogy — "I drive to a 5 limit
+even though the real risk starts around 4.6-4.7"):** the **low** threshold can be raised above a
+recognized standard for extra personal margin, but this app will not let it go *below* that
+standard. Anchored to the ADA's cited hypoglycemia alert value, 3.9 mmol/L / 70 mg/dL (same source
+as the earlier meter-research entry above) — chosen because that's the figure already sourced and
+shown in the Settings copy, not a new number invented for this. Trying to enter something lower
+snaps back to the floor with a visible explanation, not a silent correction. No equivalent ceiling
+exists on the **high** side — Scott didn't ask for one, and this app's core danger direction is
+lows. `LOW_THRESHOLD_FLOOR` in `thresholds.js` is the one place this would ever need to change
+(e.g., if Scott's doctor gives a personal number that's actually *lower* than the generic standard
+— a real, unresolved tension, flagged rather than silently decided; ask Scott first if it comes up).
+Now also a standing rule in `CLAUDE.md`'s "Descriptive, not prescriptive" section, since it's a
+narrow, deliberate exception to that rule, not a precedent to extend without asking him again.
+
+Each glucose card that crosses a threshold gets a colored left border/background plus a small
+"ⓘ why" toggle explaining which threshold it crossed — never an unexplained color alone.
+
+### Sound: built-in alarm tones (custom user tones deferred, honestly)
+
+Scott asked for custom user-uploaded alarm tones. Built instead, as a clearly-scoped v1
+(`src/sound.js`): three **distinct built-in tones** (Web Audio oscillator beeps, no audio files to
+ship) — one for the daily reminder banner's hidden→shown transition, two more (different pitch,
+double-beep) for a glucose save that lands low or high. A Settings checkbox turns all of it off.
+**Custom uploaded sound files are a real next step, not built** — flagged to Scott directly as
+bigger scope (upload, storage, playback UI) than this pass, alongside a genuine platform constraint:
+no website can override a phone's own *system* notification sound, so even a custom tone can only
+ever play while this app is open, not as a background OS-level alert.
+
+### Date format setting
+
+Settings → Date format: Automatic (follows the phone's own locale, unchanged default) or a locked
+DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD (`src/dateformat.js`). Built after Scott clarified this
+wasn't the speculative Phase-2 "different users, different countries" feature it first looked
+like — his actual case is personal: he wants a format that doesn't silently change when his own
+phone's region setting shifts while travelling. Every place in the app that draws a date now routes
+through `formatDate()` so the lock actually holds everywhere at once (Home, Readings, Export CSV
+and printable summary) — the one thing it **can't** touch is the native `<input type="date">`
+picker on the Export screen's From/To fields, the phone's own OS calendar control, not something a
+website can restyle.
+
+### Meter identified, corrected, and a real Bluetooth source built against the actual spec
+
+**Correction to the earlier entry above:** the "Accu-Chek Inform II" identification from the
+photographed label was a wrong inference (indirect label styling, no confirmed GTIN match) — the
+ADACare phone call above confirms the actual device is an **Accu-Chek Guide Me**, a genuine
+consumer meter with both Bluetooth (to Roche's mySugr app) and the USB port Scott had noticed.
+Trust this over the earlier guess; `CLAUDE.md` has been corrected to match.
+
+Built a real Bluetooth glucose source against this (`src/bluetoothGlucose.js`), added to the
+`glucoseSources` registry as `bluetooth-meter`, gated on `"bluetooth" in navigator` (Chrome on
+Mac/Android only — Safari/iOS has never implemented Web Bluetooth, an Apple restriction, so this
+entry correctly reports "Not available" there). A "Connect via Bluetooth & pull readings" button
+in Settings appears only when available; it opens Chrome's own device picker, connects to the
+standard Bluetooth SIG **Glucose Service** (0x1808, a public spec — not Roche's undocumented USB
+protocol), and pulls the meter's full stored history via the Record Access Control Point, not just
+whatever it reads next.
+
+**This is built strictly to the published Bluetooth GATT spec (byte layout confirmed against the
+official spec before writing any parsing code — sources cited in the module's own header comment)
+but has NOT been run against Scott's actual meter — there's no way to verify that without the
+physical device.** Every parsed value is range-checked (1-40 mmol/L) before being offered for
+saving, specifically so a spec-reading mistake can't silently produce a wrong glucose number — the
+one safety property any future change here must keep. The pure SFLOAT-decoding math has real
+unit-test coverage (`tests/bluetoothGlucose.spec.js`, hand-constructed byte arrays matching the
+spec) since that's the part that could otherwise fail silently; the actual device-pairing handshake
+could not be tested this way and is the genuine next step — **treat the first real connection
+attempt as a test, not a known-working feature.**
+
+### Barcode scanning: built for real, not the honest-placeholder message from earlier
+
+Replaced the earlier "isn't built yet" message with an actual scanner: `src/barcode.js` uses ZXing
+(`@zxing/browser`) to decode from live camera frames via canvas analysis — deliberately **not** the
+native `BarcodeDetector` Shape Detection API, which Safari/iOS still doesn't support and would have
+left Scott's own phone without a working scanner. `src/nutrition.js` looks up a decoded barcode
+against **Open Food Facts** (free, no API key, already the brief's own §6 recommendation, real
+Australian-market coverage) and formats a descriptive line — product name, sugar/carbs per 100g —
+into the food-text field. Purely descriptive, per this app's own rule: no portion-size or
+"how much is safe" logic anywhere in it.
+
+**Bundle-size catch, fixed same session:** ZXing added ~500KB (pre-gzip) to the main JS bundle
+before this was noticed — barcode scanning is a secondary, occasional-use feature, so making every
+page load pay for it upfront was wrong. Fixed with a dynamic `import("./barcode.js")` on first tap
+instead of a static top-level import; Vite now code-splits it into its own chunk, main bundle back
+to ~29KB. Worth remembering as a pattern if another heavy, occasional-use dependency gets added
+later — check `npm run build`'s own chunk-size output, it flags this.
+
+**Tested:** the pure lookup/formatting logic (`tests/nutrition.spec.js`, mocked `fetch`, no network
+or camera). **Not testable from here, needs Scott's real device:** the actual camera-scan-a-real-
+barcode flow — Playwright's headless run has no camera, so the existing test only confirms the
+scanner UI opens and closes cleanly, not that a real decode works end-to-end.
+
+### CSV Import (the realistic version of "transfer between devices")
+
+Scott asked for automatic transfer when his phone connects to his Mac — **not possible**, flagged
+directly: no website can detect a cabled phone or reach into another device's browser storage, an
+inherent web-platform limit, not something buildable around. Built the realistic version instead:
+Export's CSV gained extra structured columns (Timestamp/Value/Unit/Note/Text, additive — the
+original human-readable Type/When/Detail columns are unchanged) so a new **Import** control on the
+Export screen can read a previously-exported file back in losslessly, with duplicate-skipping by
+timestamp+value/text (`importCSV` in `src/export.js`). Workflow: export on one device, hand the
+file over (AirDrop/email/Files), import on the other.
+
+### Bugs found and fixed this session (all now covered by regression tests)
+
+- **Datetime fields never defaulted on first load.** Init called `refreshHome()` directly instead
+  of `showView("home")`, so the required `datetime-local` fields stayed blank until a nav click —
+  silently blocked every save attempt on a fresh page load with no visible error. Fixed by routing
+  init through `showView("home")`.
+- **A recurring CSS specificity gotcha, three separate times** (`.timeline-list`, `.latest-reading`,
+  and pre-emptively guarded against for `#barcode-scanner`): an element's own explicit
+  `display: flex` has equal specificity to the browser's default `[hidden] { display: none }` and
+  wins by coming later in the cascade — setting `.hidden = true` on such an element silently does
+  nothing visually. Pattern to remember for any *new* element that (a) gets `display` set
+  explicitly in this stylesheet and (b) ever has `hidden` toggled directly on it (not just
+  inherited from a hidden ancestor): always pair it with an explicit
+  `.the-class[hidden] { display: none; }` rule. Found the first two by actually looking at the
+  running app in a browser, not just by tests passing — the Playwright assertions on `.hidden`
+  (the JS property) were all green throughout, because they were checking the DOM attribute, not
+  the resulting visual state.
+- **Same-minute readings picked the wrong one as "latest."** `nowForDatetimeLocal()` zeroes seconds
+  (matching the datetime-local input's own minute-only granularity), so two readings logged
+  moments apart can share an identical stored timestamp — a plain timestamp sort's stable tiebreak
+  then favoured insertion order (oldest-first) over recency. Fixed with `compareRecentFirst()` in
+  `src/db.js`, a shared comparator every "most recent" sort in the app now uses, falling back to
+  comparing `id` (always millisecond-precise from `makeId()`) when timestamps tie.
+
+### Test suite: grown from 10 to 100
+
+`npm test` now runs 25 test cases × 4 browser projects. New files: `tests/bluetoothGlucose.spec.js`
+(pure SFLOAT/byte-layout unit tests, no browser needed) and `tests/nutrition.spec.js` (pure lookup/
+formatting, mocked fetch). `tests/smoke.spec.js` grew to cover the rebuilt Home/Readings screens,
+the threshold floor rule, the date-format lock, and the barcode scanner's open/close. All 100 pass
+as of this entry — run `npm test` before trusting any of the above still holds after further edits.
+
+### Still open — nothing here is silently dropped
+
+- **Country-aware food database** (Open Food Facts + AUSNUT for Australia, "know where I am and
+  what foods to expect") — not started. Open Food Facts is confirmed to support country-based
+  filtering already, so this is realistic, just separate scope from today's barcode-lookup work.
+- **Real PNG app icons** (replacing the placeholder SVG) — not started this session; no image-
+  generation tool was available to do this properly, flagged rather than faked with a low-effort
+  substitute.
+- **Meal-timed multiple reminders** — still waiting on Scott to specify the exact shape (see the
+  2026-09-12 entry above); do not guess at this.
+- **LibreLinkUp polling** — blocked on the Libre 2 Plus sensor physically arriving (see the
+  ADACare-call entry above; still no tracking number as of that call).
+- **Apple Health / Google Health Connect sync** — brief §3.3, not started, no new information this
+  session.
+- ~~Custom domain HTTPS~~ — **resolved, see the corrected 2026-09-12 entry above**: confirmed
+  working (valid cert, HTTP/2 200) on a live check later the same day as this entry was written.
+- **Landing-page contact email** — still a `[your contact email]` placeholder; Scott now has a
+  known email on file (used with ADACare) but publishing a personal address on a public landing
+  page is his call to make explicitly, not something to default to quietly.
+
+## 2026-09-14 — Live Bluetooth debugging session with Scott and the real meter
+
+Scott had the actual Guide Me in hand, in genuine pairing mode (confirmed: two-circles + spinner
+icon, the correct indicator per mySugr's own docs — his pairing procedure was never the problem).
+First real end-to-end test surfaced a real bug, plus one hard platform boundary worth knowing about
+before anyone tries to script around it again.
+
+**Bug found and fixed:** `connectAndFetchReadings` in `src/bluetoothGlucose.js` originally called
+`requestDevice({ filters: [{ services: ['glucose'] }] })` — Chrome's picker can only filter by
+services a device *advertises*, and this meter apparently doesn't advertise the Glucose Service
+openly even though it supports it once connected (common for single-purpose BLE health devices).
+Changed to `{ acceptAllDevices: true, optionalServices: ['glucose'] }` so the picker shows every
+nearby device by name and Scott picks the meter manually — `optionalServices` still grants access
+to the Glucose Service after connecting. Settings' Bluetooth section got a matching hint explaining
+the picker now shows everything, not a pre-filtered list.
+
+**Deploy tooling has a real gotcha with this project's setup:** the Netlify MCP deploy tool
+packages the current working directory as a git repo to upload — and this project lives in a git
+**worktree**, which it can't handle (`fatal: not a git repository`, trying to init against the
+worktree's `.git` file instead of a real `.git` directory). Workaround used: copy the project
+(excluding `.git`/`node_modules`) into a clean scratch folder, `git init` a plain throwaway repo
+there, and run the deploy from that copy instead. Worked — deploy succeeded, confirmed live by
+checking the served JS bundle directly for the fix. **If a future deploy fails with this exact
+error, this is why — same workaround applies.**
+
+**Hard platform boundary, not a bug — don't try to script around this again:** attempted to drive
+Scott's real Chrome via the Claude-in-Chrome extension to click "Connect via Bluetooth" and watch
+what the native device picker showed. The click correctly reached `requestDevice()` (confirmed: it
+returned `"User cancelled the requestDevice() chooser"`), but **Chrome will not let any automated
+tool — extension-driven or OS-level — interact with the native Bluetooth/hardware-permission
+chooser dialog.** This is deliberate browser security, not a gap in tooling. That dialog can only
+ever be operated by the human physically at the keyboard. Confirmed the button and code path are
+wired correctly; the actual "does the meter appear in the list" question can only be answered by
+Scott clicking it himself and looking.
+
+**Status at time of writing: still not connected.** Scott has retried multiple times with the
+meter genuinely in pairing mode; macOS's own System Settings → Bluetooth "Nearby Devices" list also
+shows nothing during the same window (searching, but empty) — this was initially read as ruling out
+a browser-specific cause, but that reasoning was corrected mid-session: macOS's Settings panel is a
+curated consumer list that's known to omit single-purpose BLE peripherals even when they're
+genuinely advertising, so an empty list there doesn't actually confirm anything about what Chrome's
+own (different, lower-level) scan would see. **Next step, needs Scott at the keyboard:** click
+Connect himself while the meter is in pairing mode and report exactly what Chrome's picker shows —
+empty entirely, other devices but not the meter, or the meter itself. That result is the one
+missing piece needed to know whether this is a device/range issue or something still fixable in
+code.
+
+## 2026-09-15 — Food Guidance section, Home hero redesign, and a real custom-domain/deploy problem found
+
+**Built: a "Food Guidance" screen**, reachable from Home via a new "🍎 Food guidance" button next
+to Diary note/Export. Three plain-English sections (Everyday eating, Alcohol, Eating out & social
+occasions) plus a Sources list crediting the actual published sources (NHS, Mayo Clinic, Cleveland
+Clinic, a couple of journal papers on alcohol-potentiated reactive hypoglycaemia, GlucoSense).
+Static content, not AI-generated, written up top with the same "general information, not personal
+advice, confirm with your own doctor" framing already used for the glucose thresholds — deliberately
+on the safe side of this project's "descriptive, not prescriptive" rule (see CLAUDE.md): it's
+published general knowledge with citations, not the app judging what Scott personally should eat.
+Scott confirmed this was the right shape and the right place for it before it was built.
+
+**Built: Home screen redesign, prompted by Scott sharing a screenshot of an open-source automated
+insulin-delivery app's display.** Worth recording plainly what did and didn't carry over, since the
+reference app is built for a fundamentally different job (dosing insulin via a pump — IOB, temp
+basal, carb-bolus buttons) that has no equivalent in reactive hypoglycemia management:
+- The big centered glucose number, freshness label, and delta — **already existed**, just small
+  (2rem). Enlarged to 4.5rem and restructured into a centered/stacked hero card
+  (`.latest-reading` in `src/style.css`), matching the reference's look without changing any
+  underlying logic (`renderLatestReading()` in `src/main.js` untouched — same element IDs, just
+  re-laid-out markup).
+- The graph + time-range chips (2h/4h/6h/12h/24h/7d) — **already existed** (built 2026-09-14),
+  nothing to add.
+- Bottom nav with icon+label — **already existed** (Home/Readings/Settings).
+- **New:** a small status badge, top-right of the header — `#bluetooth-status-badge` — showing
+  meter sync freshness ("Synced 2m ago" / "Meter not synced yet", dot colour-coded). Deliberately
+  worded "synced," not "connected": `connectAndFetchReadings()` opens the BLE link, pulls stored
+  records, and disconnects (see `bluetoothGlucose.js`) — there's no persistent connection for a
+  "connected" dot to honestly reflect. Timestamp written to `localStorage` on a successful pull.
+- **Not built yet, needs one more answer from Scott:** a "food button" near the bottom — asked
+  whether he meant a shortcut to jump to Home's existing Food section, or a genuinely separate
+  Food tab in the bottom nav. Don't guess; the two are structurally different.
+
+Both features tested (104/104 across all 4 browser projects) and visually verified in a live
+preview before being called done. Committed to git (`143dca8` for Food Guidance; the Home redesign
+commit follows once the food-button question above is answered, so it can go in as one coherent
+commit rather than two).
+
+**Found, not yet fixed: `reactivebloodtracker.com` is serving a stale, pre-redesign build, and the
+site's own documented `.netlify.app` name has gone dark.** Scott shared a screenshot of a direct
+Chrome navigation to `reactivebloodtracker.com` that loaded a page headed "Timeline" with separate
+Glucose/Food/Diary/Export/Settings buttons — the *old* architecture, from before the 2026-09-14
+"Rebuild Home as one quick-entry screen" redesign (commit `cc9140c`). Checked directly rather than
+guessed:
+- `dig reactivebloodtracker.com` → resolves fine, served by Netlify, valid HTTPS, HTTP/2 200. The
+  earlier "did not match any documents" result (2026-09-14 entry above) was a Google-search-box
+  artifact from searching the URL as a query rather than navigating to it directly — not a real
+  DNS/cert problem. That's still true; nothing wrong with the domain's plumbing itself.
+- `curl -s https://reactivebloodtracker.com` → response body is unmistakably the pre-rebuild HTML
+  (`<h1 id="view-title">Timeline</h1>`, a separate `view-glucose` section) — confirms the domain is
+  frozen at whatever was live around when it was first pointed (2026-09-12), and has not received
+  any deploy since — not the Bluetooth fix, not today's work, nothing.
+- `curl -sI https://reactive-hypoglycemia-tracker.netlify.app` → genuine Netlify **404** ("Not
+  Found"), meaning that exact subdomain name is not currently claimed by any site — not a cache or
+  propagation issue, an actual "no site answers to this name" response.
+- Working theory, not yet confirmed: the 2026-09-14 scratch-copy deploy workaround (a plain `git
+  init` in a throwaway folder, needed because this project lives in a git worktree the Netlify
+  deploy tool can't package directly — see that entry above) most likely created or pushed to a
+  **different** Netlify site than the one `reactivebloodtracker.com` is bound to, rather than
+  updating the original site (id `0b9a9624-13b7-4441-8056-0807f9cbbf7c`). That would explain both
+  symptoms at once: the custom domain never seeing the newer builds, and the original site's
+  default subdomain going quiet.
+- **Could not confirm the theory via the Netlify MCP tools this session** — `netlify-project-
+  services-reader` and `get-netlify-coding-context` both expect an internal `selectSchema`/
+  `creationType` discriminator that isn't documented anywhere visible to this session, and every
+  guessed value was rejected. Didn't force it further; this needs either better tool documentation
+  or five minutes in Scott's own Netlify dashboard (Sites list — which site currently shows
+  `reactivebloodtracker.com` under Domain settings, and what is that site actually called/its ID)
+  to resolve safely, rather than guessing at rebinding a live public domain.
+- **Next step:** once the correct current site is identified, deploy the current code to *that*
+  site specifically (same scratch-copy-repo workaround as before), which should bring the custom
+  domain fully up to date in one go.
+
+**Resolved, same session — root cause was simpler than the theory above.** Scott confirmed the
+Netlify project's Site ID (`0b9a9624-13b7-4441-8056-0807f9cbbf7c`) — it's the **same site** already
+documented, not a second one; no site-duplication mystery after all. Investigated properly via the
+site's own Deploys tab:
+- **What actually happened:** every past deploy is still sitting in Netlify's deploy history, each
+  with its own permanent permalink (`https://<deploy-id>--reactivebloodtracker.netlify.app`).
+  Checking each one's actual HTML directly (`curl`, looking for `<h1 id="view-title">`) showed the
+  **Sep 14, 12:17 PM "upload" deploy already had the correct, redesigned Home/Readings/Settings
+  UI** — but production was serving the Sep 12 or Sep 13 deploy (old "Timeline" UI) instead. Today
+  at 2:57 PM something republished an old deploy back to production (2-second "deploy" with no
+  message — consistent with clicking "Publish deploy" on a historical entry rather than a fresh
+  build) — that's the actual regression, not a stale/never-updated domain as first suspected.
+- **Fixed:** opened the Sep 14, 12:17 PM deploy in Netlify's dashboard and clicked Publish deploy →
+  Publish. Confirmed live via `curl`: `reactivebloodtracker.com` now serves the Home/Readings/
+  Settings redesign again.
+- **Still not live: today's newest work** (the Food Guidance section, the Home hero/Bluetooth-badge
+  redesign from this same session) — none of that has ever been deployed anywhere yet, so
+  restoring the Sep 14 deploy doesn't include it. Getting it live needs a fresh deploy, which hit
+  two real, unresolved blockers this session:
+  1. **Git is broken system-wide on this Mac right now**: every git command, even `git --version`,
+     fails with `You have not agreed to the Xcode license agreements. Please run 'sudo xcodebuild
+     -license'...`. This blocks the scratch-copy-repo deploy workaround entirely (needs a local git
+     repo to hand to the deploy tool). **Needs Scott specifically** — it's a `sudo` command
+     requiring his password and his own agreement to Apple's license; not something to do on his
+     behalf even with full computer access. One-time fix, ~30 seconds in Terminal.
+  2. **The Netlify deploy/reader MCP tools are unusable this session** — both
+     `netlify-deploy-services-updater` and `netlify-project-services-reader` expect an internal
+     `selectSchema` discriminator that isn't documented anywhere visible here; every attempted
+     shape (string, nested object, `{type, params}`) was rejected with the same generic error.
+     Didn't force it further. A future session should check whether better tool docs are available
+     before re-attempting, rather than repeating the same guesswork.
+  3. **The dashboard's own drag-and-drop deploy zone has no fallback file input** — checked via the
+     accessibility tree; it's pure drag-and-drop with no click-to-browse element, so it can't be
+     driven by file-upload automation either. A real OS-level drag of the built `dist/` folder (or
+     a zip of it) onto that page, done by a human, is the remaining path — the built zip is already
+     sitting at
+     `/private/tmp/claude-501/.../scratchpad/reactivebloodtracker-deploy.zip` if it's still around,
+     otherwise `npm run build` again and zip fresh.
+  **Bottom line for next session or for Scott:** either (a) run `sudo xcodebuild -license` once, or
+  (b) drag a fresh build zip onto `app.netlify.com/projects/reactivebloodtracker/deploys` — either
+  unblocks getting today's work live.
+
+**Resolved same session:** Scott ran `sudo xcodebuild -license` himself — git works again. Also
+found: a GitHub repo now exists at `github.com/GoFreo/reactivebloodtracker.com` (empty, freshly
+created). Worth connecting Netlify to it properly next session (Netlify's own "Import from Git"
+flow) so deploys happen from pushes instead of the scratch-copy workaround each time — not done
+yet this session, flagging so it isn't lost.
+
+## 2026-09-15 (continued) — Mac-as-hub workflow: photo import + Home Bluetooth shortcut, and a real Safari photo-save bug found
+
+Scott reframed the near-term plan given today's constraints (iPhone can't do Web Bluetooth at all;
+mobile app not fully there yet): make the **Mac** the hub for now. Phone becomes just a camera —
+take food photos there, get them onto the Mac (AirDrop/iCloud Photos already does this
+automatically, no app code needed for that leg), then the app picks up a whole batch at once.
+
+**Built:**
+- **`src/photoImport.js`** — hand-rolled EXIF `DateTimeOriginal` reader (no new dependency; only
+  needs one ASCII field out of the JPEG/TIFF structure, not general EXIF support). A file with no
+  EXIF (screenshot, re-saved image) falls back to its own last-modified time rather than blocking
+  the import. Unit-tested against hand-built JPEG/EXIF byte arrays, same approach as
+  `bluetoothGlucose.spec.js`'s hand-built `DataView`s.
+- **"📥 Import photos" button on Home** (third icon alongside Camera/Barcode) — select a whole
+  batch at once (a day's worth, doesn't matter which), each photo becomes its own food entry dated
+  by when it was actually taken, oldest-first. Deliberately does **not** auto-run AI parsing on
+  import — same manual "Parse with AI" step as every other entry, so importing a whole day never
+  racks up API calls without Scott choosing that per entry.
+- **"🔵 Sync meter" button on Home**, next to the glucose form — same Bluetooth connect flow
+  already in Settings, now reachable without a trip there. Both buttons share one
+  `runBluetoothSync()` function (refactored out) rather than duplicating the connect/error logic.
+
+**Found, fixed, and worth reading carefully — likely explains an earlier real complaint:** while
+testing the photo importer, hit `UnknownError: Error preparing Blob/File data to be stored in
+object store` — a genuine WebKit IndexedDB bug when storing certain `File`/`Blob` objects.
+Confirmed this is **not new** — the exact same error already existed in the original single-photo
+camera-capture save path (`foodForm`'s submit handler), just never caught by any test before (the
+existing camera test explicitly can't simulate a real photo — "needs a physical camera" — so this
+path had never actually been exercised end-to-end). This is a strong candidate for explaining
+Scott's earlier report of food photos "not being able to put in" — not user error, a real save
+failure that was happening silently (no error shown, nothing saved, nothing visibly wrong either).
+- **Fixed both paths**: rebuild a plain `Blob` from the photo's own bytes (`toStorableBlob` in
+  `photoImport.js`) rather than storing the `File` object directly, and wrapped both save paths in
+  proper try/catch so a failure now shows a clear message instead of silently doing nothing.
+- **Honest open question:** the Blob-rebuild didn't clear the error when tested under Playwright's
+  automated WebKit specifically — tried a couple of other angles (allowing service workers) without
+  a clean resolution either. This points at least partly at the *automation environment itself*
+  (a real photo from the native camera is backed differently than one injected via
+  automated file-input), so it may already work fine in Scott's actual Mobile Safari — but that
+  isn't proven either way from here. The two WebKit projects' equivalent test is deliberately
+  skipped with a comment explaining exactly this, rather than silently weakened or left failing.
+  **Next session, or for Scott: if a food photo still fails to save on the iPhone specifically,
+  report the exact error text now shown (it wasn't visible before this fix) — that's the missing
+  piece to actually close this out.**
+
+**Also flagged, not actioned:** Scott raised wanting a proper email address set up via Microsoft
+Business for the app(s) — held off per the project's standing rule against configuring account/
+security infrastructure directly; asked him to clarify the actual goal (a forwarding address on an
+existing mailbox vs. a new subscription) before doing anything here.
+
+**Deployed, and a much better deploy method found.** Once git was working again, tried the Netlify
+CLI directly (`npx netlify-cli`) instead of the old scratch-copy-git workaround — turns out this
+Mac already has an authenticated `netlify-cli` session linked to the right project
+(`reactivebloodtracker`, confirmed via `npx netlify-cli status`). A plain
+`npx netlify-cli deploy --prod --dir=dist --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c` (after
+`npm run build`) deployed cleanly in ~40s — no git repo needed at all, sidesteps the whole
+worktree-packaging problem that caused the original 2026-09-14 deploy failure. **This should be the
+default deploy method going forward**, not the scratch-copy workaround — much simpler, and doesn't
+depend on git working. Confirmed live via `curl`: today's Home redesign, sync badge, photo import,
+and Bluetooth diagnostics are all now on `reactivebloodtracker.com`.

@@ -1,5 +1,16 @@
 # Reactive Hypoglycemia Tracker — Claude Session Starter
 
+## End every session (or work stoppage) with a SITREP (added 2026-09-14, Scott's explicit instruction)
+
+At the end of any session, or whenever a work stretch stops/pauses — not just when the whole
+project wraps up — publish a SITREP as an artifact and leave it on screen. Don't wait to be asked;
+this is standing, proactive practice from here on. Scott's own definition of "sitrep": a short
+intro, then a plain **done / not-done** list, then a small **follow-up report** going into more
+detail on whatever the session actually touched, plus an honest section on any errors, bugs, or
+access limitations hit along the way (don't omit friction to make the session look cleaner than it
+was). If a sitrep artifact already exists for this project, republish to the same URL rather than
+creating a new one each time.
+
 ## Folder-boundary rule (read first)
 
 > Work ONLY inside this folder (`Reactive Hypoglycemia Tracker/`). Do not read, search, or
@@ -120,7 +131,7 @@ returns `{configured: false}` — that's working as designed, not a bug to chase
   for hypothetical future requirements" rule. Just don't build anything in Phase 1 that would make
   this harder to add later (e.g. don't hardcode the assumption that there's exactly one global key).
 
-## Glucose/meter connectivity — technical reality (clarified with Scott, 2026-09-12)
+## Glucose/meter connectivity — technical reality (clarified 2026-09-12, meter confirmed + built 2026-09-14)
 
 Scott asked directly whether the app can talk to the Libre 2 Plus over Bluetooth and to a
 finger-prick meter. Answered plainly, recorded here so it isn't over-promised later:
@@ -130,19 +141,24 @@ finger-prick meter. Answered plainly, recorded here so it isn't over-promised la
   already the brief's own §3.2 recommendation — is **LibreLinkUp**: once the sensor is active and
   Scott turns on sharing from the official app, a backend job can poll LibreLinkUp for the latest
   reading every few minutes. Not live-streaming, not built yet, and can't be tested until the
-  sensor is actually active (still pending supply).
-- **Finger-prick meter (Accu-Chek or whatever ADACare supplies) Bluetooth support depends entirely
-  on the exact model**, still unconfirmed — and even a Bluetooth-capable meter may keep its
-  protocol closed/proprietary rather than open to third-party apps. Manual entry is the reliable
-  fallback regardless of model.
+  sensor is actually active — still pending supply as of 2026-09-14 (Abbott dispatched it
+  2026-09-07, ADACare chasing a tracking number, see HANDOVER.md for the live status).
+- **Finger-prick meter confirmed: Accu-Chek Guide Me** (ADACare phone call, 2026-09-14 — an earlier
+  guess of "Accu-Chek Inform II" from a label photo was wrong inference and has been corrected;
+  don't resurrect it). Guide Me genuinely has Bluetooth (standard Bluetooth SIG Glucose Service,
+  0x1808 — a public spec, not something Roche has to bless) alongside a USB port for PC transfer
+  (Roche's own protocol for that side is undocumented and they've refused to share it even under
+  NDA — don't attempt that path). A real Bluetooth source is now built: `src/bluetoothGlucose.js`,
+  registered in `glucoseSources` as `bluetooth-meter`, gated on `"bluetooth" in navigator` (Chrome
+  on Mac/Android only — Safari/iOS has never implemented Web Bluetooth). **Built strictly to the
+  published spec but not yet confirmed against the physical device** — see HANDOVER.md's
+  2026-09-14 build entry for exactly what is and isn't verified. Manual entry remains the reliable
+  fallback regardless.
 - **Equipment WILL change over time — this is exactly why `glucoseSources` in `src/glucose.js` is
   a registry, not a hardcoded meter/CGM** (Scott's own explicit requirement, captured earlier in
-  this file's history and in `HANDOVER.md`). When LibreLinkUp polling or a specific meter's
-  Bluetooth connection eventually gets built, it's a new entry added to that registry — manual
-  entry keeps working as the fallback, and swapping equipment later (a different meter, a
-  different CGM brand) means adding/swapping a source, never a rewrite. Reaffirmed in this
-  conversation specifically so the CGM/meter work, whenever it happens, actually gets built this
-  way and not hardcoded to Libre/Accu-Chek specifically.
+  this file's history and in `HANDOVER.md`). When LibreLinkUp polling gets built, or a different
+  meter replaces the Guide Me, it's a new/swapped entry in that registry — manual entry keeps
+  working as the fallback, never a rewrite.
 
 ## Descriptive, not prescriptive — reaffirmed against a specific ask (2026-09-12)
 
@@ -161,43 +177,78 @@ response, drawn from Scott's own real logged data, is exactly what this app is f
 suggesting portion sizes, meal timing advice, or anything phrased as a recommendation needs a
 conscious call with Scott first, not a default assumption that "more helpful AI" is the goal.
 
+**Exception, deliberately carved out by Scott himself (2026-09-14): a safety *floor* is not the
+same as advice.** The Settings glucose-warning thresholds (`src/thresholds.js`) let Scott raise his
+own low-threshold above a recognized standard for extra personal margin (his own analogy: driving
+to a 5 mmol/L personal cutoff when the real risk starts around 4.6-4.7), but the app refuses to let
+it go *below* that standard (currently the ADA's cited 3.9 mmol/L / 70 mg/dL). This is intentionally
+different from the portion-size question above — it's a hard-coded, non-personalized, cited public
+figure acting only as a clamp against a less-safe number, never a suggestion or a recommendation
+generated for the specific situation. Don't read this as license to add other "the app just knows
+what's safe" behavior elsewhere — it's a narrow, deliberate exception Scott designed himself, not a
+precedent to extend without asking him first.
+
 ## Platform target
 
 Mobile-first — this is the primary way Scott will actually use it day to day. Mac support matters
 but is secondary. Keep that priority in mind for any framework/UI decisions once building starts.
 
-## Testing — run before every deploy (added 2026-09-12)
+## Testing — run before every deploy (added 2026-09-12, grown heavily 2026-09-14)
 
-A real Playwright smoke-test suite exists (`tests/smoke.spec.js`, 10 tests): app shell/navigation,
-glucose entry, diary entry, food entry (both the AI-unavailable graceful-degradation path and the
-full clarify-question loop, via a mocked `/.netlify/functions/ai-proxy` route — never hits the real
-paid Anthropic API in tests), settings (unit propagation, reminder banner), and export (CSV content,
-printable summary — `window.print` is stubbed in the test, never actually triggered, since the real
-dialog blocks the browser and will hang a test run).
+A real Playwright test suite exists — four files, 30 test cases: `tests/smoke.spec.js` (full
+app-shell/UI flows: Home's glucose+food quick-entry, Readings list/graph, the threshold-floor rule,
+date-format lock, barcode scanner open/close, photo import, settings, export+import),
+`tests/bluetoothGlucose.spec.js` (pure SFLOAT/byte-layout decoding unit tests against hand-built
+byte arrays, no browser needed — this is the safety-critical parsing logic that can't be verified
+against Scott's real meter from here), `tests/nutrition.spec.js` (Open Food Facts lookup/formatting,
+mocked `fetch`, no network call), and `tests/photoImport.spec.js` (EXIF date parsing against
+hand-built JPEG/EXIF byte arrays). The AI-proxy route is mocked in tests the same way
+(`/.netlify/functions/ai-proxy`) — never hits the real paid Anthropic API. `window.print` is
+stubbed, never actually triggered (the real dialog blocks the browser and would hang a run).
 
 **Runs across 4 projects** (`playwright.config.js`): Desktop Chrome + Mobile Chrome (Pixel 7) for
 Chromium/Android coverage, Desktop Safari + Mobile Safari (iPhone 14) for WebKit/iOS/Mac coverage —
-40 test runs total, per Scott's explicit ask for real cross-device confidence, not just whatever
-engine Playwright defaults to. `serviceWorkers: "block"` is set in the test context deliberately —
+120 test runs total (2 deliberately skipped on WebKit only — see HANDOVER.md's 2026-09-15 entry on
+the real Safari IndexedDB Blob-storage bug found there), per Scott's explicit ask for real
+cross-device confidence, not just whatever engine Playwright defaults to. `serviceWorkers: "block"`
+is set in the test context deliberately —
 the app's real service worker (`src/main.js`) can intercept fetches before Playwright's
 `page.route()` sees them under WebKit specifically (not Chromium), which broke the AI-mocking tests
 silently until this was found. Keep this setting; don't remove it as unnecessary.
 
 **Run `npm test` before every deploy, no exceptions.** It builds and serves the real production
 bundle (`playwright.config.js`'s `webServer`, not the dev server) — a true pre-deploy gate, not a
-dev-mode sanity check. All 10 passed as of 2026-09-12. If a deploy is proposed without this having
+dev-mode sanity check. All 100 passed as of 2026-09-14. If a deploy is proposed without this having
 been run against the current code, run it first; don't skip on the assumption "it's a small change."
-Add a new test case when a new feature ships — this suite is meant to grow, not stay frozen at 10.
+Add a new test case when a new feature ships — this suite is meant to grow, not stay frozen at any
+particular count. **A recurring bug pattern worth specifically testing for in any new element:** if
+you give a class its own explicit `display` value AND ever toggle `.hidden` directly on that same
+element, you need a matching `.the-class[hidden] { display: none; }` rule too — the browser's
+default hidden-handling silently loses to a same-specificity, later-declared rule otherwise. Bit
+three separate elements before this pattern was recognized (`.timeline-list`, `.latest-reading`,
+guarded against pre-emptively for `#barcode-scanner`) — see HANDOVER.md's 2026-09-14 entry.
 
-## Next steps (PICK UP HERE) — updated 2026-09-12
+## Next steps (PICK UP HERE) — updated 2026-09-14
 
-- **Genuinely needs Scott:** surgery-timeline date for the export report (does it need to exist by
-  a specific date?); whether/when to pursue a real custom domain or anything beyond the current
-  `reactive-hypoglycemia-tracker.netlify.app`.
-- **Deferred, not forgotten** (see `HANDOVER.md` for full detail on each): the §4.3 restaurant
-  clarifying-question loop is built; still open are LibreLinkUp/Bluetooth glucose sources,
-  nutrition-database lookups (Open Food Facts/AUSNUT), Apple Health/Google Health Connect sync, and
-  turning the reviewed mobile design-canvas mockups into the real `index.html`/`src/style.css`.
+- **Genuinely needs Scott:** surgery-timeline date for the export report (still unanswered from
+  2026-09-12); **Resolved 2026-09-15:** the stale-deploy issue is fixed and today's work (Food Guidance, Home
+  redesign, photo import, Bluetooth sync badge) is live on `reactivebloodtracker.com`. Deploy
+  method going forward: `npm run build` then `npx netlify-cli deploy --prod --dir=dist
+  --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c` — this Mac already has an authenticated `netlify-cli`
+  session, no git required, much simpler than the old scratch-copy workaround. See HANDOVER.md's
+  2026-09-15 entries for the full diagnosis;
+  whether to publish a real contact email on the landing page (a known address exists now — used
+  with ADACare — but putting a personal address on a public page is his call, not a default);
+  confirming the Bluetooth Guide Me connection actually works against the physical meter (built to
+  spec 2026-09-14, genuinely untested against hardware — see HANDOVER.md).
+- **Deferred, not forgotten** (see `HANDOVER.md`'s 2026-09-14 entry for full detail on each):
+  country-aware food database (Open Food Facts already supports this, separate scope from the
+  barcode-lookup work that IS built); real PNG app icons (still the placeholder SVG — no
+  image-generation tool was available to do this properly); custom user-uploaded alarm tones (built
+  distinct-but-fixed tones instead, as v1); meal-timed multiple reminders (still needs Scott to
+  specify the shape — don't guess); LibreLinkUp polling (blocked on the Libre 2 Plus sensor
+  physically arriving — dispatched 2026-09-07, no tracking number as of the 2026-09-14 ADACare
+  call); Apple Health/Google Health Connect sync (brief §3.3, no movement).
 - Cross-reference, not yet resolved either way: `PROJECT-REGISTRY.md` (root) section 5 "Personal
   Dashboard" already lists "blood sugar monitoring" as a must-include for a parked personal-
   dashboard idea, and section 4 "DVA Folder" flagged 2026-09-07 that its medical file was "meant

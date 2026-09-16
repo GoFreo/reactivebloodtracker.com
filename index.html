@@ -20,70 +20,139 @@
 
   <div id="app">
     <header class="app-header">
-      <h1 id="view-title">Timeline</h1>
+      <h1 id="view-title">Home</h1>
+      <div id="bluetooth-status-badge" class="bt-badge" hidden>
+        <span class="bt-dot"></span><span id="bluetooth-status-badge-text"></span>
+      </div>
     </header>
 
     <main id="views">
-      <section id="view-timeline" class="view" data-view="timeline">
+      <section id="view-home" class="view" data-view="home">
         <div id="reminder-banner" class="banner" hidden></div>
-        <div id="timeline-list" class="timeline-list"></div>
-      </section>
 
-      <section id="view-glucose" class="view" data-view="glucose" hidden>
-        <form id="glucose-form" class="entry-form">
-          <label>
-            Reading
-            <div class="reading-input-row">
-              <input type="number" step="0.1" inputmode="decimal" id="glucose-value" required autofocus />
-              <select id="glucose-unit">
-                <option value="mmol/L" selected>mmol/L</option>
-                <option value="mg/dL">mg/dL</option>
-              </select>
-            </div>
-          </label>
-          <label>
-            When
-            <input type="datetime-local" id="glucose-time" required />
-          </label>
-          <label>
-            Note (optional)
-            <textarea id="glucose-note" rows="2" placeholder="e.g. before breakfast, felt shaky"></textarea>
-          </label>
-          <button type="submit">Save reading</button>
-        </form>
-      </section>
-
-      <section id="view-food" class="view" data-view="food" hidden>
-        <form id="food-form" class="entry-form">
-          <label>
-            Describe what you ate
-            <textarea id="food-text" rows="3" placeholder="Tap the mic on your keyboard to dictate, or type here"></textarea>
-          </label>
-          <label class="photo-label">
-            Or add a photo
-            <input type="file" accept="image/*" capture="environment" id="food-photo" />
-          </label>
-          <img id="food-photo-preview" class="photo-preview" hidden />
-          <label>
-            When
-            <input type="datetime-local" id="food-time" required />
-          </label>
-          <div class="button-row">
-            <button type="button" id="food-parse-btn">Parse with AI</button>
-            <button type="submit">Save entry</button>
+        <div id="latest-reading" class="latest-reading" hidden>
+          <div class="when" id="latest-reading-when"></div>
+          <div class="latest-reading-value-row">
+            <span class="value" id="latest-reading-value"></span><span class="unit" id="latest-reading-unit"></span>
           </div>
-          <div id="food-ai-result" class="ai-result" hidden></div>
-          <div id="food-clarify" class="ai-result" hidden>
-            <p id="food-clarify-question"></p>
+          <span class="delta" id="latest-reading-delta"></span>
+          <button type="button" class="warn-info-btn" id="latest-reading-info-btn" hidden>ⓘ why</button>
+        </div>
+        <p class="warn-explanation" id="latest-reading-explanation" hidden></p>
+
+        <div class="home-section">
+          <h2>Glucose reading</h2>
+          <form id="glucose-form" class="entry-form">
+            <label>
+              Reading
+              <div class="reading-input-row">
+                <input type="number" step="0.1" inputmode="decimal" id="glucose-value" required autofocus />
+                <select id="glucose-unit">
+                  <option value="mmol/L" selected>mmol/L</option>
+                  <option value="mg/dL">mg/dL</option>
+                </select>
+              </div>
+            </label>
+            <label>
+              When
+              <input type="datetime-local" id="glucose-time" required />
+            </label>
+            <label>
+              Note (optional)
+              <textarea id="glucose-note" rows="2" placeholder="e.g. before breakfast, felt shaky"></textarea>
+            </label>
+            <button type="submit">Save reading</button>
+          </form>
+          <button type="button" id="home-bluetooth-connect-btn" class="secondary-btn" hidden>🔵 Sync meter</button>
+          <p class="field-hint" id="home-bluetooth-status"></p>
+        </div>
+
+        <div class="home-section">
+          <h2>Food</h2>
+          <form id="food-form" class="entry-form">
+            <label>
+              Describe what you ate
+              <textarea id="food-text" rows="3" placeholder="e.g. Breakfast: 1/4 cup porridge oats with 250ml milk, cooked 90 sec, added whey powder">
+              </textarea>
+            </label>
+            <div class="food-suggestions" id="food-suggestions"></div>
+
+            <input type="file" accept="image/*" capture="environment" id="food-photo" hidden />
+            <div class="icon-btn-row">
+              <button type="button" class="icon-btn" id="food-camera-btn">
+                <span class="icon" aria-hidden="true">📷</span> Camera
+              </button>
+              <button type="button" class="icon-btn" id="food-barcode-btn">
+                <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <rect x="2" y="4" width="2" height="16" fill="currentColor"/>
+                  <rect x="6" y="4" width="1" height="16" fill="currentColor"/>
+                  <rect x="9" y="4" width="3" height="16" fill="currentColor"/>
+                  <rect x="14" y="4" width="1" height="16" fill="currentColor"/>
+                  <rect x="17" y="4" width="2" height="16" fill="currentColor"/>
+                  <rect x="21" y="4" width="1" height="16" fill="currentColor"/>
+                </svg>
+                Barcode
+              </button>
+              <button type="button" class="icon-btn" id="food-photo-import-btn">
+                <span class="icon" aria-hidden="true">📥</span> Import photos
+              </button>
+            </div>
+            <input type="file" accept="image/*" multiple id="food-photo-import-input" hidden />
+            <p class="field-hint" id="food-photo-import-status" hidden></p>
+            <div id="barcode-scanner" hidden>
+              <video id="barcode-video" autoplay playsinline muted></video>
+              <button type="button" id="barcode-cancel-btn">Cancel scan</button>
+              <p class="field-hint" id="barcode-status"></p>
+            </div>
+            <img id="food-photo-preview" class="photo-preview" hidden />
+
+            <label>
+              When
+              <input type="datetime-local" id="food-time" required />
+            </label>
             <div class="button-row">
-              <input type="text" id="food-clarify-answer" placeholder="Your answer" />
-              <button type="button" id="food-clarify-submit">Send answer</button>
+              <button type="button" id="food-parse-btn">Parse with AI</button>
+              <button type="submit">Save entry</button>
             </div>
+            <div id="food-ai-result" class="ai-result" hidden></div>
+            <div id="food-clarify" class="ai-result" hidden>
+              <p id="food-clarify-question"></p>
+              <div class="button-row">
+                <input type="text" id="food-clarify-answer" placeholder="Your answer" />
+                <button type="button" id="food-clarify-submit">Send answer</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="secondary-links">
+          <button type="button" data-nav="diary">📝 Diary note</button>
+          <button type="button" data-nav="export">📤 Export</button>
+          <button type="button" data-nav="food-guidance">🍎 Food guidance</button>
+        </div>
+      </section>
+
+      <section id="view-readings" class="view" data-view="readings" hidden>
+        <div class="view-toggle" id="readings-view-toggle">
+          <button type="button" data-mode="list" class="active">List</button>
+          <button type="button" data-mode="graph">Graph</button>
+        </div>
+        <div id="timeline-list" class="timeline-list"></div>
+        <div id="readings-graph-wrap" hidden>
+          <div class="view-toggle" id="graph-range-toggle">
+            <button type="button" data-hours="2">2h</button>
+            <button type="button" data-hours="4">4h</button>
+            <button type="button" data-hours="6">6h</button>
+            <button type="button" data-hours="12">12h</button>
+            <button type="button" data-hours="24" class="active">24h</button>
+            <button type="button" data-hours="168">7d</button>
           </div>
-        </form>
+          <div id="readings-graph-container"></div>
+        </div>
       </section>
 
       <section id="view-diary" class="view" data-view="diary" hidden>
+        <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
         <form id="diary-form" class="entry-form">
           <label>
             Note
@@ -98,6 +167,7 @@
       </section>
 
       <section id="view-export" class="view" data-view="export" hidden>
+        <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
         <form id="export-form" class="entry-form">
           <label>
             From
@@ -112,12 +182,154 @@
             <button type="submit" id="export-print-btn" value="print">Printable summary</button>
           </div>
         </form>
+
+        <h2>Import</h2>
+        <div class="entry-form">
+          <label>
+            Import a file exported from this app — e.g. exported on your phone, then sent to this device
+            <input type="file" accept=".csv,text/csv" id="import-file" />
+          </label>
+          <p class="field-hint" id="import-status"></p>
+        </div>
+      </section>
+
+      <section id="view-food-guidance" class="view" data-view="food-guidance" hidden>
+        <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
+        <p class="field-hint">
+          General information from published medical sources — not personal advice, and not based
+          on your own data. For anything specific to you, confirm with your own doctor. Your own
+          Readings, once there's enough logged history, are the more accurate guide to what
+          actually affects you personally.
+        </p>
+
+        <h2>Everyday eating</h2>
+        <div class="entry-form">
+          <ul class="guidance-list">
+            <li>Nothing is strictly off-limits — the combination matters more than any single food.</li>
+            <li>Known trigger: a big hit of simple/refined carbs on their own — white bread, white pasta, white rice, pastries, sugary drinks, juice, lollies — especially on an empty stomach.</li>
+            <li>Steadier pattern: pair complex carbs with protein, fat, or fibre — wholegrains, legumes, nuts and seeds, vegetables — to soften the rise so there's less to crash from.</li>
+            <li>Smaller, more frequent meals (roughly every 3 hours) tend to work better than a few large ones.</li>
+          </ul>
+        </div>
+
+        <h2>Alcohol</h2>
+        <div class="entry-form">
+          <ul class="guidance-list">
+            <li>Not all off the table, but there's a real mechanism at play: alcohol makes your liver prioritise breaking it down over topping up blood sugar, so it can trigger or worsen a crash on its own.</li>
+            <li>One study found a specific higher-risk combination: alcohol with a sugary mixer (their example was gin and tonic) — a starch-based drink like beer didn't provoke the same drop.</li>
+            <li>Risk increases alongside other factors — age, other health conditions, exercise around the same time.</li>
+            <li>General takeaway: drink with food rather than on an empty stomach, and be more cautious with sweet mixers and cocktails than plainer drinks.</li>
+          </ul>
+        </div>
+
+        <h2>Eating out &amp; social occasions</h2>
+        <div class="entry-form">
+          <ul class="guidance-list">
+            <li>Check the menu ahead of time so you're not deciding under pressure at the table.</li>
+            <li>Grilled, baked, or steamed on a balanced plate tends to beat fried or sugar-heavy dishes — most places will happily swap a side.</li>
+            <li>Don't arrive starving — skipping a meal before a dinner out is a common setup for overeating simple carbs and crashing afterward.</li>
+          </ul>
+        </div>
+
+        <h2>Sources</h2>
+        <div class="entry-form">
+          <ul class="guidance-list guidance-sources">
+            <li><a href="https://www.nth.nhs.uk/resources/reactive-hypoglycaemia/" target="_blank" rel="noopener">Dietary advice for reactive hypoglycaemia — NHS North Tees and Hartlepool</a></li>
+            <li><a href="https://health.clevelandclinic.org/how-to-treat-reactive-hypoglycemia" target="_blank" rel="noopener">How to Treat Reactive Hypoglycemia — Cleveland Clinic</a></li>
+            <li><a href="https://www.mayoclinic.org/diseases-conditions/diabetes/expert-answers/reactive-hypoglycemia/faq-20057778" target="_blank" rel="noopener">Reactive hypoglycemia: What causes it? — Mayo Clinic</a></li>
+            <li><a href="https://onlinelibrary.wiley.com/doi/full/10.1111/jdi.13375" target="_blank" rel="noopener">Alcohol and glucose combined as a risk for reactive hypoglycemia — Journal of Diabetes Investigation</a></li>
+            <li><a href="https://academic.oup.com/alcalc/article/19/1/45/111413" target="_blank" rel="noopener">Alcohol-potentiated reactive hypoglycaemia depends on carbohydrate type — Alcohol and Alcoholism</a></li>
+            <li><a href="https://www.medicalnewstoday.com/articles/alcohol-and-hypoglycemia" target="_blank" rel="noopener">Alcohol and hypoglycemia: Link, signs, and treatment — Medical News Today</a></li>
+            <li><a href="https://www.glucosense.ai/blog/social-pressures-and-food-choices-with-diabetes" target="_blank" rel="noopener">5 Tips for Dining Out: Social Pressure &amp; Food Choices — GlucoSense</a></li>
+          </ul>
+        </div>
       </section>
 
       <section id="view-settings" class="view" data-view="settings" hidden>
+        <h2>Glucose warning thresholds</h2>
+        <div class="entry-form">
+          <p class="field-hint">
+            Left blank on purpose — nothing gets colored until you set your own numbers here.
+            For reference while you're deciding (confirm with your doctor, this app isn't
+            recommending a value): the ADA defines hypoglycemia as below 3.9 mmol/L (70 mg/dL).
+          </p>
+          <label>
+            Low threshold (below this = low warning)
+            <input type="number" step="0.1" inputmode="decimal" id="threshold-low" placeholder="e.g. 3.9" />
+          </label>
+          <p class="field-hint">
+            You can set this <strong>higher</strong> than 3.9 mmol/L (70 mg/dL) for extra personal
+            margin — same idea as driving to your own lower speed limit — but this app won't let it
+            go lower than that standard alert point.
+          </p>
+          <p class="field-hint" id="threshold-low-hint" hidden></p>
+          <label>
+            High threshold (above this = high warning)
+            <input type="number" step="0.1" inputmode="decimal" id="threshold-high" placeholder="e.g. 10.0" />
+          </label>
+          <label>
+            Units for the numbers above
+            <select id="threshold-unit">
+              <option value="mmol/L" selected>mmol/L</option>
+              <option value="mg/dL">mg/dL</option>
+            </select>
+          </label>
+        </div>
+
+        <h2>Readings display</h2>
+        <div class="entry-form">
+          <label class="checkbox-label">
+            <input type="radio" name="readings-mode" id="readings-mode-list" value="list" checked />
+            List
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" name="readings-mode" id="readings-mode-graph" value="graph" />
+            Graph
+          </label>
+        </div>
+
+        <h2>Date format</h2>
+        <div class="entry-form">
+          <p class="field-hint">
+            "Automatic" follows your phone's own region setting. Lock one in here if you want dates
+            to stay the same regardless of what your phone does when you travel.
+          </p>
+          <label class="checkbox-label">
+            <input type="radio" name="date-format" id="date-format-auto" value="auto" checked />
+            Automatic (follow my phone)
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" name="date-format" id="date-format-dmy" value="dmy" />
+            DD/MM/YYYY
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" name="date-format" id="date-format-mdy" value="mdy" />
+            MM/DD/YYYY
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" name="date-format" id="date-format-ymd" value="ymd" />
+            YYYY-MM-DD
+          </label>
+          <p class="field-hint">
+            Applies to dates this app draws itself (Home, Readings, Export). The From/To date
+            pickers on the Export screen are your phone's own native calendar control, which always
+            shows in your phone's own format — that one isn't something a website can override.
+          </p>
+        </div>
+
         <h2>Glucose source</h2>
         <div id="glucose-source-list"></div>
         <p class="field-hint" id="glucose-source-hint"></p>
+        <button type="button" id="bluetooth-connect-btn" hidden>Connect via Bluetooth &amp; pull readings</button>
+        <p class="field-hint" id="bluetooth-connect-hint" hidden>
+          The list that opens shows every nearby Bluetooth device, not just meters — look for one
+          named something like "Accu-Chek" or "Guide Me" and pick that one. If nothing shows up at
+          all, make sure Bluetooth is turned on for this browser in your Mac's System Settings →
+          Privacy &amp; Security → Bluetooth, and that the meter is actually still in its pairing/
+          searching mode when you click Connect (some meters only stay discoverable for a short
+          window after you trigger it).
+        </p>
+        <p class="field-hint" id="bluetooth-status"></p>
 
         <h2>Reminders</h2>
         <div class="entry-form">
@@ -135,6 +347,15 @@
           </p>
           <button type="button" id="notification-permission-btn">Enable browser notifications too</button>
           <p class="field-hint" id="notification-status"></p>
+          <label class="checkbox-label">
+            <input type="checkbox" id="sound-enabled" checked />
+            Play a sound for reminders and warnings
+          </label>
+          <p class="field-hint">
+            Plays while the app is open — a phone can't let a website override its own system
+            notification sound, so this is a real, distinct tone from inside the app itself, not a
+            substitute for it. Your own custom sound file is a fast-follow, not built yet.
+          </p>
         </div>
 
         <h2>Unit</h2>
@@ -152,20 +373,11 @@
     </main>
 
     <nav class="bottom-nav">
-      <button data-nav="timeline" class="nav-btn active" aria-label="Timeline">
-        <span class="nav-icon">📋</span><span>Timeline</span>
+      <button data-nav="home" class="nav-btn active" aria-label="Home">
+        <span class="nav-icon">🏠</span><span>Home</span>
       </button>
-      <button data-nav="glucose" class="nav-btn" aria-label="Add glucose reading">
-        <span class="nav-icon">🩸</span><span>Glucose</span>
-      </button>
-      <button data-nav="food" class="nav-btn" aria-label="Add food entry">
-        <span class="nav-icon">🍽️</span><span>Food</span>
-      </button>
-      <button data-nav="diary" class="nav-btn" aria-label="Add diary note">
-        <span class="nav-icon">📝</span><span>Diary</span>
-      </button>
-      <button data-nav="export" class="nav-btn" aria-label="Export report">
-        <span class="nav-icon">📤</span><span>Export</span>
+      <button data-nav="readings" class="nav-btn" aria-label="Readings">
+        <span class="nav-icon">📈</span><span>Readings</span>
       </button>
       <button data-nav="settings" class="nav-btn" aria-label="Settings">
         <span class="nav-icon">⚙️</span><span>Settings</span>
