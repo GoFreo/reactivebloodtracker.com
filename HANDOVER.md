@@ -1,6 +1,11 @@
 # Reactive Hypoglycemia Tracker — Handover
 
-## Status: 🟡 pre-code, waiting on research handoff
+## Status: 🟢 live and in daily use — reactivebloodtracker.com
+
+Deployed, tested (118 passed / 2 intentionally-skipped across 4 browser projects), and actively
+used by Scott for real glucose/food/diary tracking. See the 2026-09-16 entry at the bottom of this
+file for the most recent session (branch/worktree reconciliation) — read bottom-up for the current
+state, this header is kept current but the detail lives in the dated entries below.
 
 **Objective:** A mobile-first personal tool for reactive hypoglycemia, grounded in Scott's own
 medical evidence, `DVA New Master`'s medical-evidence material, and existing open-source JS/Python
@@ -1005,3 +1010,66 @@ worktree-packaging problem that caused the original 2026-09-14 deploy failure. *
 default deploy method going forward**, not the scratch-copy workaround — much simpler, and doesn't
 depend on git working. Confirmed live via `curl`: today's Home redesign, sync badge, photo import,
 and Bluetooth diagnostics are all now on `reactivebloodtracker.com`.
+
+## 2026-09-16 — Branch/worktree reconciliation: the main folder now matches what's live
+
+Picked this project back up on a day Scott was actively using it for a real reactive-hypoglycemia
+episode (a real crash after breakfast, tracked by hand while this session worked — exactly the
+use case this app exists for). Reading `CLAUDE.md`/`HANDOVER.md` on `main` described a much earlier
+state (2026-09-12, "working v1") than what was actually live — this entry is the reconciliation.
+
+**Found:** three `claude/*` branches existed alongside `main`, each with its own linked worktree
+under `.claude/worktrees/`, none reflected in this file:
+- `claude/reactive-hypoglycemia-tracker-940786` — 5 real commits (2026-09-14/15) never merged to
+  `main`: the Home/Readings/Settings redesign, glucose thresholds, real Bluetooth meter integration
+  (Web Bluetooth, standard GATT Glucose Service), barcode scanning + Open Food Facts lookup, photo
+  import, Food Guidance content, CSV import, sound alerts, date-format lock. Tested (100-104 passing
+  across 4 browser projects at each step) and **already the code actually deployed** at
+  `reactivebloodtracker.com` — confirmed via the Netlify deploy record (`deploy_source: "cli"`,
+  2026-09-15, matching this branch's tip exactly). The live site was correct; `main` and this file
+  were just stale.
+- `claude/reactive-hypoglycemia-tracker-3cd4a9` — no unique commits, but real **uncommitted** work
+  from an earlier 2026-09-13 session: `src/sync.js` (full manual device-to-device export/import via
+  Web Share Sheet, no server — a genuine answer to the "shared data between phone and Mac" idea
+  noted elsewhere in this file) and an early `src/thresholds.js` prototype (the `drivingCutoff: 5.0`
+  idea that the 940786 branch's later, more complete threshold system also implements). Committed
+  as-is (`d6f7ce4`) to preserve it — **not merged into `main`**, since it touches the same files
+  (`main.js`, `index.html`, etc.) the 940786 work independently rewrote, and reconciling the two
+  needs a deliberate pass, not a blind merge. `sync.js` in particular looks worth resurrecting.
+- `claude/admin-account-access-9ddec0` — identical to old `main`, zero unique content, added
+  nothing. Deleted.
+- Three duplicate research-brief files (chat downloads) were also sitting loose at the project
+  root — confirmed byte-identical to `research/`'s existing v1/v2 and to `3cd4a9`'s uncommitted v3.
+  Saved v3 into `research/` properly, removed the root duplicates.
+
+**Done:**
+- Merged `940786` into `main` (clean auto-merge, no conflicts) — `main` now matches the live site.
+- Committed `3cd4a9`'s dormant work to its own branch so nothing is lost, left unmerged (see above).
+- Removed all three `.claude/worktrees/*` checkouts (`git worktree remove`, one needed `--force` for
+  leftover build/cache cruft — `.netlify/`, `test-results/`, `.DS_Store`, nothing of substance).
+  Deleted the two branches that had become fully redundant (`admin-account-access-9ddec0`,
+  `940786` — its commits live on in `main`'s history via the merge). Kept `3cd4a9`'s branch.
+  **One leftover:** the now-empty `.claude/worktrees/` directory itself couldn't be removed this
+  session (a `rm -rf` was declined) — cosmetic only, safe for Scott to trash via Finder, or ask a
+  future session to clear it.
+- `npm install` (picks up `@zxing/browser` and other deps the merged code needs) + `npm test`:
+  **118 passed, 2 skipped (the documented WebKit photo-save automation-environment gap), 0 failed.**
+- Updated this file's top status line to match reality (was still "pre-code" — four days and a full
+  feature build stale). `MASTER_HANDOVER.md`'s one-line summary needs the same treatment — next.
+
+**Root cause, not yet fixed — needs Scott's decision:** Netlify's **Continuous deployment → Current
+repository: Not linked** (confirmed directly in the Netlify dashboard). Every deploy so far has been
+a manual `netlify-cli` push from whichever machine/folder someone happened to be in — this is *why*
+work ended up scattered across worktrees and why a stale deploy once got accidentally republished
+(see the 2026-09-15 entry above). A GitHub repo already exists for this
+(`github.com/GoFreo/reactivebloodtracker.com`, empty, per the 2026-09-15 entry) but was never wired
+up. Linking Netlify's continuous deployment to it would mean every future deploy is just "push to
+`main`," from this one folder, no more manual CLI juggling — the direct fix for Scott's own
+"where's the deploy folder, let's make it findable" instinct today. **Not done unilaterally this
+session** — pushing this repo's code to a GitHub remote for the first time is a real, visible
+action worth Scott's explicit go-ahead rather than assuming it. Ask him next time this comes up if
+he hasn't already answered.
+
+**Not investigated this session, lower priority:** whether `3cd4a9`'s `sync.js` should be reconciled
+into `main` (real feature, just needs a deliberate merge pass against the 940786-derived code it
+overlaps with).
