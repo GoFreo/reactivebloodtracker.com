@@ -15,3 +15,7 @@ blob-report/
 # Scott's real glucose/food/diary data — never belongs in git history.
 # Local-only until the app is deployed and this lives in IndexedDB on his phone instead.
 data/
+
+# Real food photos staged for the app's "Import photos" feature (Mac-as-hub workflow,
+# see HANDOVER.md's 2026-09-15 entry) — personal health data, same rule as data/ above.
+food photos/
