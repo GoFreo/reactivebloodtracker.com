@@ -31,6 +31,9 @@ import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems } from "./mealBuilder.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
 import {
+  saveMyFood, deleteMyFood, listMyFoods, lookupWithMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
+} from "./myFoods.js";
+import {
   findUnexplainedExcursions,
   describeExcursion,
   getSpikeSettings,
@@ -58,6 +61,7 @@ const VIEW_TITLES = {
   diary: "Add diary note",
   export: "Export report",
   "food-guidance": "Food Guidance",
+  "my-foods": "My foods",
   settings: "Settings",
 };
 
@@ -101,12 +105,11 @@ function showView(name) {
   }
   viewTitle.textContent = VIEW_TITLES[name] || "";
 
-  if (name !== "home") {
-    // leaving Home mid-scan shouldn't leave the camera running — but don't
-    // force-load the scanner module just to check if it was ever started.
-    if (barcodeModulePromise) barcodeModulePromise.then((m) => m.stopScanning());
-    document.getElementById("barcode-scanner").hidden = true;
-  }
+  // Changing view mid-scan shouldn't leave the camera running (Home and My foods
+  // each have a scanner) — but don't force-load the scanner module just to check.
+  if (barcodeModulePromise) barcodeModulePromise.then((m) => m.stopScanning());
+  document.getElementById("barcode-scanner").hidden = true;
+  document.getElementById("myfood-scanner").hidden = true;
 
   if (name === "home") {
     document.getElementById("glucose-time").value = nowForDatetimeLocal();
@@ -119,6 +122,8 @@ function showView(name) {
     refreshReadings();
   } else if (name === "settings") {
     loadThresholdSettings();
+  } else if (name === "my-foods") {
+    renderMyFoods();
   }
 }
 
@@ -597,7 +602,7 @@ document.getElementById("food-barcode-btn").addEventListener("click", async () =
   await startScanning(barcodeVideoEl, {
     onDetected: async (code) => {
       barcodeStatusEl.textContent = `Found ${code} — looking it up…`;
-      const product = await lookupBarcode(code);
+      const product = await lookupWithMyFoods(code, lookupBarcode);
       barcodeScannerEl.hidden = true;
       if (product.found && mealBuilderEl.open) {
         // Building a meal: the product becomes an ingredient row instead of replacing the description.
@@ -716,6 +721,9 @@ foodForm.addEventListener("submit", async (e) => {
       timestamp: new Date(document.getElementById("food-time").value).toISOString(),
       aiResult: currentAiResult && currentAiResult.configured !== false ? currentAiResult : null,
     });
+    // Scanned ingredients with figures (including ones corrected from the pack) are
+    // remembered in My foods, so the next scan of that product uses them.
+    if (items.length) rememberFromItems(items);
     foodForm.reset();
     resetMealBuilder();
     foodPhotoPreview.hidden = true;
@@ -1214,3 +1222,166 @@ const hideSplash = () => splashEl.classList.add("hidden");
 const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 setTimeout(hideSplash, reducedMotion ? 700 : 2100);
 splashEl.addEventListener("click", hideSplash);
+
+// --- My foods (logic in myFoods.js; stored on this device only) ---
+const myFoodForm = document.getElementById("myfood-form");
+const myFoodFields = {
+  barcode: document.getElementById("myfood-barcode"),
+  name: document.getElementById("myfood-name"),
+  carbs: document.getElementById("myfood-carbs"),
+  sugars: document.getElementById("myfood-sugars"),
+};
+const myFoodStatus = document.getElementById("myfood-status");
+const myFoodLookupStatus = document.getElementById("myfood-lookup-status");
+const myFoodScanner = document.getElementById("myfood-scanner");
+const myFoodScanStatus = document.getElementById("myfood-scan-status");
+
+function fillMyFoodForm(food) {
+  myFoodFields.barcode.value = food.barcode ?? myFoodFields.barcode.value;
+  myFoodFields.name.value = food.name ?? "";
+  myFoodFields.carbs.value = food.carbsPer100g ?? "";
+  myFoodFields.sugars.value = food.sugarsPer100g ?? "";
+}
+
+async function lookUpMyFoodBarcode(code) {
+  myFoodFields.barcode.value = code;
+  myFoodStatus.textContent = "";
+  myFoodLookupStatus.textContent = "Looking it up…";
+  const p = await lookupWithMyFoods(code, lookupBarcode);
+  if (p.found) {
+    fillMyFoodForm({ name: p.brand ? `${p.brand} ${p.name}` : p.name, carbsPer100g: p.carbsPer100g, sugarsPer100g: p.sugarsPer100g });
+    myFoodLookupStatus.textContent = p.fromMyFoods
+      ? "Already in My foods. Change anything and save to update it."
+      : "Found online. Check the figures against the pack, then save.";
+  } else {
+    fillMyFoodForm({ name: "", carbsPer100g: "", sugarsPer100g: "" });
+    myFoodLookupStatus.textContent = "Not found online. Type the name and the pack's per 100 g figures, then save.";
+  }
+  myFoodFields.name.focus();
+}
+
+function renderMyFoods() {
+  const foods = listMyFoods();
+  document.getElementById("myfood-list-heading").textContent = `Saved (${foods.length})`;
+  const list = document.getElementById("myfood-list");
+  list.innerHTML = "";
+  if (!foods.length) {
+    list.innerHTML = '<p class="timeline-empty">Nothing saved yet. Scan a product above to start your list.</p>';
+    return;
+  }
+  for (const f of foods) {
+    const row = document.createElement("div");
+    row.className = "myfood-row";
+    const text = document.createElement("button");
+    text.type = "button";
+    text.className = "myfood-open";
+    const name = document.createElement("span");
+    name.className = "myfood-name";
+    name.textContent = f.name;
+    const figs = document.createElement("span");
+    figs.className = "myfood-figs";
+    const carbs = f.carbsPer100g != null ? `${f.carbsPer100g} g carbs` : "carbs not set";
+    const sugars = f.sugarsPer100g != null ? ` · ${f.sugarsPer100g} g sugars` : "";
+    figs.textContent = `${carbs}${sugars} per 100 g · ${f.barcode}`;
+    text.append(name, figs);
+    text.addEventListener("click", () => {
+      fillMyFoodForm(f);
+      myFoodLookupStatus.textContent = "Editing a saved product.";
+      myFoodStatus.textContent = "";
+      myFoodForm.scrollIntoView({ block: "start" });
+    });
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "mi-remove";
+    del.setAttribute("aria-label", `Delete ${f.name}`);
+    del.textContent = "✕";
+    del.addEventListener("click", () => {
+      if (!confirm(`Remove ${f.name} from My foods?`)) return;
+      deleteMyFood(f.barcode);
+      renderMyFoods();
+    });
+    row.append(text, del);
+    list.appendChild(row);
+  }
+}
+
+myFoodForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const result = saveMyFood({
+    barcode: myFoodFields.barcode.value,
+    name: myFoodFields.name.value,
+    carbsPer100g: myFoodFields.carbs.value,
+    sugarsPer100g: myFoodFields.sugars.value,
+  });
+  if (!result.ok) {
+    myFoodStatus.textContent = result.error;
+    return;
+  }
+  myFoodStatus.textContent = `Saved ${result.food.name}. Scan the next one.`;
+  myFoodLookupStatus.textContent = "";
+  for (const field of Object.values(myFoodFields)) field.value = "";
+  renderMyFoods();
+});
+
+document.getElementById("myfood-clear-btn").addEventListener("click", () => {
+  for (const field of Object.values(myFoodFields)) field.value = "";
+  myFoodStatus.textContent = "";
+  myFoodLookupStatus.textContent = "";
+});
+
+document.getElementById("myfood-lookup-btn").addEventListener("click", () => {
+  const code = myFoodFields.barcode.value.replace(/\s/g, "");
+  if (!/^\d{6,14}$/.test(code)) {
+    myFoodLookupStatus.textContent = "Type the 6 to 14 digits under the barcode first.";
+    return;
+  }
+  lookUpMyFoodBarcode(code);
+});
+
+document.getElementById("myfood-scan-btn").addEventListener("click", async () => {
+  myFoodScanStatus.textContent = "Loading scanner…";
+  myFoodScanner.hidden = false;
+  const { startScanning, isCameraAvailable } = await getBarcodeModule();
+  if (!isCameraAvailable()) {
+    myFoodScanner.hidden = true;
+    myFoodLookupStatus.textContent = "Camera access isn't available here. Type the numbers under the barcode instead.";
+    return;
+  }
+  myFoodScanStatus.textContent = "Point the camera at the barcode…";
+  await startScanning(document.getElementById("myfood-video"), {
+    onDetected: (code) => {
+      myFoodScanner.hidden = true;
+      lookUpMyFoodBarcode(code);
+    },
+    onError: (err) => {
+      myFoodScanStatus.textContent = `Camera error: ${err.message}`;
+    },
+  });
+});
+
+document.getElementById("myfood-scan-cancel").addEventListener("click", async () => {
+  const { stopScanning } = await getBarcodeModule();
+  stopScanning();
+  myFoodScanner.hidden = true;
+});
+
+document.getElementById("myfood-export-btn").addEventListener("click", () => {
+  const blob = new Blob([exportMyFoods()], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `my-foods-${localDateStr(new Date())}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("myfood-import-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const result = importMyFoods(await file.text());
+  document.getElementById("myfood-import-status").textContent = result.ok
+    ? `Restored ${result.added} product${result.added === 1 ? "" : "s"}${result.skipped ? `, skipped ${result.skipped} that didn't look right` : ""}.`
+    : result.error;
+  e.target.value = "";
+  renderMyFoods();
+});
