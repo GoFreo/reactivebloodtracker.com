@@ -11,7 +11,7 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **354 passed / 6 skipped / 0 failed** on `main` (374 on `help-and-welcome`) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
+**Health:** `npm test` **390 passed / 6 skipped / 0 failed** on `main` (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
 the documented WebKit photo-save automation gap).
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
@@ -47,18 +47,13 @@ deployed with `--skip-functions-cache`, live bundle `index-DlnIf1SS.js` confirme
 `/.netlify/functions/food-bank` answers 401 without / with a wrong passcode (correct). **Not yet verified:** a
 real save to Netlify Blobs — needs Scott's passcode; his first scan at Coles is the test.
 
-**❓ Waiting to ship, branch `help-and-welcome` (`151de5c`, on GitHub), 374 passed / 6 skipped / 0 failed:**
-Help & sources page + first-run welcome with an "I understand" checkbox. Needs Scott's "ship it". **Before going
-public, a lawyer should review the wording** (Scott's item — legal). To ship: `git merge help-and-welcome`,
-`npm test`, deploy line above. Scott will see the welcome once after it ships (his data is untouched).
-
-**🧹 Also waiting, branch `cleanup` (on top of `help-and-welcome`, on GitHub), 374 passed:** Readings list shows
-the newest 200 with "Show more" (a year of data was ~188,000 page elements); three pieces of dead code removed.
-Shipping `cleanup` ships `help-and-welcome` too (`git merge cleanup`).
-
-**⭐ And on top of that, branch `saved-meals` (`1307c29`, on GitHub), 390 passed:** save a built meal by name
-("Usual breakfast"), load it from chips at the top of the builder, adjust portions, delete. Device only.
-**`git merge saved-meals` ships all three branches at once** (help-and-welcome → cleanup → saved-meals).
+**✅ Help & sources + welcome + list paging + saved meals: SHIPPED 2026-09-28 21:02** (Scott: "ship it").
+Merged `saved-meals` (which contained `cleanup` and `help-and-welcome`) → `f58136b`; 390 passed / 6 skipped /
+0 failed; deployed with `--skip-functions-cache`; live bundle `index-DjqrV9VQ.js`; welcome, Help and saved-meal
+markup confirmed on the live page; `food-bank` and `cgm-sync` answer 401 without a passcode. Branches deleted
+locally and on GitHub. Scott will see the welcome screen once. **Still open:** lawyer review of the Help and
+welcome wording before going public; shrink saved photos (yes/no); the photo patch (yes/no, refreshed copy
+in `proposed-patches/`); keep or drop branch `claude/…-3cd4a9`.
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
