@@ -11,7 +11,7 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **390 passed / 6 skipped / 0 failed** on `main` (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
+**Health:** `npm test` **492 passed / 8 skipped / 0 failed** on `main` (skips: WebKit photo-save gap ×3, opt-in live food check ×4, one more WebKit photo test) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
 the documented WebKit photo-save automation gap).
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
@@ -47,13 +47,17 @@ deployed with `--skip-functions-cache`, live bundle `index-DlnIf1SS.js` confirme
 `/.netlify/functions/food-bank` answers 401 without / with a wrong passcode (correct). **Not yet verified:** a
 real save to Netlify Blobs — needs Scott's passcode; his first scan at Coles is the test.
 
+**✅ Photo patch + smaller saved photos + Libre passcode fix: SHIPPED 2026-09-28 21:58** (Scott: "apply the photo
+patch and shrink saved photos too"; then he reported "password input not asked for"). 492 passed / 8 skipped /
+0 failed; live bundle `index-C3HAhE-u.js`; `ai-proxy` now answers a malformed body with 400 (patch working);
+`cgm-sync`/`food-bank` 401 without a passcode. The photo patch is no longer pending.
+
 **✅ Help & sources + welcome + list paging + saved meals: SHIPPED 2026-09-28 21:02** (Scott: "ship it").
 Merged `saved-meals` (which contained `cleanup` and `help-and-welcome`) → `f58136b`; 390 passed / 6 skipped /
 0 failed; deployed with `--skip-functions-cache`; live bundle `index-DjqrV9VQ.js`; welcome, Help and saved-meal
 markup confirmed on the live page; `food-bank` and `cgm-sync` answer 401 without a passcode. Branches deleted
 locally and on GitHub. Scott will see the welcome screen once. **Still open:** lawyer review of the Help and
-welcome wording before going public; shrink saved photos (yes/no); the photo patch (yes/no, refreshed copy
-in `proposed-patches/`); keep or drop branch `claude/…-3cd4a9`.
+welcome wording before going public; keep or drop branch `claude/…-3cd4a9`.
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
@@ -1484,3 +1488,21 @@ chips at the top of the meal builder load a saved meal as editable rows; "⭐ Sa
 Also shortened the Home link "Help & sources" to "Help" (it wrapped to three lines on a phone).
 **Decision I made:** saved meals stay on the device (not in the food bank), since a meal is personal eating
 data, and the food bank is product facts only.
+
+## 2026-09-28 (21:50–21:58) — photos shrunk; Libre passcode prompt fixed; both shipped
+
+**Photos (Scott: "apply the photo patch and shrink saved photos too"):** the refreshed 2026-09-20 patch applied
+cleanly (AI copy ≤ 1568 px; ai-proxy input caps; clearer errors). New: the photo **saved with a meal** is now
+≤ 1600 px, JPEG q0.8 (`shrinkForStorage` in `src/imageForAI.js`, used by the camera save and the batch photo
+import; photo dates are still read from the original). Photos saved before tonight are unchanged. Test: a
+4032×3024 noisy photo saves as 1600 px wide and under a third of the size (Chromium; WebKit skipped for the
+documented photo-save automation gap).
+
+**Libre sync bug (Scott: "there seems to be a problem with the CGM syncing … password input not asked for"):**
+root cause — with no passcode saved on the device, Home's "Sync CGM" only showed a hint pointing to Settings;
+nothing reached the server (function logs: no calls from his phone tonight, only my passcode-less deploy
+checks). Fix: Home shows a passcode box ("Remember on this phone" ticked), syncs, and if a saved passcode is
+wrong it's forgotten and Home asks again. 2 smoke tests. **Not verified on his phone yet** — his next Sync CGM
+tap is the test; if it says "Wrong sync passcode", the Netlify value and what he types differ.
+**Decision I made:** "Remember on this phone" defaults to ticked on the Home prompt (Settings' own checkbox
+still starts unticked) — typing it every time is what caused this.
