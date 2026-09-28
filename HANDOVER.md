@@ -42,6 +42,17 @@ deployed with `--skip-functions-cache`, live bundle `index-DlnIf1SS.js` confirme
 `cgm-sync` answers 401 without a passcode (correct), pushed to GitHub. Branches `meal-builder` and
 `readings-filter` are fully merged (safe to delete later).
 
+**🗂 Waiting to ship, on branch `my-foods` (built 2026-09-28 night, NOT merged, NOT deployed), 354 passed /
+6 skipped / 0 failed:** My foods (products checked against the pack, on the phone + JSON backup); a **household
+food bank** in Netlify Blobs (`netlify/functions/food-bank.js`, locked with the existing `CGM_SYNC_PASSCODE`,
+product facts only) so phone, Mac and family share one list; scan messages at every stage ("Code received —
+checking your foods / food bank / public database", then found / not found); serving size + ¼ ½ ¾ Full portion
+buttons in the meal builder; the ingredient box suggests saved foods. New dependency `@netlify/blobs` (0
+vulnerabilities). To ship: `git merge my-foods`, `npm test`, deploy line above, then confirm
+`/.netlify/functions/food-bank` answers 401 without a passcode. **Scott wants it for scanning at Coles —
+needs his "ship it".** The food bank uses his saved sync passcode, so it only works on devices where he has
+saved it in Settings.
+
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
 (BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
@@ -1356,3 +1367,39 @@ Scott will photograph more products at Coles to grow the pantry test set. The su
 SITREP. How to add them: each photo should show the barcode **and** the per-100 g column of the nutrition panel;
 a session reads both, looks each barcode up in Open Food Facts, and appends to
 `tests/fixtures/scott-pantry-barcodes.json` (snapshot + label figures), then reruns `tests/pantry.spec.js`.
+
+## 2026-09-28 (night) — My foods, household food bank, portions (branch `my-foods`); diet-app study
+
+**Scott's asks, mid-session:** the phone camera is the scanner; save scanned products somewhere other than the
+phone ("Netlify has an area?"); clearer scanner messages instead of a black screen; portions (full, ½, ¼ serve)
+because a gastric sleeve means small serves; research the top diet apps, paid and free, both stores.
+
+**Built (branch `my-foods`: `01b1e0e`, `54ca11f`, `b4792dd`):**
+- `src/myFoods.js`: device copy of checked products (localStorage), validation (per-100 g figures 0–100, sugars ≤
+  carbs, serving 0–5000 g), backup/restore JSON, newer-edit-wins merge.
+- `netlify/functions/food-bank.js` + `src/foodBank.js`: the shared food bank in Netlify Blobs (one JSON
+  "catalogue" blob; GET all / GET one / POST / DELETE; 10 KB body cap; 20,000 products cap). Lookup chain on
+  every scan: device → food bank → Open Food Facts; a food-bank hit is copied to the device for offline use.
+- Home scanner: vibrates on a read, then a status line walks through each stage and ends with found / not found
+  (with what to do). Same on the My foods page.
+- Meal builder: serving size carried from the product; ¼ ½ ¾ Full buttons set the grams; the ingredient box
+  suggests saved foods and fills their figures. Saving a meal remembers scanned items (and pushes them to the bank).
+- Tests: `tests/myFoods.spec.js`, `tests/foodBank.spec.js` (function with an in-memory store + the lookup chain),
+  portion and saved-food smoke tests. 354 passed / 6 skipped / 0 failed.
+
+**Decisions I made — revisit if you disagree:**
+- Reused the Libre sync passcode to lock the food bank, so there's no new secret to set up. Phase 1 only; a
+  public version needs real per-household accounts.
+- Only product facts go to the bank (barcode, name, per-100 g carbs/sugars, serving size), never meals or readings.
+- One shared JSON blob, not one per product: a household list stays small (5,000 products is under 1 MB) and
+  the phone downloads it in one go.
+- A product deleted on one device stays on others until deleted there too (safer than silently losing it).
+- Size isn't why the bank exists: phone storage could hold it. It exists so every device sees the same list and
+  a lost phone loses nothing.
+
+**Research:** "Meal & Carb App Study" — https://claude.ai/artifact/RpHjgJfhMkwy5fKYyhfygd (copy in `research/`).
+Twelve apps on both stores (MyFitnessPal 100M+, Yazio 50M+, FatSecret 50M+, Lose It! 10M+, Carb Manager 5M+,
+MyNetDiary 5M+, mySugr 5M+, Baritastic 500K+, Easy Diet Diary 100K+, Cronometer, MacroFactor, SNAQ), with
+paid-tier features and prices. Closest rival: **SNAQ** (meals on the CGM curve; photo-AI carbs). Suggested next
+builds: saved meals, recipes with servings, a source label on each figure, voice logging (fits Scott's
+dictation), "similar meals" from his own history, and later Australian loose-food data (AUSNUT).

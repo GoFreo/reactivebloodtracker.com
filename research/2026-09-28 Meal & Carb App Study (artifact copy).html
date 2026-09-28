@@ -1,0 +1,212 @@
+<title>Meal &amp; Carb App Study</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  :root{
+    --bg:#F5F7F6; --surface:#FFFFFF; --surface-2:#E9EFED; --ink:#15201F; --muted:#56615F; --line:#D7DFDC;
+    --accent:#1B6E6A; --accent-soft:#DCEBE8; --good:#2F7D4F; --warn:#A5651B; --bad:#A63D35;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ color-scheme:dark;
+      --bg:#121817; --surface:#1A2221; --surface-2:#222C2A; --ink:#E8EEEC; --muted:#9DAAA7; --line:#2E3937;
+      --accent:#5CC0B8; --accent-soft:#1D3533; --good:#6CC48F; --warn:#E0A65A; --bad:#E6857C; }
+  }
+  :root[data-theme="dark"]{ color-scheme:dark;
+      --bg:#121817; --surface:#1A2221; --surface-2:#222C2A; --ink:#E8EEEC; --muted:#9DAAA7; --line:#2E3937;
+      --accent:#5CC0B8; --accent-soft:#1D3533; --good:#6CC48F; --warn:#E0A65A; --bad:#E6857C; }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 'Source Sans 3',system-ui,sans-serif;padding-inline:16px}
+  .wrap{max-width:860px;margin:0 auto;padding-block:40px 80px;display:flex;flex-direction:column;gap:40px}
+  h1,h2,h3{font-family:'Bricolage Grotesque','Source Sans 3',system-ui,sans-serif;margin:0;text-wrap:balance;line-height:1.15}
+  h1{font-size:clamp(30px,5vw,42px)} h2{font-size:24px} h3{font-size:18px}
+  p{margin:0;max-width:68ch}
+  .eyebrow{font:500 12px 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  header{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line);padding-bottom:24px}
+  .lead{color:var(--muted);font-size:18px}
+  section{display:flex;flex-direction:column;gap:14px}
+  .findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .finding{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+  .finding b{font-family:'Bricolage Grotesque',sans-serif;font-size:17px}
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:14.5px;font-variant-numeric:tabular-nums}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font:500 11.5px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface-2)}
+  tr:last-child td{border-bottom:0}
+  .num{font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+  .apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+  .app{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .app .meta{font:500 12px 'IBM Plex Mono',monospace;color:var(--muted)}
+  .pc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:520px){.pc{grid-template-columns:1fr}}
+  .pc ul{margin:4px 0 0;padding-left:18px;font-size:14.5px;display:flex;flex-direction:column;gap:3px}
+  .pro-h{color:var(--good);font-weight:600;font-size:13px} .con-h{color:var(--bad);font-weight:600;font-size:13px}
+  .take{font-size:14.5px;background:var(--accent-soft);border-radius:8px;padding:8px 10px}
+  .take b{color:var(--accent)}
+  .plan{display:flex;flex-direction:column;gap:10px}
+  .row{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  @media (max-width:520px){.row{grid-template-columns:1fr}}
+  .chip{font:500 11.5px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:999px;justify-self:start}
+  .have{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+  .next{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+  .never{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+  .sources{font-size:13.5px;color:var(--muted)} .sources ul{padding-left:18px;margin:6px 0 0;display:flex;flex-direction:column;gap:2px}
+  a{color:var(--accent)} a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Research · Reactive Blood Tracker · 28 Sept 2026</span>
+    <h1>How the big diet apps build meals and count carbs</h1>
+    <p class="lead">Twelve apps on both the App Store and Google Play, free and paid, from the most downloaded down to the specialists that matter for you: an Australian food database and a bariatric tracker. For each: how meals and carbs work, the pros and cons, and what your app should take or avoid.</p>
+  </header>
+
+  <section>
+    <span class="eyebrow">Five findings</span>
+    <div class="findings">
+      <div class="finding"><b>Big databases are messy</b><p>MyFitnessPal's is about 70% member-submitted. The same food can differ by 30%, and a 2024 study found 37% of popular entries off by more than 20%. That's why your app lets the pack win.</p></div>
+      <div class="finding"><b>Barcodes are going behind paywalls</b><p>MyFitnessPal moved barcode scanning to Premium in 2026. Cronometer, Lose It!, Yazio and Carb Manager keep it free. Free scanning is a real selling point.</p></div>
+      <div class="finding"><b>"Recipe + servings" is the standard</b><p>Everyone builds a recipe from ingredients, divides by a number of servings, then logs "1 serving". Nobody does quarter-serves well for small stomachs.</p></div>
+      <div class="finding"><b>Photo AI is inconsistent</b><p>Asking AI the same meal photo repeatedly gave carb answers far enough apart to cause a hypo. It's helpful as a starting guess, never as the number.</p></div>
+      <div class="finding"><b>Bariatric apps skip carbs</b><p>Baritastic focuses on protein, water, vitamins and a bite timer. Carbs and the glucose after a meal, which is your need, are not its focus.</p></div>
+      <div class="finding"><b>Australia has a verified option</b><p>Easy Diet Diary uses 45,000 Australian foods from official data and shares diaries with dietitians. It's small (100K+ Android installs) and lower-rated.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Scorecard</span>
+    <h2>Downloads and how each handles meals</h2>
+    <p>Downloads are Google Play's own install bands, read 28 Sept 2026. Apple doesn't publish download counts. All ten are on both stores.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>App</th><th>Android installs</th><th>Rating</th><th>Food data</th><th>Building a meal</th><th>Portions</th><th>Barcode free?</th></tr></thead>
+        <tbody>
+          <tr><td>MyFitnessPal</td><td class="num">100M+</td><td class="num">4.3</td><td>~14M foods, mostly member-added</td><td>Recipes from ingredients or a web link; saved meals</td><td>Servings of a recipe</td><td>No (Premium since 2026)</td></tr>
+          <tr><td>Yazio</td><td class="num">50M+</td><td class="num">4.2</td><td>Large, mixed</td><td>Recipe library, meal plans (Pro)</td><td>Grams or servings</td><td>Yes</td></tr>
+          <tr><td>FatSecret</td><td class="num">50M+</td><td class="num">4.5</td><td>Large, mixed</td><td>Saved meals, recipes</td><td>Grams or servings</td><td>Yes</td></tr>
+          <tr><td>Lose It!</td><td class="num">10M+</td><td class="num">4.3</td><td>Large, mixed</td><td>"My Foods", recipes; photo "Snap It" (Premium)</td><td>Servings</td><td>Yes</td></tr>
+          <tr><td>Carb Manager</td><td class="num">5M+</td><td class="num">4.7</td><td>Curated for low-carb, plus member foods</td><td>Recipe builder, 5,000+ test-kitchen recipes, meal plans</td><td>Servings; net carbs shown</td><td>Yes</td></tr>
+          <tr><td>MyNetDiary</td><td class="num">5M+</td><td class="num">4.7</td><td>Verified, ad-free</td><td>Recipes, saved meals; diabetes add-on</td><td>Grams or servings</td><td>Yes</td></tr>
+          <tr><td>mySugr</td><td class="num">5M+</td><td class="num">4.4</td><td>No food database</td><td>Types carbs per log entry</td><td>You enter the carbs</td><td>n/a</td></tr>
+          <tr><td>Cronometer</td><td class="num">not read</td><td>—</td><td>~400K verified (USDA, NCCDB)</td><td>Custom foods and recipes</td><td>Grams or servings</td><td>Yes</td></tr>
+          <tr><td>Baritastic</td><td class="num">500K+</td><td class="num">4.6</td><td>Food log</td><td>Meals plus protein/water targets</td><td>Bariatric stages, bite timer</td><td>Yes</td></tr>
+          <tr><td>Easy Diet Diary (AU)</td><td class="num">100K+</td><td class="num">3.6</td><td>45,000 Australian foods, official sources</td><td>Custom foods and recipes; add by barcode</td><td>Grams or servings</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Paid versus free</span>
+    <h2>What people actually pay for</h2>
+    <p>From each app's own pricing page where it loaded (checked 28 Sept 2026). Prices are what the page showed; most are US dollars, MyFitnessPal's is Australian.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>App</th><th>Paid price</th><th>Free gets</th><th>Paid adds (meal and carb features)</th></tr></thead>
+        <tbody>
+          <tr><td>MyFitnessPal Premium</td><td class="num">A$129.99/yr</td><td>Search and log foods</td><td>Barcode scan, photo "Meal Scan", voice logging, net carbs, per-day macro goals, repeat foods across 7 days, quick-add macros</td></tr>
+          <tr><td>Carb Manager Premium</td><td class="num">US$3.33/mo (yearly)</td><td>Log, barcode</td><td>Import recipes from websites, create meals and meal plans, voice and plain-language logging, ketones, meal reports, correlations between food and health numbers</td></tr>
+          <tr><td>Cronometer Gold</td><td class="num">US$59.99/yr</td><td>Log, barcode, recipes</td><td>Photo and voice logging, recipe import, timestamps on entries, repeat items, custom charts linking nutrients to biometrics, fasting timer</td></tr>
+          <tr><td>MacroFactor</td><td class="num">US$71.99/yr, no free tier</td><td>—</td><td>Recipes with serving counts, remembers what you usually eat at each meal, describe a meal in words, photo logging</td></tr>
+          <tr><td>SNAQ (diabetes)</td><td class="num">from US$2.66/mo</td><td>Limited logging</td><td>Photo carb estimate (3D portions on iPhone Pro), barcode and label scan, voice, every meal overlaid on your CGM curve, "how similar meals moved your numbers"</td></tr>
+          <tr><td>Lose It! Premium</td><td class="num">about US$39.99/yr</td><td>Log, barcode</td><td>Snap It photo logging, meal planning, goals</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="findings">
+      <div class="finding"><b>What the money buys</b><p>Across the paid tiers, the same five things recur: logging by voice, logging by photo, importing a recipe from a website, repeating a usual meal in one tap, and charts linking food to health numbers.</p></div>
+      <div class="finding"><b>Closest rival: SNAQ</b><p>Meals on the CGM curve, like your Meals tab. It's built for insulin users and leads with photo AI. Your difference: lows first, pack figures over AI guesses, sleeve-sized portions, and it's free.</p></div>
+      <div class="finding"><b>Voice logging fits you</b><p>Three paid apps now sell "say what you ate". You dictate most things already, and your app's AI text parsing is halfway there. A microphone button on the food box would finish it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">App by app</span>
+    <h2>Pros, cons, and what we take</h2>
+    <div class="apps">
+      <article class="app"><h3>MyFitnessPal</h3><span class="meta">100M+ · 4.3 · iOS + Android</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Finds almost anything</li><li>Import a recipe from a web link, then set servings</li><li>A recipe logs as one line with totals</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>Many conflicting entries for one product</li><li>Barcode and recipe import now paid</li><li>Nothing about glucose afterwards</li></ul></div></div>
+        <p class="take"><b>Take:</b> "save this meal to log again". <b>Avoid:</b> an unverified crowd database with no way to tell which entry is right.</p></article>
+
+      <article class="app"><h3>Carb Manager</h3><span class="meta">5M+ · 4.7 · iOS + Android</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Carbs are the headline number</li><li>Fast, free barcode scanning</li><li>Logs glucose and ketones too</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>A dozen versions of one creamer with different carbs</li><li>Meal planner crashes and loses work (user reports)</li><li>Keto-focused, not lows</li></ul></div></div>
+        <p class="take"><b>Take:</b> carbs first, glucose alongside. <b>Avoid:</b> letting duplicate entries pile up. One barcode should mean one entry, as in your food bank.</p></article>
+
+      <article class="app"><h3>Cronometer</h3><span class="meta">Installs not read · iOS + Android</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Verified data only (USDA, NCCDB, manufacturers)</li><li>Recipes, barcode and custom foods free</li><li>Very detailed nutrients</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>US-centred data for fresh foods</li><li>Busy screens for everyday use</li></ul></div></div>
+        <p class="take"><b>Take:</b> show where a figure came from (pack, food bank, public database). <b>Avoid:</b> screens full of numbers you don't need.</p></article>
+
+      <article class="app"><h3>Lose It!</h3><span class="meta">10M+ · 4.3 · iOS + Android</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Simplest logging; one-minute setup</li><li>"My Foods" for things you eat often</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>Photo logging matches single foods, weak on mixed plates</li><li>Photo feature is paid</li></ul></div></div>
+        <p class="take"><b>Take:</b> a personal "my foods" list, which you now have. <b>Avoid:</b> presenting a photo guess as the answer.</p></article>
+
+      <article class="app"><h3>Yazio · FatSecret</h3><span class="meta">50M+ each · iOS + Android</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Free barcode scanning</li><li>Saved meals and recipes</li><li>Yazio adds a fasting timer</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>Mixed-quality databases</li><li>Plans and recipes behind Pro</li><li>Weight-loss framing throughout</li></ul></div></div>
+        <p class="take"><b>Take:</b> quick "log this meal again". <b>Avoid:</b> weight-loss scores and streaks, which don't suit a medical tracker.</p></article>
+
+      <article class="app"><h3>SNAQ</h3><span class="meta">Paid, from US$2.66/mo · iOS + Android · diabetes</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Each meal shown on the CGM curve</li><li>"How similar meals moved your numbers"</li><li>Photo, barcode, label and voice logging</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>Carbs from photo AI, which varies between tries</li><li>Built around insulin dosing, not lows</li><li>Subscription</li></ul></div></div>
+        <p class="take"><b>Take:</b> "similar meals" comparisons from your own history (descriptive, not advice). <b>Avoid:</b> photo AI as the carb number.</p></article>
+
+      <article class="app"><h3>MyNetDiary</h3><span class="meta">5M+ · 4.7 · iOS + Android</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Verified, ad-free data</li><li>Diabetes add-on with glucose and meds</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>Diabetes features are an extra subscription</li><li>US-centred</li></ul></div></div>
+        <p class="take"><b>Take:</b> food and glucose on one timeline, which your Meals tab already does. <b>Avoid:</b> charging for the medical part.</p></article>
+
+      <article class="app"><h3>Easy Diet Diary</h3><span class="meta">100K+ · 3.6 · iOS + Android · Australian</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>45,000 Australian foods from official data</li><li>Add a missing product by scanning it</li><li>Share the diary with your dietitian</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>Lower ratings; dated feel</li><li>No glucose link</li></ul></div></div>
+        <p class="take"><b>Take:</b> share with your dietitian (planned: viewers). The official Australian food composition data (AUSNUT) could fill loose foods like fruit and bread later. <b>Avoid:</b> a heavy, form-first interface.</p></article>
+
+      <article class="app"><h3>Baritastic</h3><span class="meta">500K+ · 4.6 · iOS + Android · bariatric</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Built around surgery stages</li><li>Bite timer; separate food and water</li><li>Protein and vitamin reminders</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>Carbs and glucose aren't the focus</li><li>Clinic-linked features vary by program</li></ul></div></div>
+        <p class="take"><b>Take:</b> small-portion thinking. Your ¼ and ½ serve buttons are that, applied to carbs. <b>Avoid:</b> nothing; it's a different job.</p></article>
+
+      <article class="app"><h3>mySugr</h3><span class="meta">5M+ · 4.4 · iOS + Android</span>
+        <div class="pc"><div><span class="pro-h">Pros</span><ul><li>Friendly diabetes log</li><li>Meter connections</li></ul></div>
+        <div><span class="con-h">Cons</span><ul><li>No food database: you work out the carbs</li><li>Lows aren't the focus</li></ul></div></div>
+        <p class="take"><b>Take:</b> nothing new beyond the earlier study. <b>Avoid:</b> making users do the carb maths.</p></article>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">For your app</span>
+    <h2>Where you stand, and what I'd build next</h2>
+    <div class="plan">
+      <div class="row"><span class="chip have">Have</span><p>Barcode scanning, free. Meal builder from ingredients with a carb total. The pack's figures win over any database. Your own saved foods, shared through the household food bank. ¼, ½, ¾ and full serves.</p></div>
+      <div class="row"><span class="chip have">Have</span><p>What nobody else does: each meal shown with what your glucose did over the next 5 hours, lows flagged against your own threshold.</p></div>
+      <div class="row"><span class="chip next">Next</span><p><b>Saved meals.</b> Save a built meal ("my usual breakfast") and log it again in one tap, adjusting portions. Every top app has this.</p></div>
+      <div class="row"><span class="chip next">Next</span><p><b>Recipes with servings.</b> Build a dish once (a casserole), say it makes 6 serves, then log ¼ of a serve. This is where small portions matter most.</p></div>
+      <div class="row"><span class="chip next">Next</span><p><b>Show where each figure came from</b> (pack, food bank, public database) on every ingredient, like Cronometer's verified tick.</p></div>
+      <div class="row"><span class="chip next">Next</span><p><b>Voice logging.</b> A microphone button on the food box: say "half a cup of oats with 250 ml milk", and the existing AI parse fills the builder for you to check. It suits how you already work.</p></div>
+      <div class="row"><span class="chip next">Later</span><p><b>"Similar meals"</b> on the Meals tab: the last few times you had something like this, what your glucose did. Facts from your own data, never a recommendation.</p></div>
+      <div class="row"><span class="chip next">Later</span><p><b>Loose foods without barcodes</b> (fruit, bread rolls, rice by the cup) from the official Australian food data, so they don't have to be typed.</p></div>
+      <div class="row"><span class="chip never">Never</span><p>A photo-AI carb number used as the answer, a "safe amount to eat", or dose suggestions. The research backs your rule: AI answers vary enough to cause a hypo.</p></div>
+    </div>
+  </section>
+
+  <section class="sources">
+    <span class="eyebrow">Sources</span>
+    <ul>
+      <li>Google Play store listings (installs and ratings), read 28 Sept 2026</li>
+      <li><a href="https://www.garagegymreviews.com/best-calorie-counter-apps">Garage Gym Reviews: best calorie counter apps 2026</a></li>
+      <li><a href="https://thenutritionmagazine.com/articles/myfitnesspal-paywall-changes-explained/">The Nutrition Magazine: MyFitnessPal paywall changes</a></li>
+      <li><a href="https://blog.myfitnesspal.com/how-food-database-works/">MyFitnessPal: how the food database works</a></li>
+      <li><a href="https://support.myfitnesspal.com/hc/en-us/articles/360032271592-How-does-the-Recipe-Importer-on-the-website-work">MyFitnessPal Help: recipe importer</a></li>
+      <li><a href="https://calorierankings.com/reviews/carb-manager/">Calorie Rankings: Carb Manager review 2026</a></li>
+      <li><a href="https://support.cronometer.com/hc/en-us/articles/360018239472-Data-Sources">Cronometer: data sources</a></li>
+      <li><a href="https://www.intakenutrition.io/blog/yazio-vs-lose-it-comparison-which-budget-friendly-calorie-tracker-wins-in-2026">Intake Nutrition: Yazio vs Lose It! 2026</a></li>
+      <li><a href="https://www.myfitnesspal.com/premium">MyFitnessPal Premium</a> · <a href="https://www.carbmanager.com/premium">Carb Manager Premium</a> · <a href="https://cronometer.com/gold/">Cronometer Gold</a></li>
+      <li><a href="https://www.snaq.ai/carb-counting">SNAQ</a> · <a href="https://outlift.com/macrofactor-review/">Outlift: MacroFactor review 2026</a></li>
+      <li><a href="https://easydietdiary.com.au/">Easy Diet Diary</a> · <a href="https://www.diabetesaustralia.com.au/blog/nutrition-smartphone-apps/">Diabetes Australia: nutrition apps</a></li>
+      <li><a href="https://www.baritastic.com/">Baritastic</a></li>
+      <li><a href="https://www.diabettech.com/i-asked-ai-to-count-my-carbs-27000-times-it-couldnt-give-me-the-same-answer-twice/">Diabettech: AI carb counting consistency</a> · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8266981/">PMC: carb counting accuracy of two apps</a></li>
+      <li>Earlier study: <a href="https://claude.ai/artifact/Ya7Fr1FHxAj1iVfrHwGNNc">Glucose App Field Study</a></li>
+    </ul>
+  </section>
+</div>
