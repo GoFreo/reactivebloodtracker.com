@@ -125,6 +125,7 @@
               <button type="button" id="barcode-cancel-btn">Cancel scan</button>
               <p class="field-hint" id="barcode-status"></p>
             </div>
+            <p class="scan-result" id="barcode-result" aria-live="polite" hidden></p>
             <details id="meal-builder" class="meal-builder">
               <summary>🧺 Build a meal from ingredients</summary>
               <p class="field-hint">
@@ -133,6 +134,7 @@
                 them in "Carbs&nbsp;g" instead.
               </p>
               <div id="meal-items" class="meal-items"></div>
+              <datalist id="myfood-names"></datalist>
               <button type="button" id="meal-add-item-btn" class="secondary-btn">+ Add ingredient</button>
               <p id="meal-total" class="meal-total" aria-live="polite"></p>
             </details>
@@ -161,6 +163,7 @@
           <button type="button" data-nav="diary">📝 Diary note</button>
           <button type="button" data-nav="export">📤 Export</button>
           <button type="button" data-nav="food-guidance">🍎 Food guidance</button>
+          <button type="button" data-nav="my-foods">🗂 My foods</button>
         </div>
       </section>
 
@@ -225,6 +228,71 @@
             <input type="file" accept=".csv,text/csv" id="import-file" />
           </label>
           <p class="field-hint" id="import-status"></p>
+        </div>
+      </section>
+
+      <section id="view-my-foods" class="view" data-view="my-foods" hidden>
+        <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
+        <p class="field-hint">
+          Products you've checked against the pack. They're kept on this phone and, once the sync passcode
+          is saved in Settings, shared through your household food bank so every device sees the same list.
+          Scanning on Home looks here first, then the food bank, then the public database.
+        </p>
+
+        <form id="myfood-form" class="entry-form">
+          <div class="icon-btn-row">
+            <button type="button" class="icon-btn" id="myfood-scan-btn">▥ Scan a barcode</button>
+          </div>
+          <div id="myfood-scanner" hidden>
+            <video id="myfood-video" autoplay playsinline muted></video>
+            <button type="button" id="myfood-scan-cancel">Cancel scan</button>
+            <p class="field-hint" id="myfood-scan-status"></p>
+          </div>
+          <label>
+            Barcode (or type the numbers under it)
+            <input type="text" id="myfood-barcode" inputmode="numeric" autocomplete="off" placeholder="e.g. 9310645419336" />
+          </label>
+          <button type="button" id="myfood-lookup-btn" class="secondary-btn">Look up this barcode</button>
+          <p class="field-hint" id="myfood-lookup-status" aria-live="polite"></p>
+          <label>
+            Name
+            <input type="text" id="myfood-name" autocomplete="off" />
+          </label>
+          <div class="reading-input-row myfood-numbers">
+            <label>
+              Carbs per 100 g
+              <input type="number" id="myfood-carbs" inputmode="decimal" min="0" max="100" step="any" />
+            </label>
+            <label>
+              Sugars per 100 g
+              <input type="number" id="myfood-sugars" inputmode="decimal" min="0" max="100" step="any" />
+            </label>
+          </div>
+          <label>
+            Serving size on the pack (g or mL, optional)
+            <input type="number" id="myfood-serving" inputmode="decimal" min="0" step="any" placeholder="e.g. 30" />
+          </label>
+          <p class="field-hint">Use the pack's "per 100 g" (or "per 100 mL") column for carbs and sugars, not "per serving". The serving size lets the meal builder offer ¼, ½, ¾ or a full serve.</p>
+          <div class="button-row">
+            <button type="submit">Save to My foods</button>
+            <button type="button" id="myfood-clear-btn" class="secondary-btn">Clear</button>
+          </div>
+          <p class="field-hint" id="myfood-status" aria-live="polite"></p>
+        </form>
+
+        <p class="field-hint" id="myfood-bank-status" aria-live="polite"></p>
+        <h2 id="myfood-list-heading">Saved (0)</h2>
+        <div id="myfood-list" class="myfood-list"></div>
+
+        <h2>Backup</h2>
+        <div class="entry-form">
+          <p class="field-hint">Download a copy before a big shopping session, or to move your list to another device.</p>
+          <button type="button" id="myfood-export-btn" class="secondary-btn">Download My foods backup</button>
+          <label>
+            Restore from a backup file
+            <input type="file" accept=".json,application/json" id="myfood-import-file" />
+          </label>
+          <p class="field-hint" id="myfood-import-status"></p>
         </div>
       </section>
 

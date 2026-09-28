@@ -54,7 +54,18 @@ test.describe("meal builder (pure logic)", () => {
 
   test("cleanItems drops blank rows and stores numbers", () => {
     expect(cleanItems([{ name: "", grams: "5" }, { name: " Oats ", grams: "40", carbsPer100g: "60", sugarsPer100g: "", carbsGrams: "" }])).toEqual([
-      { name: "Oats", grams: 40, carbsPer100g: 60, sugarsPer100g: null, carbsGrams: null, barcode: null },
+      { name: "Oats", grams: 40, carbsPer100g: 60, sugarsPer100g: null, carbsGrams: null, barcode: null, servingSizeG: null },
     ]);
+  });
+});
+
+test.describe("portions (pure logic)", () => {
+  test("fractions of the pack's serving size, in whole grams", async () => {
+    const { portionGrams, PORTIONS } = await import("../src/mealBuilder.js");
+    expect(PORTIONS.map((p) => p.label)).toEqual(["¼", "½", "¾", "Full"]);
+    expect(portionGrams(30, 0.25)).toBe(8);
+    expect(portionGrams(170, 0.5)).toBe(85);
+    expect(portionGrams(null, 0.5)).toBeNull();
+    expect(portionGrams(0, 1)).toBeNull();
   });
 });

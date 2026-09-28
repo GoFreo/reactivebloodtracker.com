@@ -613,3 +613,95 @@ test.describe("readings list filter", () => {
     await expect(chips).toBeHidden();
   });
 });
+
+test.describe("my foods", () => {
+  async function mockOff(page) {
+    await page.route("**/api/v2/product/**", (route) => {
+      const found = route.request().url().includes("9310653105719");
+      return found
+        ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: 1, product: { product_name: "Blueberry Twist Yogurt", brands: "Gippsland Dairy", nutriments: { carbohydrates_100g: 17.4, sugars_100g: 15.9 } } }) })
+        : route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ status: 0 }) });
+    });
+  }
+
+  test("type a barcode, check it against the pack, save, edit and delete", async ({ page }) => {
+    await mockOff(page);
+    await page.goto("/");
+    await page.locator('#view-home button[data-nav="my-foods"]').click();
+    await expect(page.locator("#myfood-list")).toContainText("Nothing saved yet");
+
+    // Found online: fields prefilled, user corrects to the pack figure.
+    await page.locator("#myfood-barcode").fill("9310653105719");
+    await page.locator("#myfood-lookup-btn").click();
+    await expect(page.locator("#myfood-lookup-status")).toContainText("Found online");
+    await expect(page.locator("#myfood-name")).toHaveValue("Gippsland Dairy Blueberry Twist Yogurt");
+    await page.locator("#myfood-carbs").fill("16.5");
+    await page.locator("#myfood-sugars").fill("15");
+    await page.locator('#myfood-form button[type="submit"]').click();
+    await expect(page.locator("#myfood-status")).toContainText("Saved Gippsland Dairy Blueberry Twist Yogurt");
+    await expect(page.locator("#myfood-list-heading")).toHaveText("Saved (1)");
+    await expect(page.locator("#myfood-list")).toContainText("16.5 g carbs · 15 g sugars per 100 g");
+
+    // Not online: typed from the pack. A sugars-above-carbs slip is caught.
+    await page.locator("#myfood-barcode").fill("9326932000187");
+    await page.locator("#myfood-lookup-btn").click();
+    await expect(page.locator("#myfood-lookup-status")).toContainText("Not found online");
+    await page.locator("#myfood-name").fill("Hilltop orange juice");
+    await page.locator("#myfood-carbs").fill("7.5");
+    await page.locator("#myfood-sugars").fill("9.2");
+    await page.locator('#myfood-form button[type="submit"]').click();
+    await expect(page.locator("#myfood-status")).toContainText("Sugars can't be more");
+    await page.locator("#myfood-carbs").fill("9.2");
+    await page.locator("#myfood-sugars").fill("7.5");
+    await page.locator('#myfood-form button[type="submit"]').click();
+    await expect(page.locator("#myfood-list-heading")).toHaveText("Saved (2)");
+
+    // Looking up a saved barcode uses My foods, not the internet.
+    await page.locator("#myfood-barcode").fill("9310653105719");
+    await page.locator("#myfood-lookup-btn").click();
+    await expect(page.locator("#myfood-lookup-status")).toContainText("Already in My foods");
+    await expect(page.locator("#myfood-carbs")).toHaveValue("16.5");
+
+    // Survives a reload (stored on the device), and can be deleted.
+    await page.reload();
+    await page.locator('#view-home button[data-nav="my-foods"]').click();
+    await expect(page.locator("#myfood-list-heading")).toHaveText("Saved (2)");
+    page.once("dialog", (d) => d.accept());
+    await page.locator('#myfood-list [aria-label="Delete Hilltop orange juice"]').click();
+    await expect(page.locator("#myfood-list-heading")).toHaveText("Saved (1)");
+  });
+
+  test("backup downloads as a file", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("rht-my-foods", JSON.stringify({ "9326932000187": { barcode: "9326932000187", name: "Hilltop orange juice", carbsPer100g: 9.2, sugarsPer100g: 7.5, updatedAt: "2026-09-28T10:00:00Z" } })));
+    await page.locator('#view-home button[data-nav="my-foods"]').click();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#myfood-export-btn").click()]);
+    expect(download.suggestedFilename()).toMatch(/^my-foods-\d{4}-\d{2}-\d{2}\.json$/);
+  });
+});
+
+test.describe("meal builder with saved foods and portions", () => {
+  test("picking a saved food fills its figures, and ½ serve sets the grams", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("rht-my-foods", JSON.stringify({
+      "9310653105719": { barcode: "9310653105719", name: "Blueberry yoghurt", carbsPer100g: 16.5, sugarsPer100g: 15, servingSizeG: 170, updatedAt: "2026-09-28T10:00:00Z" },
+    })));
+    await page.reload();
+    await page.locator("#meal-builder > summary").click();
+    const row = page.locator(".meal-item").first();
+    await row.locator(".mi-name input").fill("Blueberry yoghurt");
+    await row.locator(".mi-name input").press("Tab"); // fires change, like choosing from the list
+    const filled = page.locator(".meal-item").first();
+    await expect(filled.locator(".mi-per100 input")).toHaveValue("16.5");
+    await expect(filled.locator(".mi-portions")).toContainText("Serve 170 g");
+    await filled.locator(".mi-portions button", { hasText: "½" }).click();
+    await expect(filled.locator(".mi-grams input")).toHaveValue("85");
+    await expect(page.locator("#meal-total")).toContainText("Total: 14 g carbs"); // 85 g × 16.5/100 = 14.0
+  });
+
+  test("My foods says the food bank is off until the sync passcode is saved", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('#view-home button[data-nav="my-foods"]').click();
+    await expect(page.locator("#myfood-bank-status")).toContainText("Food bank: off");
+  });
+});

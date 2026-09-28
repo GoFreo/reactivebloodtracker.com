@@ -82,6 +82,7 @@ export function productToItem(product) {
     sugarsPer100g: product.sugarsPer100g ?? "",
     carbsGrams: "",
     barcode: product.barcode || "",
+    servingSizeG: product.servingSizeG ?? null,
   };
 }
 
@@ -100,5 +101,22 @@ export function cleanItems(items) {
       sugarsPer100g: num(i.sugarsPer100g),
       carbsGrams: num(i.carbsGrams),
       barcode: i.barcode || null,
+      servingSizeG: num(i.servingSizeG),
     }));
+}
+
+// Portions: after a gastric sleeve a "serve" is often a half or a quarter of
+// what the pack calls one. Grams for a fraction of the pack's serving size,
+// rounded to whole grams; null when the serving size isn't known.
+export const PORTIONS = [
+  { label: "¼", fraction: 0.25 },
+  { label: "½", fraction: 0.5 },
+  { label: "¾", fraction: 0.75 },
+  { label: "Full", fraction: 1 },
+];
+
+export function portionGrams(servingSizeG, fraction) {
+  const s = num(servingSizeG);
+  if (s == null || s <= 0) return null;
+  return Math.round(s * fraction);
 }
