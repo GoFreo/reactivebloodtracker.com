@@ -1177,10 +1177,38 @@ cgmRememberEl.addEventListener("change", persistCgmPasscodeChoice);
 cgmPasscodeEl.addEventListener("change", persistCgmPasscodeChoice);
 
 // Shared by the Settings button and the Home shortcut, like runBluetoothSync.
+// Home asks for the passcode itself when none is saved (or the saved one is
+// wrong), instead of sending the user off to Settings. Fixed 2026-09-28: Scott
+// tapped Sync CGM and was never asked, so nothing reached the server.
+const homeCgmPass = document.getElementById("home-cgm-pass");
+function askForCgmPasscode(message) {
+  homeCgmPass.hidden = false;
+  document.getElementById("home-cgm-status").textContent = message;
+  document.getElementById("home-cgm-passcode").value = "";
+  document.getElementById("home-cgm-passcode").focus();
+}
+homeCgmPass.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const typed = document.getElementById("home-cgm-passcode").value.trim();
+  if (!typed) return;
+  const remember = document.getElementById("home-cgm-remember").checked;
+  cgmPasscodeEl.value = typed;
+  cgmRememberEl.checked = remember;
+  persistCgmPasscodeChoice();
+  homeCgmPass.hidden = true;
+  runCgmSync(document.getElementById("home-cgm-sync-btn"), document.getElementById("home-cgm-status"));
+});
+document.getElementById("home-cgm-pass-cancel").addEventListener("click", () => {
+  homeCgmPass.hidden = true;
+  document.getElementById("home-cgm-status").textContent = "";
+});
+
 async function runCgmSync(btn, statusEl) {
   const passcode = cgmPasscodeEl.value.trim() || getSavedPasscode();
+  const onHome = statusEl.id === "home-cgm-status";
   if (!passcode) {
-    statusEl.textContent = "Enter your sync passcode in Settings → Libre 2 Plus (CGM) sync first.";
+    if (onHome) askForCgmPasscode("Enter your Libre sync passcode to sync.");
+    else statusEl.textContent = "Type your sync passcode above first.";
     return;
   }
   btn.disabled = true;
@@ -1208,7 +1236,14 @@ async function runCgmSync(btn, statusEl) {
     await refreshAllCaches();
     await refreshHome();
   } catch (err) {
-    statusEl.textContent = `CGM sync failed: ${err.message}`;
+    if (onHome && /passcode/i.test(err.message)) {
+      // A wrong saved passcode would otherwise fail the same way every time.
+      cgmPasscodeEl.value = "";
+      savePasscode("");
+      askForCgmPasscode(`${err.message.replace(/ — check it in Settings\.?/, "")} Please type it again.`);
+    } else {
+      statusEl.textContent = `CGM sync failed: ${err.message}`;
+    }
   } finally {
     btn.disabled = false;
   }

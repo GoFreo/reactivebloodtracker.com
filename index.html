@@ -86,6 +86,20 @@
           </div>
           <p class="field-hint" id="home-bluetooth-status"></p>
           <p class="field-hint" id="home-cgm-status"></p>
+          <form id="home-cgm-pass" class="cgm-pass" hidden>
+            <label>
+              Libre sync passcode
+              <input type="password" id="home-cgm-passcode" autocomplete="current-password" placeholder="The passcode you set in Netlify" />
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="home-cgm-remember" checked />
+              Remember on this phone
+            </label>
+            <div class="button-row">
+              <button type="submit">Sync now</button>
+              <button type="button" id="home-cgm-pass-cancel" class="secondary-btn">Cancel</button>
+            </div>
+          </form>
         </div>
 
         <div class="home-section">

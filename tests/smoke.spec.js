@@ -764,3 +764,40 @@ test.describe("saved meals", () => {
     await expect(page.locator(".saved-meal")).toHaveCount(0);
   });
 });
+
+test.describe("CGM sync from Home", () => {
+  test("with no saved passcode, Home asks for it, remembers it, and syncs", async ({ page }) => {
+    let sentPasscode = null;
+    const readingTime = new Date(Date.now() - 600000).toISOString(); // same reading on both syncs
+    await page.route("**/.netlify/functions/cgm-sync", (route) => {
+      sentPasscode = route.request().headers()["x-cgm-passcode"];
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: true, readings: [{ value: 5.4, unit: "mmol/L", timestamp: readingTime }] }) });
+    });
+    await page.goto("/");
+    await page.locator("#home-cgm-sync-btn").click();
+    await expect(page.locator("#home-cgm-pass")).toBeVisible();
+    await expect(page.locator("#home-cgm-remember")).toBeChecked();
+    await page.locator("#home-cgm-passcode").fill("test-passcode-123");
+    await page.locator('#home-cgm-pass button[type="submit"]').click();
+    await expect(page.locator("#home-cgm-status")).toContainText("1 new CGM reading");
+    expect(sentPasscode).toBe("test-passcode-123");
+    await expect(page.locator("#home-cgm-pass")).toBeHidden();
+    // Remembered: next time it syncs straight away.
+    await page.reload();
+    await page.locator("#home-cgm-sync-btn").click();
+    await expect(page.locator("#home-cgm-status")).toContainText("already saved");
+  });
+
+  test("a wrong saved passcode is forgotten and Home asks again", async ({ page }) => {
+    await page.route("**/.netlify/functions/cgm-sync", (route) =>
+      route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "Wrong sync passcode." }) })
+    );
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("rht-cgm-passcode", "old-wrong-passcode"));
+    await page.reload();
+    await page.locator("#home-cgm-sync-btn").click();
+    await expect(page.locator("#home-cgm-pass")).toBeVisible();
+    await expect(page.locator("#home-cgm-status")).toContainText("Please type it again");
+    expect(await page.evaluate(() => localStorage.getItem("rht-cgm-passcode"))).toBeNull();
+  });
+});
