@@ -48,8 +48,15 @@ test.describe("LibreLinkUp CGM sync (server logic)", () => {
     const saved = { ...process.env };
     try {
       delete process.env.CGM_SYNC_PASSCODE;
+      delete process.env.LIBRELINKUP_EMAIL;
+      process.env.LIBRELINKUP_PASSWORD = "x";
       let res = await handler({ httpMethod: "POST", headers: {} });
-      expect(JSON.parse(res.body).configured).toBe(false);
+      const body = JSON.parse(res.body);
+      expect(body.configured).toBe(false);
+      // Names the missing settings, and only those, without echoing any value.
+      expect(body.error).toContain("LIBRELINKUP_EMAIL");
+      expect(body.error).toContain("CGM_SYNC_PASSCODE");
+      expect(body.error).not.toContain("LIBRELINKUP_PASSWORD");
 
       Object.assign(process.env, { CGM_SYNC_PASSCODE: "short", LIBRELINKUP_EMAIL: "x@example.com", LIBRELINKUP_PASSWORD: "x" });
       res = await handler({ httpMethod: "POST", headers: { "x-cgm-passcode": "short" } });

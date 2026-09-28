@@ -134,7 +134,13 @@ export const handler = async (event) => {
   const email = process.env.LIBRELINKUP_EMAIL;
   const password = process.env.LIBRELINKUP_PASSWORD;
   if (!expected || !email || !password) {
-    return json(200, { configured: false, error: "CGM sync isn't set up yet in Netlify (needs the LibreLinkUp login and a sync passcode)." });
+    // Names only, never values — tells Scott exactly which Netlify setting to fix.
+    const missing = [
+      !email && "LIBRELINKUP_EMAIL",
+      !password && "LIBRELINKUP_PASSWORD",
+      !expected && "CGM_SYNC_PASSCODE",
+    ].filter(Boolean);
+    return json(200, { configured: false, error: `CGM sync isn't set up yet in Netlify — missing a Production value for: ${missing.join(", ")}.` });
   }
   if (expected.length < MIN_PASSCODE_LENGTH) {
     return json(200, { configured: false, error: `The sync passcode saved in Netlify is too short — use at least ${MIN_PASSCODE_LENGTH} characters.` });
