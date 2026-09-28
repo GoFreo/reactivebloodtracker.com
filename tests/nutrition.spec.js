@@ -35,6 +35,18 @@ test.describe("Open Food Facts lookup", () => {
     }
   });
 
+  test("a 404 from Open Food Facts means 'not in the database', not a failed lookup", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => ({ ok: false, status: 404, json: async () => ({ status: 0 }) });
+    try {
+      const product = await lookupBarcode("9311594019018"); // Primo prosciutto, from Scott's pantry
+      expect(product.found).toBe(false);
+      expect(product.error).toContain("describe it yourself");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("a network failure degrades gracefully instead of throwing", async () => {
     const originalFetch = global.fetch;
     global.fetch = async () => {
