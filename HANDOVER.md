@@ -11,7 +11,7 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **294 passed / 6 skipped / 0 failed** (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
+**Health:** `npm test` **354 passed / 6 skipped / 0 failed** on `main` (374 on `help-and-welcome`) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
 the documented WebKit photo-save automation gap).
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
@@ -42,16 +42,15 @@ deployed with `--skip-functions-cache`, live bundle `index-DlnIf1SS.js` confirme
 `cgm-sync` answers 401 without a passcode (correct), pushed to GitHub. Branches `meal-builder` and
 `readings-filter` are fully merged (safe to delete later).
 
-**🗂 Waiting to ship, on branch `my-foods` (built 2026-09-28 night, NOT merged, NOT deployed), 354 passed /
-6 skipped / 0 failed:** My foods (products checked against the pack, on the phone + JSON backup); a **household
-food bank** in Netlify Blobs (`netlify/functions/food-bank.js`, locked with the existing `CGM_SYNC_PASSCODE`,
-product facts only) so phone, Mac and family share one list; scan messages at every stage ("Code received —
-checking your foods / food bank / public database", then found / not found); serving size + ¼ ½ ¾ Full portion
-buttons in the meal builder; the ingredient box suggests saved foods. New dependency `@netlify/blobs` (0
-vulnerabilities). To ship: `git merge my-foods`, `npm test`, deploy line above, then confirm
-`/.netlify/functions/food-bank` answers 401 without a passcode. **Scott wants it for scanning at Coles —
-needs his "ship it".** The food bank uses his saved sync passcode, so it only works on devices where he has
-saved it in Settings.
+**✅ My foods + household food bank + portions: SHIPPED 2026-09-28 20:37** (Scott: "ship it"). Merged
+(`be32994`), 354 passed, deployed with `--skip-functions-cache`, live bundle `index-DDVhxCaK.js`,
+`/.netlify/functions/food-bank` answers 401 without / with a wrong passcode (correct). **Not yet verified:** a
+real save to Netlify Blobs — needs Scott's passcode; his first scan at Coles is the test.
+
+**❓ Waiting to ship, branch `help-and-welcome` (`151de5c`, on GitHub), 374 passed / 6 skipped / 0 failed:**
+Help & sources page + first-run welcome with an "I understand" checkbox. Needs Scott's "ship it". **Before going
+public, a lawyer should review the wording** (Scott's item — legal). To ship: `git merge help-and-welcome`,
+`npm test`, deploy line above. Scott will see the welcome once after it ships (his data is untouched).
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
@@ -1403,3 +1402,36 @@ MyNetDiary 5M+, mySugr 5M+, Baritastic 500K+, Easy Diet Diary 100K+, Cronometer,
 paid-tier features and prices. Closest rival: **SNAQ** (meals on the CGM curve; photo-AI carbs). Suggested next
 builds: saved meals, recipes with servings, a source label on each figure, voice logging (fits Scott's
 dictation), "similar meals" from his own history, and later Australian loose-food data (AUSNUT).
+
+## 2026-09-28 (late) — food bank shipped; Help & sources page and first-run welcome built (branch `help-and-welcome`)
+
+**Scott's asks:** a help page that credits the Australian and international research and food data the app
+draws on; make clear it's an aid, not gospel (the Libre and finger-pricks already disagree a lot); check how
+other apps limit liability; and a first-run screen with a profile and a checkbox.
+
+**Built (`151de5c`):**
+- **Help & sources** (Home → ❓): what the app is and isn't; why the Libre and a finger-prick disagree
+  (interstitial fluid lags blood 5–15 min; published Libre 2 average error ~9–13%, worse in lows and on day one);
+  what Australian guidance says about a low (Diabetes Australia/healthdirect: below 4.0, ~15 g fast carbs,
+  recheck after 15 min — framed as pointing to official guidance, with "your care team's plan comes first");
+  how each part works; exactly what data leaves the device; **19 cited sources** in five groups (Australian
+  low-glucose guidance; reactive and post-bariatric hypoglycaemia; sensor accuracy; food data incl. the Open Food
+  Facts ODbL attribution, AUSNUT, Sydney Uni GI; ADA threshold and the TGA software exclusions).
+- **Welcome** (`src/welcome.js`): shown once per wording version (`TERMS_VERSION`); optional first name,
+  condition (reactive / post-surgery / type 1 / type 2 / gestational / other), who helps you; a required
+  checkbox. "Read Help & sources first" is allowed; the welcome returns until accepted. Help has a button to
+  review it. Device only. Tests start with it accepted via `storageState` in `playwright.config.js`.
+
+**How other apps handle liability (researched):** mySugr's wording is the typical pattern — not medical advice,
+for information only, not a replacement for professional diagnosis or treatment, always consult your doctor.
+Health trackers that avoid dosing (MyFitnessPal, most carb apps) aren't registered medical devices; mySugr's
+bolus calculator *is* one in several markets. For this app, the stronger protection is staying descriptive
+(no doses, no "safe amounts"), which keeps it within the TGA software exclusions.
+
+**Decisions I made — revisit if you disagree:** collect only what the app uses (name optional, condition, care
+team); age and weight left out until a feature needs them. Checkbox is required to continue; everything else
+optional. Replaced a placeholder that used real names (Dr Foley, Marg) with a generic example.
+
+**Needs Scott:** "ship it" for `help-and-welcome`; **a lawyer's review of the Help and welcome wording before
+the app is public** (Australian Consumer Law guarantees can't be excluded by a disclaimer; a lawyer should
+also check the privacy wording against the Privacy Act for health information).
