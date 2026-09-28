@@ -19,3 +19,6 @@ data/
 # Real food photos staged for the app's "Import photos" feature (Mac-as-hub workflow,
 # see HANDOVER.md's 2026-09-15 entry) — personal health data, same rule as data/ above.
 food photos/
+
+# Scott's health-data screenshots (Libre/LibreLinkUp), never commit
+screenshots/
