@@ -66,6 +66,12 @@ markup confirmed on the live page; `food-bank` and `cgm-sync` answer 401 without
 locally and on GitHub. Scott will see the welcome screen once. **Still open:** lawyer review of the Help and
 welcome wording before going public.
 
+**➡️ NEXT SESSION STARTS HERE — Scott's 2026-09-28 22:23 requests, planned not built** (full plan in the dated
+entry at the bottom of this file): (1) graph redesign — smoothed line, peaks above / troughs below, low and high
+threshold crossings highlighted; (2) "Report a problem" in the app; (3) people who monitor (family, carers,
+diabetes educator, endocrinologist); (4) a letter to doctors, drafted in
+`research/2026-09-28 DRAFT letter to doctors.md`. Build in that order; (1) and (2) need nothing from Scott.
+
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
 (BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
@@ -1558,3 +1564,38 @@ record in Help that the conditions were accepted and how the app was set up, wit
 - **Help → Your setup:** date the conditions were accepted, name, what's tracked, who helps, and "Change my setup"
   (reopens the agreement pre-filled). `acceptedAt()` + `CONDITION_LABELS` in `src/welcome.js`.
 - Tests updated/added in `tests/welcome.spec.js` (incl. "no keyboard focus on first open").
+
+## 2026-09-28 22:23 — Scott's next requests (planned, not built: too close to his 11 pm internet cut-off)
+
+**1. Graph redesign (no Scott input needed — build first).** His words: "an average flowing line… on one side the
+peaks and on the other side the troughs, and any time you exceed the lower threshold for low blood sugar or the
+threshold for high blood sugar, which is important for diabetes cases". Plan:
+- Line: a rolling average of CGM readings (e.g. 30-min centred window), drawn smooth; raw points faint behind it.
+- Peaks (local maxima above a prominence, e.g. ≥ 1.5 mmol/L) labelled *above* the line with value + time;
+  troughs labelled *below*. Keep labels from colliding (skip ones too close together).
+- Shaded bands where readings are below `low` or above `high` (both already exist in `src/thresholds.js`),
+  with a list under the graph: each crossing's start time, lowest/highest value, and duration.
+- Finger-pricks stay as diamonds; meal markers stay; legend updated. Also used in the printable report.
+- Decisions I'd make: smoothing window 30 min; peak prominence 1.5 mmol/L; crossings shorter than 15 min still
+  listed (a short low matters).
+
+**2. "Report a problem" (no Scott input needed for v1).** A form in Help: what happened, what they expected, an
+optional screenshot; the app attaches version, device and page. v1 stores reports in Netlify Blobs
+(`bug-reports`, like the food bank, no personal health data included by default) and a session reads them.
+**Scott's question:** should reports also email him? If yes, which address (his Business 365 one?) — that's
+publishing an address, so his call. Emailing needs a sending service (e.g. Resend or Postmark, a free tier is
+likely enough) set up with his account.
+
+**3. People who monitor (family, carers, diabetes educator, endocrinologist).** "Alter/add people who are
+interested in monitoring… low or high." This is the planned sharing-with-roles feature plus "tell my family if I
+go low". **Scott's decisions needed:** (a) how alerts reach them — a notification on their own phone (they
+install the app; free, needs the app open or push set up), SMS (costs per message, most reliable), or email
+(free, slowest); (b) what they may see — alerts only, or the full graph/report. Consent: each person is added by
+the user, can be removed any time, and sees only what that role allows (privacy principles in `CLAUDE.md`).
+
+**4. Letter to doctors.** Draft written: `research/2026-09-28 DRAFT letter to doctors.md` — what the app does,
+why the patient is sharing, how to read the graph (matches plan 1), that it's descriptive only, and an easy
+opt-out for the doctor. In the app: a "Share with my doctor" button that opens the patient's own email app with
+the letter pre-filled plus the printable report (email apps can't take attachments from a link, so v1 is
+"download report, then attach"; true attachments need the sending service from 2). **Scott:** read the draft;
+lawyer review before public.
