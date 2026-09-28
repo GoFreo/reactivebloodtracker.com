@@ -82,3 +82,20 @@ test.describe("spike detection (pure logic)", () => {
     expect(findUnexplainedExcursions({ glucose, food: [], diary, settings: DEFAULT_SPIKE_SETTINGS, now: NOW })).toHaveLength(1);
   });
 });
+
+import { splitAtGaps } from "../src/timeline.js";
+
+test.describe("graph gap handling", () => {
+  test("a CGM gap over 45 minutes splits the line and is reported as a gap", () => {
+    const m = 60000;
+    const pts = [0, 15, 30, 120, 135].map((min) => ({ t: min * m, v: 5 }));
+    const { runs, gaps } = splitAtGaps(pts);
+    expect(runs.map((r) => r.length)).toEqual([3, 2]);
+    expect(gaps).toEqual([{ from: 30 * m, to: 120 * m }]);
+  });
+
+  test("normal 15-minute spacing stays one continuous line", () => {
+    const pts = [0, 15, 30, 45, 60].map((min) => ({ t: min * 60000, v: 5 }));
+    expect(splitAtGaps(pts).gaps).toHaveLength(0);
+  });
+});

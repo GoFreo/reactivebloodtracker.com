@@ -537,8 +537,27 @@ button:active {
 }
 
 .graph-axis { stroke: var(--border); stroke-width: 1; }
-.graph-line { stroke: var(--accent); stroke-width: 2; }
+.graph-line { stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.graph-cgm-dot { fill: var(--accent); }
 .graph-dot { fill: var(--accent); }
+/* Finger-pricks: a hollow-looking diamond in the surface colour with a strong
+   outline, so they stand apart from the CGM line in both themes. */
+.graph-prick { fill: var(--surface); stroke: var(--text); stroke-width: 1.6; }
+.graph-prick.warn-low { fill: var(--low); stroke: var(--low); }
+.graph-prick.warn-high { fill: var(--high); stroke: var(--high); }
+.graph-prick.warn-in-range { fill: var(--inrange); stroke: var(--inrange); }
+.graph-prick-line { stroke: var(--text-muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.graph-gap { fill: var(--surface-2); }
+.graph-gap-label, .graph-axis-label { fill: var(--text-muted); font-size: 8.5px; font-family: inherit; }
+.graph-low-rule { stroke: var(--low); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.8; }
+.graph-meal { fill: var(--high); }
+.graph-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 2px 12px; font-size: 0.8rem; color: var(--text-muted); }
+.graph-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.lg { display: inline-block; width: 14px; height: 10px; }
+.lg-cgm { height: 0; border-top: 2.5px solid var(--accent); }
+.lg-prick { width: 9px; height: 9px; transform: rotate(45deg); border: 1.6px solid var(--text); background: var(--surface); }
+.lg-gap { background: var(--surface-2); border-radius: 2px; }
+.lg-meal { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid var(--high); }
 .graph-dot.warn-low { fill: var(--low); }
 .graph-dot.warn-high { fill: var(--high); }
 .graph-dot.warn-in-range { fill: var(--inrange); }

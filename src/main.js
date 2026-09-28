@@ -176,6 +176,7 @@ function renderGraph() {
   renderReadingsGraph(document.getElementById("readings-graph-container"), cachedGlucose, {
     unit: localStorage.getItem("rht-default-unit") || "mmol/L",
     hours,
+    food: cachedFood,
   });
 }
 
