@@ -1617,3 +1617,23 @@ Recorded, not built. Added to the backlog, after the four planned items above:
    a suggestion to see a professional (the thresholds for "frequent" are a product decision to confirm with Scott).
 8. **Invite your doctor** to view (part of the monitoring/roles feature, item 3).
 9. **Exercise alongside glucose** (already on the list; Apple Health route = iPhone Shortcut import).
+
+## 2026-09-28 22:43 — "My devices" spec, from Scott (build second, after the graph)
+
+Scott: "a list of devices that have been sent along with their serial numbers… we have them individually. I'm at
+hospital, there might be more than one… make sure you've got the right one… a method of checking and/or
+re-entering the passwords… if they fail to register."
+- **Device register** (Settings → My devices): each physical device kept individually — type (Accu-Chek Guide Me,
+  Libre 2 Plus sensor, Dexcom G7, other), **serial number**, a nickname, date added/started, status
+  (in use / finished / failed). Stored on the device (not the food bank — it's personal).
+- **Right device, not a neighbour's:** a meter's serial is readable after connecting (Bluetooth Device Information
+  Service 0x180A, Serial Number String 0x2A25 — check the Guide Me exposes it). On sync, compare with the saved
+  serial; if it differs, stop and ask "This is meter …1234, not your saved meter …5678 — use it anyway?" before
+  saving any readings. First connection offers to save the serial. (Web Bluetooth's own picker also shows the
+  name; the serial check is the safety net.)
+- **Libre sensors:** LibreLinkUp's connection data includes the active sensor's serial and start time — record each
+  new sensor automatically into the register with its start date. This also gives the sensor-failure history Scott
+  needs for Abbott replacements (his Libres fail after 3–4 days; DVA handover logs this separately).
+- **Check / re-enter credentials per device:** a "Test connection" button on each device; on failure the exact reason
+  and a re-enter box (the Home passcode prompt already does this for the Libre sync passcode; extend it per device).
+- Readings keep the device they came from, so the graph can compare devices.
