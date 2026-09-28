@@ -11,7 +11,7 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **492 passed / 8 skipped / 0 failed** on `main` (skips: WebKit photo-save gap ×3, opt-in live food check ×4, one more WebKit photo test) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
+**Health:** `npm test` **498 passed / 10 skipped / 0 failed** on `main` (skips: WebKit photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
 the documented WebKit photo-save automation gap).
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
@@ -46,6 +46,9 @@ deployed with `--skip-functions-cache`, live bundle `index-DlnIf1SS.js` confirme
 (`be32994`), 354 passed, deployed with `--skip-functions-cache`, live bundle `index-DDVhxCaK.js`,
 `/.netlify/functions/food-bank` answers 401 without / with a wrong passcode (correct). **Not yet verified:** a
 real save to Netlify Blobs — needs Scott's passcode; his first scan at Coles is the test.
+
+**✅ Header + install tip + passcode drop-down: SHIPPED 2026-09-28 22:05** (Scott's requests). Live bundle
+`index-C4wNG0qk.js`; 498 passed / 10 skipped / 0 failed; manifest name "Reactive Blood Tracker".
 
 **✅ Photo patch + smaller saved photos + Libre passcode fix: SHIPPED 2026-09-28 21:58** (Scott: "apply the photo
 patch and shrink saved photos too"; then he reported "password input not asked for"). 492 passed / 8 skipped /
@@ -1506,3 +1509,17 @@ wrong it's forgotten and Home asks again. 2 smoke tests. **Not verified on his p
 tap is the test; if it says "Wrong sync passcode", the Netlify value and what he types differ.
 **Decision I made:** "Remember on this phone" defaults to ticked on the Home prompt (Settings' own checkbox
 still starts unticked) — typing it every time is what caused this.
+
+## 2026-09-28 (22:00–22:05) — header, full screen, passcode drop-down (shipped)
+
+Scott: the top-left said "Home" — better for the app's name and the date/time; wants full screen with no URL;
+"a drop-down box asking for the password would be better".
+- Header: "Reactive Blood Tracker" on Home (other pages keep their titles) with the date/time underneath on
+  every page (`formatDate`, so it follows the Settings date format), refreshed every 30 s.
+- Full screen: the manifest was already `display: standalone` with the Apple meta tags, so the **home-screen
+  icon** already opens with no address bar. A website can't hide Safari's own bar, so phones in the browser now
+  get a one-time "Add to Home Screen" tip (iPhone wording: Share → Add to Home Screen; Android: menu → Install
+  app). Manifest `name` → "Reactive Blood Tracker", `short_name` + `apple-mobile-web-app-title` → "Reactive".
+- The Home passcode box (shipped 21:58) now slides into view and focuses the field.
+- **Tell Scott / likely cause of "not asked":** a home-screen app stays in memory on iPhone — swipe it closed and
+  reopen to get new versions (the service worker is network-first, so a reload online always gets the latest).
