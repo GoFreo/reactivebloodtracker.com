@@ -29,6 +29,7 @@ import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
+import { hasAccepted, getProfile, acceptWelcome } from "./welcome.js";
 import { lookupFood, STAGE_TEXT, syncFoodBank, pushToFoodBank, deleteFromFoodBank, foodBankAvailable } from "./foodBank.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
 import {
@@ -63,6 +64,7 @@ const VIEW_TITLES = {
   export: "Export report",
   "food-guidance": "Food Guidance",
   "my-foods": "My foods",
+  help: "Help & sources",
   settings: "Settings",
 };
 
@@ -1476,3 +1478,43 @@ async function refreshFoodBank() {
     : `Food bank: ${r.error}`;
   if (r.ok && r.changed) renderMyFoods();
 }
+
+// --- Welcome / acknowledgement (logic in welcome.js) ---
+const welcomeEl = document.getElementById("welcome");
+const welcomeAccept = document.getElementById("welcome-accept");
+const welcomeContinue = document.getElementById("welcome-continue");
+
+function openWelcome() {
+  const p = getProfile();
+  document.getElementById("welcome-name").value = p.name;
+  document.getElementById("welcome-condition").value = p.condition;
+  document.getElementById("welcome-care").value = p.careTeam;
+  welcomeAccept.checked = hasAccepted();
+  welcomeContinue.disabled = !welcomeAccept.checked;
+  welcomeEl.hidden = false;
+}
+
+welcomeAccept.addEventListener("change", () => {
+  welcomeContinue.disabled = !welcomeAccept.checked;
+});
+
+document.getElementById("welcome-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const r = acceptWelcome({
+    accepted: welcomeAccept.checked,
+    name: document.getElementById("welcome-name").value,
+    condition: document.getElementById("welcome-condition").value,
+    careTeam: document.getElementById("welcome-care").value,
+  });
+  if (r.ok) welcomeEl.hidden = true;
+});
+
+document.getElementById("welcome-read-help").addEventListener("click", () => {
+  welcomeEl.hidden = true;
+  showView("help");
+});
+document.getElementById("help-show-welcome").addEventListener("click", openWelcome);
+
+// Shown once per wording version. Reading Help first is allowed; the welcome
+// comes back next time the app opens until it's accepted.
+if (!hasAccepted()) openWelcome();

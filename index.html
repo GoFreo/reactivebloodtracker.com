@@ -164,6 +164,7 @@
           <button type="button" data-nav="export">📤 Export</button>
           <button type="button" data-nav="food-guidance">🍎 Food guidance</button>
           <button type="button" data-nav="my-foods">🗂 My foods</button>
+          <button type="button" data-nav="help">❓ Help &amp; sources</button>
         </div>
       </section>
 
@@ -294,6 +295,95 @@
           </label>
           <p class="field-hint" id="myfood-import-status"></p>
         </div>
+      </section>
+
+      <section id="view-help" class="view help" data-view="help" hidden>
+        <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
+
+        <div class="help-callout">
+          <h2>Please read: what this app is, and isn't</h2>
+          <p>This app helps you <strong>record and understand</strong> your glucose, food and how they relate, and helps
+          the people around you keep an eye out. It shows what happened. It does <strong>not</strong> diagnose, treat,
+          or tell you what or how much to eat, and it never suggests medication or insulin doses.</p>
+          <ul>
+            <li>Readings, carb figures and patterns can be wrong. Treat them as a guide, not the final word.</li>
+            <li>Always follow the advice of your doctor, diabetes educator or dietitian over anything shown here.</li>
+            <li>If you feel low, treat it and check with a finger-prick. Don't wait for the app.</li>
+            <li><strong>In an emergency call 000.</strong></li>
+          </ul>
+        </div>
+
+        <h2>Why the Libre and a finger-prick disagree</h2>
+        <p>They measure different things. A finger-prick measures glucose in your blood. The Libre sensor measures it in
+        the fluid under your skin, which trails the blood by about 5 to 15 minutes. When your glucose is moving fast,
+        such as after a meal or during a crash, the two can be well apart. Sensors also read less accurately in the
+        low range, on the first day of a new sensor, and when pressed on while you sleep. Published studies put the
+        Libre 2's average difference from lab tests at about 9 to 13%, and higher in some groups and during lows.
+        That's why the graph shows both, and why a finger-prick is the one to trust before acting on a low.</p>
+
+        <h2>If you think you're low</h2>
+        <p>Australian guidance (Diabetes Australia, healthdirect) describes a low as below 4.0 mmol/L and a first step of
+        about 15 g of fast-acting carbohydrate, such as 6 to 7 jellybeans or 150 to 200 ml of fruit juice, then
+        re-checking after 15 minutes. That guidance is written mainly for people on insulin or diabetes tablets. Your
+        own treatment plan from your care team comes first. Reactive and post-surgery lows can behave differently.</p>
+
+        <h2>How the parts work</h2>
+        <dl class="help-list">
+          <dt>Glucose</dt><dd>Type a reading, sync your Accu-Chek meter over Bluetooth (Chrome only), or sync your Libre with the passcode in Settings.</dd>
+          <dt>Food and the meal builder</dt><dd>Describe what you ate, or build it from ingredients: grams × the pack's "per 100 g" carbs. Portion buttons use the pack's serving size. Totals only add figures you or the pack supplied.</dd>
+          <dt>Barcodes and My foods</dt><dd>A scan checks your saved foods, then your household food bank, then the public Open Food Facts database. Public data can be wrong: check it against the pack before saving.</dd>
+          <dt>"Why did your sugar spike?"</dt><dd>When the Libre shows a fast rise or drop with nothing logged, the app asks what happened. It's a prompt to record, not a diagnosis.</dd>
+          <dt>Readings → Meals</dt><dd>Each meal with what your glucose did over the next 5 hours. These are facts from your own data, not advice about what to eat.</dd>
+          <dt>Export</dt><dd>A spreadsheet file or a printable summary for your doctor, only when you choose to make one.</dd>
+        </dl>
+
+        <h2>Your data</h2>
+        <p>Your readings, meals and notes stay on this device unless you export them. Only these leave it: product facts
+        you save to your household food bank (barcode, name, carbs, serving size, never your meals), food descriptions
+        or photos you choose to send for AI parsing, and the Libre sync request. Clearing your browser's data for this
+        site deletes what's stored here, so export or back up regularly.</p>
+
+        <h2>Sources and acknowledgements</h2>
+        <p class="field-hint">The app's thresholds, guidance text and food data draw on these. Listing them isn't an endorsement by their authors.</p>
+        <h3>Low glucose and diabetes (Australia)</h3>
+        <ul class="sources">
+          <li><a href="https://www.diabetesaustralia.com.au/managing-diabetes/hypo-hyperglycaemia/" target="_blank" rel="noopener">Diabetes Australia: hypoglycaemia and hyperglycaemia</a></li>
+          <li><a href="https://www.healthdirect.gov.au/hypoglycaemia-low-blood-sugar" target="_blank" rel="noopener">healthdirect: hypoglycaemia (low blood sugar)</a></li>
+          <li><a href="https://www.ndss.com.au/wp-content/uploads/fact-sheets/fact-sheet-managing-hypoglycaemia.pdf" target="_blank" rel="noopener">NDSS fact sheet: managing hypoglycaemia</a></li>
+          <li><a href="https://baker.edu.au/health-hub/fact-sheets/hypoglycaemia-management" target="_blank" rel="noopener">Baker Heart and Diabetes Institute: hypoglycaemia</a></li>
+        </ul>
+        <h3>Reactive and post-surgery hypoglycaemia</h3>
+        <ul class="sources">
+          <li><a href="https://www.mayoclinic.org/diseases-conditions/diabetes/expert-answers/reactive-hypoglycemia/faq-20057778" target="_blank" rel="noopener">Mayo Clinic: reactive hypoglycaemia</a></li>
+          <li><a href="https://health.clevelandclinic.org/how-to-treat-reactive-hypoglycemia" target="_blank" rel="noopener">Cleveland Clinic: treating reactive hypoglycaemia</a></li>
+          <li><a href="https://www.nth.nhs.uk/resources/reactive-hypoglycaemia/" target="_blank" rel="noopener">NHS North Tees: reactive hypoglycaemia</a></li>
+          <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK592417/" target="_blank" rel="noopener">StatPearls: post-bariatric surgery hypoglycaemia</a></li>
+          <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC13452044/" target="_blank" rel="noopener">Endocrine Connections: post-bariatric hypoglycaemia, from gut physiology to therapies</a></li>
+          <li><a href="https://www.frontiersin.org/journals/surgery/articles/10.3389/fsurg.2024.1449012/full" target="_blank" rel="noopener">Frontiers in Surgery: postprandial hypoglycaemia after bariatric surgery</a></li>
+          <li><a href="https://academic.oup.com/alcalc/article/19/1/45/111413" target="_blank" rel="noopener">Alcohol and Alcoholism: alcohol-potentiated reactive hypoglycaemia</a></li>
+        </ul>
+        <h3>Sensor accuracy</h3>
+        <ul class="sources">
+          <li><a href="https://journals.sagepub.com/doi/10.1177/29986702251390418" target="_blank" rel="noopener">Vaughan 2025: meta-analysis of FreeStyle Libre accuracy studies</a></li>
+          <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11397946/" target="_blank" rel="noopener">Libre 2 performance in healthy adult men</a></li>
+          <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10490447/" target="_blank" rel="noopener">Libre 2 performance in healthy women</a></li>
+        </ul>
+        <h3>Food and carbohydrate data</h3>
+        <ul class="sources">
+          <li><a href="https://world.openfoodfacts.org/" target="_blank" rel="noopener">Open Food Facts</a>: barcode product data, shared under the Open Database Licence (ODbL)</li>
+          <li><a href="https://www.foodstandards.gov.au/science-data/food-nutrient-databases/ausnut" target="_blank" rel="noopener">Food Standards Australia New Zealand: AUSNUT</a></li>
+          <li><a href="https://glycemicindex.com/" target="_blank" rel="noopener">University of Sydney: Glycemic Index database</a></li>
+          <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8266981/" target="_blank" rel="noopener">Carbohydrate-counting accuracy of smartphone apps</a></li>
+        </ul>
+        <h3>Standards and rules</h3>
+        <ul class="sources">
+          <li>American Diabetes Association Standards of Care: the 3.9 mmol/L (70 mg/dL) low threshold the app won't let you set below</li>
+          <li><a href="https://www.tga.gov.au/products/medical-devices/software-and-artificial-intelligence-ai/overview/software-based-medical-device-exclusions" target="_blank" rel="noopener">Therapeutic Goods Administration: software exclusions</a></li>
+        </ul>
+
+        <p class="field-hint">
+          <button type="button" class="link-btn" id="help-show-welcome">Review the welcome screen and your profile</button>
+        </p>
       </section>
 
       <section id="view-food-guidance" class="view" data-view="food-guidance" hidden>
@@ -521,6 +611,45 @@
       </section>
     </main>
 
+    <div id="welcome" class="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
+      <form id="welcome-form" class="welcome-card entry-form">
+        <h2 id="welcome-title">Welcome</h2>
+        <p>This app helps you record your glucose and food and see how they relate, and helps the people around you
+        keep an eye out. Before you start:</p>
+        <ul class="welcome-points">
+          <li>It shows what happened. It doesn't diagnose, treat, or tell you what or how much to eat, and never suggests doses.</li>
+          <li>Sensor readings, finger-pricks and carb figures can disagree or be wrong. Treat the app as a guide, not the final word.</li>
+          <li>Your doctor's or diabetes educator's advice always comes first. In an emergency call 000.</li>
+          <li>Your records stay on this device unless you choose to export or share them.</li>
+        </ul>
+        <label>
+          Your first name (optional)
+          <input type="text" id="welcome-name" autocomplete="given-name" />
+        </label>
+        <label>
+          What are you tracking?
+          <select id="welcome-condition">
+            <option value="reactive">Reactive hypoglycaemia (lows after eating)</option>
+            <option value="post-bariatric">Lows after weight-loss surgery</option>
+            <option value="type1">Type 1 diabetes</option>
+            <option value="type2">Type 2 diabetes</option>
+            <option value="gestational">Gestational diabetes</option>
+            <option value="other">Something else, or not sure yet</option>
+          </select>
+        </label>
+        <label>
+          Who helps you with this? (optional)
+          <input type="text" id="welcome-care" placeholder="e.g. my GP, my partner" autocomplete="off" />
+        </label>
+        <p class="field-hint">Just for your own reference for now. Sharing readings with family or your doctor is on the way and will always be your choice.</p>
+        <label class="checkbox-label">
+          <input type="checkbox" id="welcome-accept" />
+          I understand this app is a guide to help me keep track, not medical advice, and I'll follow my care team's advice.
+        </label>
+        <button type="submit" id="welcome-continue" disabled>Start using the app</button>
+        <button type="button" class="link-btn" id="welcome-read-help">Read Help &amp; sources first</button>
+      </form>
+    </div>
     <nav class="bottom-nav">
       <button data-nav="home" class="nav-btn active" aria-label="Home">
         <span class="nav-icon">🏠</span><span>Home</span>
