@@ -583,7 +583,7 @@ function renderMealItems() {
       const portions = document.createElement("div");
       portions.className = "mi-portions";
       const label = document.createElement("span");
-      label.textContent = `1 serve = ${serving} g:`;
+      label.textContent = `Serve ${serving} g:`;
       portions.appendChild(label);
       for (const p of PORTIONS) {
         const b = document.createElement("button");

@@ -62,7 +62,7 @@ test.describe("meal builder (pure logic)", () => {
 test.describe("portions (pure logic)", () => {
   test("fractions of the pack's serving size, in whole grams", async () => {
     const { portionGrams, PORTIONS } = await import("../src/mealBuilder.js");
-    expect(PORTIONS.map((p) => p.label)).toEqual(["¼", "½", "¾", "1 serve"]);
+    expect(PORTIONS.map((p) => p.label)).toEqual(["¼", "½", "¾", "Full"]);
     expect(portionGrams(30, 0.25)).toBe(8);
     expect(portionGrams(170, 0.5)).toBe(85);
     expect(portionGrams(null, 0.5)).toBeNull();

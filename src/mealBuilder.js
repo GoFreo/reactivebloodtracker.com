@@ -112,7 +112,7 @@ export const PORTIONS = [
   { label: "¼", fraction: 0.25 },
   { label: "½", fraction: 0.5 },
   { label: "¾", fraction: 0.75 },
-  { label: "1 serve", fraction: 1 },
+  { label: "Full", fraction: 1 },
 ];
 
 export function portionGrams(servingSizeG, fraction) {

@@ -693,7 +693,7 @@ test.describe("meal builder with saved foods and portions", () => {
     await row.locator(".mi-name input").press("Tab"); // fires change, like choosing from the list
     const filled = page.locator(".meal-item").first();
     await expect(filled.locator(".mi-per100 input")).toHaveValue("16.5");
-    await expect(filled.locator(".mi-portions")).toContainText("1 serve = 170 g");
+    await expect(filled.locator(".mi-portions")).toContainText("Serve 170 g");
     await filled.locator(".mi-portions button", { hasText: "½" }).click();
     await expect(filled.locator(".mi-grams input")).toHaveValue("85");
     await expect(page.locator("#meal-total")).toContainText("Total: 14 g carbs"); // 85 g × 16.5/100 = 14.0
