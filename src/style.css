@@ -610,3 +610,51 @@ h2 {
     font-size: 12px;
   }
 }
+
+/* "Why did your sugar spike?" cards on Home */
+.spike-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.spike-card.drop {
+  border-left-color: #c0564a;
+}
+
+.spike-card p {
+  margin: 0 0 10px;
+}
+
+.spike-card .spike-question {
+  font-weight: 600;
+}
+
+.spike-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.spike-actions button {
+  width: 100%;
+}
+
+.spike-explain-form {
+  margin-top: 10px;
+}
+
+.spike-more {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: -4px 0 12px;
+}
+
+/* .entry-form sets display:flex, which beats the browser's default [hidden]
+   handling — same trap as .timeline-list / .latest-reading (see CLAUDE.md). */
+.spike-explain-form[hidden] {
+  display: none;
+}

@@ -27,6 +27,12 @@ import { connectAndFetchReadings, isBluetoothAvailable } from "./bluetoothGlucos
 import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
+import {
+  findUnexplainedExcursions,
+  describeExcursion,
+  getSpikeSettings,
+  saveSpikeSettings,
+} from "./spikeDetection.js";
 
 // Dynamically imported on first use — ZXing (the barcode decoder) adds ~500KB
 // before compression, and most visits never touch the scanner. No reason to
@@ -63,6 +69,12 @@ function nowForDatetimeLocal() {
   d.setSeconds(0, 0);
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 16);
+}
+
+function toDatetimeLocal(ms) {
+  const d = new Date(ms);
+  d.setSeconds(0, 0);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
 function localDateStr(d) {
@@ -127,6 +139,7 @@ async function refreshHome() {
   updateReminderBanner();
   renderLatestReading();
   renderFoodSuggestions();
+  renderSpikePrompts();
 }
 
 async function refreshReadings() {
@@ -631,6 +644,151 @@ document.getElementById("bluetooth-connect-btn").addEventListener("click", () =>
 document.getElementById("home-bluetooth-connect-btn").addEventListener("click", () =>
   runBluetoothSync(document.getElementById("home-bluetooth-connect-btn"), document.getElementById("home-bluetooth-status"))
 );
+
+// --- "Why did your sugar spike?" prompts ---
+// Dismissals are a UI convenience, not medical data, so they live in
+// localStorage; real answers are saved as tagged diary entries (see diary.js)
+// so they show on the timeline and in the doctor's export.
+const SPIKE_DISMISSED_KEY = "rht-spike-dismissed";
+const MAX_SPIKE_CARDS = 3;
+
+function getDismissedSpikes() {
+  try {
+    return JSON.parse(localStorage.getItem(SPIKE_DISMISSED_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function dismissSpike(id) {
+  try {
+    localStorage.setItem(SPIKE_DISMISSED_KEY, JSON.stringify([...getDismissedSpikes(), id].slice(-200)));
+  } catch {}
+}
+
+function spikeTime(ms) {
+  const d = new Date(ms);
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return localDateStr(d) === localDateStr(new Date()) ? time : `${formatDate(d.toISOString())}`;
+}
+
+function renderSpikePrompts() {
+  const container = document.getElementById("spike-prompts");
+  const events = findUnexplainedExcursions({
+    glucose: cachedGlucose,
+    food: cachedFood,
+    diary: cachedDiary,
+    dismissedIds: getDismissedSpikes(),
+  });
+  container.innerHTML = "";
+  // The newest few, shown in time order so a rise appears before the drop that
+  // followed it (answering the rise settles both — see spikeDetection.js).
+  for (const e of events.slice(0, MAX_SPIKE_CARDS).reverse()) container.appendChild(buildSpikeCard(e));
+  if (events.length > MAX_SPIKE_CARDS) {
+    const more = document.createElement("p");
+    more.className = "spike-more";
+    more.textContent = `${events.length - MAX_SPIKE_CARDS} more unexplained change${events.length - MAX_SPIKE_CARDS === 1 ? "" : "s"} after these.`;
+    container.appendChild(more);
+  }
+}
+
+function buildSpikeCard(e) {
+  const summary = describeExcursion(e, spikeTime);
+  const card = document.createElement("div");
+  card.className = `spike-card ${e.type}`;
+  card.dataset.excursionId = e.id;
+  card.innerHTML = `
+    <p class="spike-summary"></p>
+    <p class="spike-question">Nothing is logged before it. Do you know why?</p>
+    <div class="spike-actions">
+      <button type="button" data-answer="yes">Yes, add it</button>
+      <button type="button" class="secondary-btn" data-answer="unexplained">No / not sure</button>
+      <button type="button" class="secondary-btn" data-answer="glitch">Sensor glitch</button>
+      <button type="button" class="secondary-btn" data-answer="dismiss">Dismiss</button>
+    </div>
+    <form class="spike-explain-form entry-form" hidden>
+      <label>
+        What was it?
+        <input type="text" class="spike-explain-text" placeholder="e.g. chocolate biscuit, small whiskey" required />
+      </label>
+      <label>
+        Roughly when
+        <input type="datetime-local" class="spike-explain-time" required />
+      </label>
+      <button type="submit">Save</button>
+    </form>`;
+  // textContent, not innerHTML: keeps the summary inert whatever it contains.
+  card.querySelector(".spike-summary").textContent = `${summary}.`;
+  const form = card.querySelector(".spike-explain-form");
+  form.querySelector(".spike-explain-time").value = toDatetimeLocal(e.startT);
+
+  const markAnswered = async (answer, text) => {
+    await saveDiaryNote({
+      text,
+      timestamp: new Date(e.startT).toISOString(),
+      excursionId: e.id,
+      excursionAnswer: answer,
+    });
+  };
+
+  card.querySelector(".spike-actions").addEventListener("click", async (ev) => {
+    const answer = ev.target.closest("button")?.dataset.answer;
+    if (!answer) return;
+    if (answer === "yes") {
+      form.hidden = false;
+      form.querySelector(".spike-explain-text").focus();
+      return;
+    }
+    if (answer === "dismiss") {
+      dismissSpike(e.id);
+    } else if (answer === "unexplained") {
+      await markAnswered("unexplained", `🔎 Unexplained ${e.type}: ${summary.replace(/^Your glucose /, "")}.`);
+    } else if (answer === "glitch") {
+      await markAnswered("glitch", `📡 Marked as sensor glitch: ${summary.replace(/^Your glucose /, "")}.`);
+    }
+    await refreshHome();
+  });
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const what = form.querySelector(".spike-explain-text").value.trim();
+    if (!what) return;
+    const when = new Date(form.querySelector(".spike-explain-time").value).toISOString();
+    await saveFoodEntry({ text: what, timestamp: when });
+    await markAnswered("explained", `✅ Explained ${e.type} (${what}): ${summary.replace(/^Your glucose /, "")}.`);
+    await refreshHome();
+  });
+  return card;
+}
+
+const spikeInputs = {
+  enabled: document.getElementById("spike-enabled"),
+  riseAmount: document.getElementById("spike-rise"),
+  dropAmount: document.getElementById("spike-drop"),
+  windowMinutes: document.getElementById("spike-window"),
+  lookbackMinutes: document.getElementById("spike-lookback"),
+};
+
+function loadSpikeSettingsIntoForm() {
+  const s = getSpikeSettings();
+  spikeInputs.enabled.checked = s.enabled;
+  for (const key of ["riseAmount", "dropAmount", "windowMinutes", "lookbackMinutes"]) spikeInputs[key].value = s[key];
+}
+
+for (const el of Object.values(spikeInputs)) {
+  el.addEventListener("change", () => {
+    const current = getSpikeSettings();
+    const next = { ...current, enabled: spikeInputs.enabled.checked };
+    // Ignore blank or nonsense entries rather than saving them — keeps the last good value.
+    for (const key of ["riseAmount", "dropAmount", "windowMinutes", "lookbackMinutes"]) {
+      const n = Number(spikeInputs[key].value);
+      if (Number.isFinite(n) && n > 0) next[key] = n;
+      else spikeInputs[key].value = current[key];
+    }
+    saveSpikeSettings(next);
+  });
+}
+loadSpikeSettingsIntoForm();
 
 // --- Libre 2 Plus (CGM) sync via LibreLinkUp ---
 const cgmPasscodeEl = document.getElementById("cgm-passcode");

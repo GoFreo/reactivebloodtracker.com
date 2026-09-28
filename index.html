@@ -40,6 +40,8 @@
         </div>
         <p class="warn-explanation" id="latest-reading-explanation" hidden></p>
 
+        <div id="spike-prompts"></div>
+
         <div class="home-section">
           <h2>Glucose reading</h2>
           <form id="glucose-form" class="entry-form">
@@ -351,6 +353,35 @@
           this site from reading your glucose.
         </p>
         <p class="field-hint" id="cgm-status"></p>
+
+        <h2>Unexplained rise &amp; drop questions</h2>
+        <div class="entry-form">
+          <label class="checkbox-label">
+            <input type="checkbox" id="spike-enabled" />
+            Ask me about rises and drops with nothing logged before them
+          </label>
+          <label>
+            Rise of at least (mmol/L)
+            <input type="number" step="0.1" min="0.5" inputmode="decimal" id="spike-rise" />
+          </label>
+          <label>
+            Drop of at least (mmol/L)
+            <input type="number" step="0.1" min="0.5" inputmode="decimal" id="spike-drop" />
+          </label>
+          <label>
+            Happening within (minutes)
+            <input type="number" step="5" min="15" inputmode="numeric" id="spike-window" />
+          </label>
+          <label>
+            Nothing logged in the previous (minutes)
+            <input type="number" step="15" min="30" inputmode="numeric" id="spike-lookback" />
+          </label>
+          <p class="field-hint">
+            Uses your Libre (CGM) readings only, since finger-pricks are too far apart to show a rise.
+            For drops the app looks back 4 hours, because a reactive low usually follows a meal by
+            2–4 hours. These are just triggers for a question. They aren't medical limits.
+          </p>
+        </div>
 
         <h2>Reminders</h2>
         <div class="entry-form">

@@ -47,6 +47,29 @@ async function writeTempJpeg(dateString, filename) {
   return filePath;
 }
 
+// A CGM rise of 5.0 → 9.8 mmol/L over the last hour, relative to "now" so it
+// always counts as recent. Used by the spike-prompt tests.
+async function mockSpikySync(page) {
+  const now = Date.now();
+  const values = [5.0, 5.1, 7.5, 9.8];
+  const readings = values.map((v, i) => ({
+    value: v,
+    unit: "mmol/L",
+    timestamp: new Date(now - (values.length - 1 - i) * 15 * 60000).toISOString(),
+  }));
+  await page.route("**/.netlify/functions/cgm-sync", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: true, readings }) })
+  );
+}
+
+async function syncCgm(page) {
+  await page.goto("/");
+  await page.locator('button.nav-btn[data-nav="settings"]').click();
+  await page.locator("#cgm-passcode").fill("test-passcode-123");
+  await page.locator("#cgm-sync-btn").click();
+  await expect(page.locator("#cgm-status")).toContainText("new CGM reading");
+}
+
 test.describe("app shell", () => {
   test("loads on Home with glucose + food entry and all nav tabs present", async ({ page }) => {
     await page.goto("/");
@@ -260,6 +283,38 @@ test.describe("settings", () => {
     await page.locator("#cgm-passcode").fill("wrong-passcode");
     await page.locator("#cgm-sync-btn").click();
     await expect(page.locator("#cgm-status")).toContainText("Wrong sync passcode");
+  });
+
+  test("an unexplained CGM rise asks why; 'not sure' records it and clears the card", async ({ page }) => {
+    await mockSpikySync(page);
+    await syncCgm(page);
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+
+    const card = page.locator(".spike-card.rise");
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText("rose from 5.0 to 9.8 mmol/L");
+    await expect(card.locator(".spike-explain-form")).toBeHidden();
+
+    await card.locator('button[data-answer="unexplained"]').click();
+    await expect(page.locator(".spike-card")).toHaveCount(0);
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator(".timeline-entry", { hasText: "Unexplained rise" })).toHaveCount(1);
+  });
+
+  test("answering 'yes' logs the food at the spike's time and clears the card", async ({ page }) => {
+    await mockSpikySync(page);
+    await syncCgm(page);
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+
+    const card = page.locator(".spike-card.rise");
+    await card.locator('button[data-answer="yes"]').click();
+    await expect(card.locator(".spike-explain-form")).toBeVisible();
+    await card.locator(".spike-explain-text").fill("chocolate biscuit");
+    await card.locator('.spike-explain-form button[type="submit"]').click();
+
+    await expect(page.locator(".spike-card")).toHaveCount(0);
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator(".timeline-entry", { hasText: "🍽️" }).filter({ hasText: "chocolate biscuit" })).toHaveCount(1);
   });
 
   test("unit choice carries into the glucose form default", async ({ page }) => {
