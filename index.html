@@ -13,9 +13,24 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
-  <div id="splash">
-    <img src="/icon.svg" alt="" width="120" height="120" />
-    <p>Your glucose, food, and diary — all in one place</p>
+  <div id="splash" aria-hidden="true">
+    <!-- The droplet drops onto the spring, which compresses and springs back:
+         the "reactive" in reactive hypoglycemia, as a 2-second opening. -->
+    <svg class="splash-mark" viewBox="0 0 192 200" width="168" height="175">
+      <ellipse class="splash-shadow" cx="96" cy="190" rx="44" ry="6" />
+      <g class="splash-spring" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M124 145L68 152M124 159L68 166" opacity="0.45" />
+        <path d="M68 138L124 145M68 152L124 159M68 166L124 173" />
+        <path d="M66 131H126" />
+        <path d="M62 180H130" />
+      </g>
+      <g class="splash-drop">
+        <path d="M96 18C96 18 62 66 62 92a34 34 0 0 0 68 0C130 66 96 18 96 18z" fill="#D63A3A" />
+        <path d="M81 90a15 15 0 0 0 12 16" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.55" />
+      </g>
+    </svg>
+    <h1 class="splash-title">Reactive</h1>
+    <p class="splash-tagline">Glucose, food and diary, all in one place</p>
   </div>
 
   <div id="app">

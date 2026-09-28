@@ -1050,9 +1050,13 @@ updateBluetoothBadge();
 // the browser's native form submission with no visible error.
 showView("home");
 
-// Brief splash (icon + tagline) on every load, then straight into Home —
+// Opening animation (droplet lands on the spring) on every load, then Home —
 // not a loading gate (the app underneath is already rendered), just a moment of
 // calm identity before landing in the data.
-setTimeout(() => {
-  document.getElementById("splash").classList.add("hidden");
-}, 900);
+// Long enough for the drop-and-bounce plus the name to land; tap to skip.
+// Reduced-motion users get a static screen, so it can go sooner.
+const splashEl = document.getElementById("splash");
+const hideSplash = () => splashEl.classList.add("hidden");
+const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+setTimeout(hideSplash, reducedMotion ? 700 : 2100);
+splashEl.addEventListener("click", hideSplash);
