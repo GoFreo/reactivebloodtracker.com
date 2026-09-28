@@ -1599,3 +1599,21 @@ opt-out for the doctor. In the app: a "Share with my doctor" button that opens t
 the letter pre-filled plus the printable report (email apps can't take attachments from a link, so v1 is
 "download report, then attach"; true attachments need the sending service from 2). **Scott:** read the draft;
 lawyer review before public.
+
+## 2026-09-28 22:26 — Scott's product vision (recorded in `CLAUDE.md` → "Product vision"); new backlog items
+
+Recorded, not built. Added to the backlog, after the four planned items above:
+5. **Device list the user picks from** (Settings → "My devices"): Libre 2 Plus, Accu-Chek Guide Me, Dexcom G7
+   (arriving soon from ADACare), "other / type readings in". Uses the existing `glucoseSources` registry.
+6. **Sensor vs finger-prick check.** When a finger-prick is logged and the CGM line has been flat (e.g. change
+   < 0.5 mmol/L over the prior 30 min), compare them; if they differ by more than ~20% (or 1.0 mmol/L at low
+   values; to be tuned), show a note: "Your sensor and meter disagree while your glucose is steady. A common cause
+   is sensor placement" + links to Abbott's and Dexcom's **official** application instructions (manufacturer
+   pages/videos, not random YouTube). Descriptive, no device advice beyond the manufacturer's own.
+   Scott's case for the record: Libre on the inside of the arm read dramatically low (into muscle); back of the
+   upper arm matched the meter once steady.
+7. **"Frequent lows" prompt → letter to GP/endocrinologist.** e.g. "3 or more lows below your threshold in 7 days"
+   → "You may want to show this to your GP" + the doctor letter pre-filled with those episodes. Wording must stay
+   a suggestion to see a professional (the thresholds for "frequent" are a product decision to confirm with Scott).
+8. **Invite your doctor** to view (part of the monitoring/roles feature, item 3).
+9. **Exercise alongside glucose** (already on the list; Apple Health route = iPhone Shortcut import).

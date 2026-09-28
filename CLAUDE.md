@@ -53,6 +53,30 @@ Scott has decided this becomes a **public app**. Read the rest of this file with
   keeps the product out of TGA software-as-a-medical-device classification.
 - Competitive research informing this: https://claude.ai/artifact/Ya7Fr1FHxAj1iVfrHwGNNc
 
+## 🎯 Product vision — the gap this app fills (Scott, 2026-09-28 night — read this)
+
+Every glucose device comes with **its own app that works on its own** (Libre 2 Plus → LibreLink, Accu-Chek →
+mySugr/Connect, Dexcom G7 → Dexcom app). Diet apps don't know your glucose; glucose apps don't know your food or
+exercise. **This app brings them together:** glucose from any of the user's devices (chosen from a list), food and
+meals, exercise, and notes, on one timeline, so the person, their family and their doctors can see *why* sugar
+went high or low.
+
+- **Peaks and troughs are the point.** People forget to log things. The sensors don't. So the app watches the
+  sensor line for peaks, troughs and flat stretches and asks what happened ("someone nicked a donut", "a single
+  malt, straight, because the footy team lost"). The "why did your sugar spike?" prompt is the start of this.
+- **Devices are a selectable list**, not hard-wired: now Libre 2 Plus (LibreLinkUp) and Accu-Chek Guide Me
+  (Bluetooth); next Dexcom G7; others later (the `glucoseSources` registry in `src/glucose.js` is built for this).
+- **Sensor vs finger-prick sanity check.** When the sensor line is *flat* (steady), a finger-prick should land
+  close to it. If it doesn't, the likeliest cause is sensor placement (Scott's own case: a Libre in the inside of
+  the arm went into muscle and read dramatically low; moved to the back of the upper arm over the fat layer, it
+  matched). The app should flag the mismatch and link to the **manufacturer's official placement instructions**.
+- **Doctors in the loop.** From the data, the app drafts a letter to the GP or endocrinologist (patient's choice to
+  send). When lows keep happening, it can say so plainly and suggest the patient show their doctor. That is a
+  prompt to see a professional, never a diagnosis or treatment advice. The patient can also invite their doctor
+  to see the daily picture: glucose, food and exercise together.
+- **Match or beat the big apps** on speed, accuracy and choice of devices (see the Meal & Carb App Study and the
+  Glucose App Field Study artifacts, both linked in `HANDOVER.md`).
+
 ## Product scope (confirmed by Scott, 2026-09-12)
 
 **Phase 1, now: just for Scott.** He's the actual reactive-hypoglycemia patient — "the guinea
