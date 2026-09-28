@@ -1,5 +1,5 @@
-const CACHE_NAME = "rht-shell-v1";
-const SHELL_FILES = ["/", "/index.html", "/manifest.json", "/icon.svg"];
+const CACHE_NAME = "rht-shell-v2";
+const SHELL_FILES = ["/", "/index.html", "/manifest.json", "/icon.svg", "/icon-180.png", "/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

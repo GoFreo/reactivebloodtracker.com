@@ -1,7 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Droplet resting on a coil spring: glucose pushed down and springing back,
+       the "reactive" in reactive hypoglycemia (Scott's design, 2026-09-28). -->
   <rect width="192" height="192" fill="#1B6E6A"/>
-  <path d="M62 150c-10-6-10-18 2-22" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.4"/>
-  <path d="M130 150c10-6 10-18-2-22" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.4"/>
-  <path d="M96 32C96 32 52 96 52 130a44 44 0 0 0 88 0C140 96 96 32 96 32z" fill="#FFFFFF"/>
-  <path d="M79 118a17 17 0 0 0 17 17" stroke="#1B6E6A" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.35"/>
+  <g transform="translate(96 96) scale(0.86) translate(-96 -99)">
+  <g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- back strands of the coil, dimmer so the spring reads as 3-D -->
+    <path d="M124 145L68 152M124 159L68 166" opacity="0.45"/>
+    <!-- front strands -->
+    <path d="M68 138L124 145M68 152L124 159M68 166L124 173"/>
+    <!-- top plate the droplet sits on, and the base -->
+    <path d="M66 131H126"/>
+    <path d="M62 180H130"/>
+  </g>
+  <path d="M96 18C96 18 62 66 62 92a34 34 0 0 0 68 0C130 66 96 18 96 18z" fill="#FFFFFF"/>
+  <path d="M83 94a13 13 0 0 0 13 13" stroke="#1B6E6A" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.35"/>
+  </g>
 </svg>
