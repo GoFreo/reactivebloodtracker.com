@@ -1,6 +1,6 @@
 {
-  "name": "Reactive Hypoglycemia Tracker",
-  "short_name": "Glucose Tracker",
+  "name": "Reactive Blood Tracker",
+  "short_name": "Reactive",
   "description": "Personal glucose, food, and diary tracker for reactive hypoglycemia.",
   "start_url": "/",
   "scope": "/",

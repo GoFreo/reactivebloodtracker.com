@@ -166,9 +166,21 @@ body {
   gap: 12px;
 }
 
+.header-text {
+  min-width: 0;
+}
+
 .app-header h1 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.header-now {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .bt-badge {
@@ -1240,4 +1252,48 @@ h2 {
 
 .cgm-pass[hidden] {
   display: none;
+}
+
+/* Drops down into view when Sync CGM needs the passcode. */
+.cgm-pass:not([hidden]) {
+  animation: cgm-pass-drop 0.25s ease-out;
+  border-color: var(--accent);
+}
+
+@keyframes cgm-pass-drop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cgm-pass:not([hidden]) { animation: none; }
+}
+
+/* --- Add to Home Screen tip (phones, in the browser only) --- */
+.install-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px 10px 16px;
+  background: var(--banner-bg);
+  color: var(--banner-text);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.install-tip[hidden] {
+  display: none;
+}
+
+.install-tip p {
+  margin: 0;
+  flex: 1;
+}
+
+.install-tip button {
+  width: auto;
+  padding: 2px 8px;
+  background: none;
+  border: 0;
+  color: inherit;
 }

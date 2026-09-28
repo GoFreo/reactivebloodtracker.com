@@ -8,6 +8,7 @@
   <link rel="apple-touch-icon" href="/icon-180.png" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Reactive" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Glucose &amp; Food Tracker</title>
   <link rel="stylesheet" href="/src/style.css" />
@@ -35,11 +36,20 @@
 
   <div id="app">
     <header class="app-header">
-      <h1 id="view-title">Home</h1>
+      <div class="header-text">
+        <h1 id="view-title">Reactive Blood Tracker</h1>
+        <p id="header-now" class="header-now"></p>
+      </div>
       <div id="bluetooth-status-badge" class="bt-badge" hidden>
         <span class="bt-dot"></span><span id="bluetooth-status-badge-text"></span>
       </div>
     </header>
+
+    <div id="install-tip" class="install-tip" role="note" hidden>
+      <p>For full screen with no web address bar, add this app to your home screen:
+      <span id="install-tip-how"></span></p>
+      <button type="button" id="install-tip-close" aria-label="Dismiss tip">✕</button>
+    </div>
 
     <main id="views">
       <section id="view-home" class="view" data-view="home">

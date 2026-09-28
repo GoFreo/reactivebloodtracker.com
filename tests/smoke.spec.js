@@ -73,7 +73,7 @@ async function syncCgm(page) {
 test.describe("app shell", () => {
   test("loads on Home with glucose + food entry and all nav tabs present", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("#view-title")).toHaveText("Home");
+    await expect(page.locator("#view-title")).toHaveText("Reactive Blood Tracker");
     await expect(page.locator("#view-home")).toBeVisible();
     await expect(page.locator("#glucose-form")).toBeVisible();
     await expect(page.locator("#food-form")).toBeVisible();
@@ -105,7 +105,7 @@ test.describe("app shell", () => {
     await expect(page.locator("#view-food-guidance h2")).toContainText(["Everyday eating", "Alcohol", "Eating out & social occasions", "Sources"]);
     await expect(page.locator(".guidance-sources a").first()).toHaveAttribute("href", /^https:\/\//);
     await page.locator('#view-food-guidance button[data-nav="home"]').click();
-    await expect(page.locator("#view-title")).toHaveText("Home");
+    await expect(page.locator("#view-title")).toHaveText("Reactive Blood Tracker");
   });
 });
 
@@ -133,7 +133,7 @@ test.describe("diary entry", () => {
     await page.locator("#diary-text").fill("smoke test diary note");
     await page.locator('#diary-form button[type="submit"]').click();
 
-    await expect(page.locator("#view-title")).toHaveText("Home");
+    await expect(page.locator("#view-title")).toHaveText("Reactive Blood Tracker");
     await page.locator('button.nav-btn[data-nav="readings"]').click();
     await expect(page.locator(".timeline-entry").first()).toContainText("smoke test diary note");
   });
@@ -799,5 +799,23 @@ test.describe("CGM sync from Home", () => {
     await expect(page.locator("#home-cgm-pass")).toBeVisible();
     await expect(page.locator("#home-cgm-status")).toContainText("Please type it again");
     expect(await page.evaluate(() => localStorage.getItem("rht-cgm-passcode"))).toBeNull();
+  });
+});
+
+test.describe("header and install tip", () => {
+  test("header shows the app name and the date/time", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("#view-title")).toHaveText("Reactive Blood Tracker");
+    await expect(page.locator("#header-now")).toContainText(":"); // the time, e.g. "Mon 28 Sep, 10:02 pm"
+  });
+
+  test("on a phone in the browser, a one-time Add to Home Screen tip shows and can be dismissed", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "phones only");
+    await page.goto("/");
+    await expect(page.locator("#install-tip")).toBeVisible();
+    await page.locator("#install-tip-close").click();
+    await expect(page.locator("#install-tip")).toBeHidden();
+    await page.reload();
+    await expect(page.locator("#install-tip")).toBeHidden();
   });
 });

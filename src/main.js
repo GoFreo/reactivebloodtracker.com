@@ -60,7 +60,7 @@ if ("serviceWorker" in navigator) {
 }
 
 const VIEW_TITLES = {
-  home: "Home",
+  home: "Reactive Blood Tracker",
   readings: "Readings",
   diary: "Add diary note",
   export: "Export report",
@@ -74,6 +74,14 @@ const READINGS_MODE_KEY = "rht-readings-mode";
 const READINGS_FILTER_KEY = "rht-readings-filter";
 
 const viewTitle = document.getElementById("view-title");
+
+// Date and time under the title, on every page (uses the Settings date format).
+const headerNow = document.getElementById("header-now");
+function updateHeaderNow() {
+  headerNow.textContent = formatDate(new Date().toISOString());
+}
+updateHeaderNow();
+setInterval(updateHeaderNow, 30000);
 const navButtons = document.querySelectorAll(".nav-btn");
 const views = document.querySelectorAll(".view");
 
@@ -1185,6 +1193,7 @@ function askForCgmPasscode(message) {
   homeCgmPass.hidden = false;
   document.getElementById("home-cgm-status").textContent = message;
   document.getElementById("home-cgm-passcode").value = "";
+  homeCgmPass.scrollIntoView({ behavior: "smooth", block: "center" });
   document.getElementById("home-cgm-passcode").focus();
 }
 homeCgmPass.addEventListener("submit", (e) => {
@@ -1624,3 +1633,25 @@ document.getElementById("help-show-welcome").addEventListener("click", openWelco
 // Shown once per wording version. Reading Help first is allowed; the welcome
 // comes back next time the app opens until it's accepted.
 if (!hasAccepted()) openWelcome();
+
+// --- "Add to Home Screen" tip ---
+// Opened from a home-screen icon, the app already runs full screen (manifest
+// display: standalone). A website can't hide Safari's own address bar, so on a
+// phone in the browser we show a one-time tip instead.
+(function installTip() {
+  const standalone = window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
+  const phone = window.matchMedia?.("(max-width: 700px)").matches && "ontouchstart" in window;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem("rht-install-tip-dismissed") === "1"; } catch {}
+  if (standalone || !phone || dismissed) return;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  document.getElementById("install-tip-how").textContent = ios
+    ? "tap Share (the square with an arrow), then Add to Home Screen."
+    : "open the browser menu (⋮), then Add to Home screen or Install app.";
+  const tip = document.getElementById("install-tip");
+  tip.hidden = false;
+  document.getElementById("install-tip-close").addEventListener("click", () => {
+    tip.hidden = true;
+    try { localStorage.setItem("rht-install-tip-dismissed", "1"); } catch {}
+  });
+})();
