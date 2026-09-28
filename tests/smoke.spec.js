@@ -679,3 +679,29 @@ test.describe("my foods", () => {
     expect(download.suggestedFilename()).toMatch(/^my-foods-\d{4}-\d{2}-\d{2}\.json$/);
   });
 });
+
+test.describe("meal builder with saved foods and portions", () => {
+  test("picking a saved food fills its figures, and ½ serve sets the grams", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("rht-my-foods", JSON.stringify({
+      "9310653105719": { barcode: "9310653105719", name: "Blueberry yoghurt", carbsPer100g: 16.5, sugarsPer100g: 15, servingSizeG: 170, updatedAt: "2026-09-28T10:00:00Z" },
+    })));
+    await page.reload();
+    await page.locator("#meal-builder > summary").click();
+    const row = page.locator(".meal-item").first();
+    await row.locator(".mi-name input").fill("Blueberry yoghurt");
+    await row.locator(".mi-name input").press("Tab"); // fires change, like choosing from the list
+    const filled = page.locator(".meal-item").first();
+    await expect(filled.locator(".mi-per100 input")).toHaveValue("16.5");
+    await expect(filled.locator(".mi-portions")).toContainText("1 serve = 170 g");
+    await filled.locator(".mi-portions button", { hasText: "½" }).click();
+    await expect(filled.locator(".mi-grams input")).toHaveValue("85");
+    await expect(page.locator("#meal-total")).toContainText("Total: 14 g carbs"); // 85 g × 16.5/100 = 14.0
+  });
+
+  test("My foods says the food bank is off until the sync passcode is saved", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('#view-home button[data-nav="my-foods"]').click();
+    await expect(page.locator("#myfood-bank-status")).toContainText("Food bank: off");
+  });
+});

@@ -48,7 +48,7 @@ test.describe("My foods (pure logic)", () => {
       { name: "Coles Gouda", barcode: "9300601970223", grams: 21, carbsPer100g: null },
       { name: "Banana", grams: 120, carbsPer100g: 20 },
     ], s);
-    expect(saved).toBe(1);
+    expect(saved).toHaveLength(1);
     expect(getMyFood("9310653105719", s).carbsPer100g).toBe(16.5);
   });
 

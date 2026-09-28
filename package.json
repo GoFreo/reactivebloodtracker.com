@@ -14,6 +14,7 @@
     "vite": "^8.3.0"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.13",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0"
   }

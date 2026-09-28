@@ -28,10 +28,11 @@ import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
-import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems } from "./mealBuilder.js";
+import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
+import { lookupFood, STAGE_TEXT, syncFoodBank, pushToFoodBank, deleteFromFoodBank, foodBankAvailable } from "./foodBank.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
 import {
-  saveMyFood, deleteMyFood, listMyFoods, lookupWithMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
+  saveMyFood, deleteMyFood, listMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
 } from "./myFoods.js";
 import {
   findUnexplainedExcursions,
@@ -124,6 +125,7 @@ function showView(name) {
     loadThresholdSettings();
   } else if (name === "my-foods") {
     renderMyFoods();
+    refreshFoodBank();
   }
 }
 
@@ -514,6 +516,13 @@ function updateMealTotal() {
 }
 
 function renderMealItems() {
+  const names = document.getElementById("myfood-names");
+  names.innerHTML = "";
+  for (const f of listMyFoods()) {
+    const opt = document.createElement("option");
+    opt.value = f.name;
+    names.appendChild(opt);
+  }
   mealItemsEl.innerHTML = "";
   mealItems.forEach((item, idx) => {
     const row = document.createElement("div");
@@ -524,10 +533,19 @@ function renderMealItems() {
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.value = item.name;
-    nameInput.placeholder = "e.g. rolled oats";
+    nameInput.placeholder = "e.g. rolled oats, or pick a saved food";
+    nameInput.setAttribute("list", "myfood-names");
     nameInput.addEventListener("input", () => {
       item.name = nameInput.value;
       updateMealTotal();
+    });
+    // Picking one of My foods fills its label figures and serving size (no scan needed).
+    nameInput.addEventListener("change", () => {
+      const saved = listMyFoods().find((f) => f.name === nameInput.value.trim());
+      if (!saved) return;
+      Object.assign(item, productToItem({ ...saved, brand: "" }), { grams: item.grams, carbsGrams: item.carbsGrams });
+      renderMealItems();
+      mealItemsEl.querySelectorAll(".meal-item")[mealItems.indexOf(item)]?.querySelector(".mi-grams input")?.focus();
     });
     nameLabel.appendChild(nameInput);
     row.appendChild(nameLabel);
@@ -558,6 +576,29 @@ function renderMealItems() {
       renderMealItems();
     });
     row.appendChild(remove);
+    const serving = Number(item.servingSizeG);
+    if (serving > 0) {
+      // After a gastric sleeve a pack "serve" is often too much; these set the grams
+      // to a fraction of the pack's own serving size.
+      const portions = document.createElement("div");
+      portions.className = "mi-portions";
+      const label = document.createElement("span");
+      label.textContent = `1 serve = ${serving} g:`;
+      portions.appendChild(label);
+      for (const p of PORTIONS) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = p.label;
+        b.addEventListener("click", () => {
+          item.grams = String(portionGrams(serving, p.fraction));
+          row.querySelector(".mi-grams input").value = item.grams;
+          for (const other of portions.querySelectorAll("button")) other.classList.toggle("active", other === b);
+          updateMealTotal();
+        });
+        portions.appendChild(b);
+      }
+      row.appendChild(portions);
+    }
     mealItemsEl.appendChild(row);
   });
   updateMealTotal();
@@ -583,6 +624,14 @@ function resetMealBuilder() {
   mealBuilderEl.open = false;
 }
 
+const barcodeResultEl = document.getElementById("barcode-result");
+const SOURCE_TEXT = { device: "from your foods", bank: "from your food bank", online: "from the public database" };
+const productName = (p) => (p.brand ? `${p.brand} ${p.name}` : p.name);
+function showScanResult(el, text, kind = "") {
+  el.textContent = text;
+  el.className = `scan-result${kind ? ` scan-${kind}` : ""}`;
+  el.hidden = false;
+}
 const barcodeScannerEl = document.getElementById("barcode-scanner");
 const barcodeVideoEl = document.getElementById("barcode-video");
 const barcodeStatusEl = document.getElementById("barcode-status");
@@ -598,24 +647,32 @@ document.getElementById("food-barcode-btn").addEventListener("click", async () =
     foodClarifyEl.hidden = true;
     return;
   }
-  barcodeStatusEl.textContent = "Point the camera at the barcode…";
+  barcodeStatusEl.textContent = "Looking for a barcode — hold it 10–20 cm from the camera, in good light.";
+  barcodeResultEl.hidden = true;
   await startScanning(barcodeVideoEl, {
     onDetected: async (code) => {
-      barcodeStatusEl.textContent = `Found ${code} — looking it up…`;
-      const product = await lookupWithMyFoods(code, lookupBarcode);
+      navigator.vibrate?.(60);
       barcodeScannerEl.hidden = true;
+      showScanResult(barcodeResultEl, `✓ Code ${code} received — ${STAGE_TEXT.device}`);
+      const product = await lookupFood(code, lookupBarcode, (stage) =>
+        showScanResult(barcodeResultEl, `✓ Code ${code} received — ${STAGE_TEXT[stage]}`)
+      );
       if (product.found && mealBuilderEl.open) {
         // Building a meal: the product becomes an ingredient row instead of replacing the description.
         // An untouched blank row (the one opening the builder adds) is replaced rather than left behind.
         const last = mealItems[mealItems.length - 1];
         if (last && !last.name && !last.grams && !last.carbsPer100g && !last.carbsGrams) mealItems.pop();
         addMealItem(productToItem(product));
+        showScanResult(barcodeResultEl, `✓ Added ${productName(product)} (${SOURCE_TEXT[product.source]}). Now enter how much you had.`, "ok");
       } else if (product.found) {
         document.getElementById("food-text").value = productToFoodText(product);
+        showScanResult(barcodeResultEl, `✓ ${productName(product)} (${SOURCE_TEXT[product.source]}), filled in above.`, "ok");
       } else {
-        foodAiResultEl.hidden = false;
-        foodAiResultEl.textContent = product.error;
-        foodClarifyEl.hidden = true;
+        showScanResult(
+          barcodeResultEl,
+          `✗ ${code} isn't in your foods, the food bank or the public database. Describe it above, or add it once in 🗂 My foods from the pack.`,
+          "miss"
+        );
       }
     },
     onError: (err) => {
@@ -723,9 +780,13 @@ foodForm.addEventListener("submit", async (e) => {
     });
     // Scanned ingredients with figures (including ones corrected from the pack) are
     // remembered in My foods, so the next scan of that product uses them.
-    if (items.length) rememberFromItems(items);
+    if (items.length) {
+      const remembered = rememberFromItems(items);
+      if (foodBankAvailable()) for (const f of remembered) pushToFoodBank(f); // best effort; the phone keeps its copy
+    }
     foodForm.reset();
     resetMealBuilder();
+    barcodeResultEl.hidden = true;
     foodPhotoPreview.hidden = true;
     currentFoodPhotoBlob = null;
     resetFoodAiState();
@@ -1230,6 +1291,7 @@ const myFoodFields = {
   name: document.getElementById("myfood-name"),
   carbs: document.getElementById("myfood-carbs"),
   sugars: document.getElementById("myfood-sugars"),
+  serving: document.getElementById("myfood-serving"),
 };
 const myFoodStatus = document.getElementById("myfood-status");
 const myFoodLookupStatus = document.getElementById("myfood-lookup-status");
@@ -1241,20 +1303,24 @@ function fillMyFoodForm(food) {
   myFoodFields.name.value = food.name ?? "";
   myFoodFields.carbs.value = food.carbsPer100g ?? "";
   myFoodFields.sugars.value = food.sugarsPer100g ?? "";
+  myFoodFields.serving.value = food.servingSizeG ?? "";
 }
 
 async function lookUpMyFoodBarcode(code) {
   myFoodFields.barcode.value = code;
   myFoodStatus.textContent = "";
-  myFoodLookupStatus.textContent = "Looking it up…";
-  const p = await lookupWithMyFoods(code, lookupBarcode);
+  myFoodLookupStatus.textContent = `✓ Code ${code} received — ${STAGE_TEXT.device}`;
+  const p = await lookupFood(code, lookupBarcode, (stage) => {
+    myFoodLookupStatus.textContent = `✓ Code ${code} received — ${STAGE_TEXT[stage]}`;
+  });
   if (p.found) {
-    fillMyFoodForm({ name: p.brand ? `${p.brand} ${p.name}` : p.name, carbsPer100g: p.carbsPer100g, sugarsPer100g: p.sugarsPer100g });
-    myFoodLookupStatus.textContent = p.fromMyFoods
-      ? "Already in My foods. Change anything and save to update it."
+    fillMyFoodForm({ name: p.brand ? `${p.brand} ${p.name}` : p.name, carbsPer100g: p.carbsPer100g, sugarsPer100g: p.sugarsPer100g, servingSizeG: p.servingSizeG });
+    myFoodLookupStatus.textContent =
+      p.source === "device" ? "Already in My foods. Change anything and save to update it."
+      : p.source === "bank" ? "Already in your food bank (now on this phone too). Change anything and save to update it."
       : "Found online. Check the figures against the pack, then save.";
   } else {
-    fillMyFoodForm({ name: "", carbsPer100g: "", sugarsPer100g: "" });
+    fillMyFoodForm({ name: "", carbsPer100g: "", sugarsPer100g: "", servingSizeG: "" });
     myFoodLookupStatus.textContent = "Not found online. Type the name and the pack's per 100 g figures, then save.";
   }
   myFoodFields.name.focus();
@@ -1282,7 +1348,8 @@ function renderMyFoods() {
     figs.className = "myfood-figs";
     const carbs = f.carbsPer100g != null ? `${f.carbsPer100g} g carbs` : "carbs not set";
     const sugars = f.sugarsPer100g != null ? ` · ${f.sugarsPer100g} g sugars` : "";
-    figs.textContent = `${carbs}${sugars} per 100 g · ${f.barcode}`;
+    const serve = f.servingSizeG ? ` · serve ${f.servingSizeG} g` : "";
+    figs.textContent = `${carbs}${sugars} per 100 g${serve} · ${f.barcode}`;
     text.append(name, figs);
     text.addEventListener("click", () => {
       fillMyFoodForm(f);
@@ -1298,6 +1365,7 @@ function renderMyFoods() {
     del.addEventListener("click", () => {
       if (!confirm(`Remove ${f.name} from My foods?`)) return;
       deleteMyFood(f.barcode);
+      if (foodBankAvailable()) deleteFromFoodBank(f.barcode);
       renderMyFoods();
     });
     row.append(text, del);
@@ -1305,19 +1373,27 @@ function renderMyFoods() {
   }
 }
 
-myFoodForm.addEventListener("submit", (e) => {
+myFoodForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const result = saveMyFood({
     barcode: myFoodFields.barcode.value,
     name: myFoodFields.name.value,
     carbsPer100g: myFoodFields.carbs.value,
     sugarsPer100g: myFoodFields.sugars.value,
+    servingSizeG: myFoodFields.serving.value,
   });
   if (!result.ok) {
     myFoodStatus.textContent = result.error;
     return;
   }
-  myFoodStatus.textContent = `Saved ${result.food.name}. Scan the next one.`;
+  myFoodStatus.textContent = `Saved ${result.food.name} on this phone. Scan the next one.`;
+  if (foodBankAvailable()) {
+    const name = result.food.name;
+    pushToFoodBank(result.food).then((r) => {
+      if (!myFoodStatus.textContent.startsWith(`Saved ${name}`)) return;
+      myFoodStatus.textContent = r.ok ? `Saved ${name} on this phone and in the food bank. Scan the next one.` : `Saved ${name} on this phone. ${r.error}`;
+    });
+  }
   myFoodLookupStatus.textContent = "";
   for (const field of Object.values(myFoodFields)) field.value = "";
   renderMyFoods();
@@ -1347,9 +1423,10 @@ document.getElementById("myfood-scan-btn").addEventListener("click", async () =>
     myFoodLookupStatus.textContent = "Camera access isn't available here. Type the numbers under the barcode instead.";
     return;
   }
-  myFoodScanStatus.textContent = "Point the camera at the barcode…";
+  myFoodScanStatus.textContent = "Looking for a barcode — hold it 10–20 cm from the camera, in good light.";
   await startScanning(document.getElementById("myfood-video"), {
     onDetected: (code) => {
+      navigator.vibrate?.(60);
       myFoodScanner.hidden = true;
       lookUpMyFoodBarcode(code);
     },
@@ -1385,3 +1462,17 @@ document.getElementById("myfood-import-file").addEventListener("change", async (
   e.target.value = "";
   renderMyFoods();
 });
+
+async function refreshFoodBank() {
+  const el = document.getElementById("myfood-bank-status");
+  if (!foodBankAvailable()) {
+    el.textContent = "Food bank: off. Save the sync passcode in Settings (the Libre one) to share this list across your devices.";
+    return;
+  }
+  el.textContent = "Food bank: syncing…";
+  const r = await syncFoodBank();
+  el.textContent = r.ok
+    ? `Food bank: ${r.total} product${r.total === 1 ? "" : "s"}, in sync${r.changed ? ` (${r.changed} new or updated on this phone)` : ""}.`
+    : `Food bank: ${r.error}`;
+  if (r.ok && r.changed) renderMyFoods();
+}

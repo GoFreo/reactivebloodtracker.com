@@ -28,7 +28,7 @@ const num = (v) => (v === "" || v == null || !Number.isFinite(Number(v)) ? null 
 // Returns { ok: true, food } or { ok: false, error }. Per-100 g figures can't
 // be negative or above 100, which catches a per-serve figure typed by mistake
 // only when it's impossible, not every slip — the hint in the form covers the rest.
-export function validateFood({ barcode, name, carbsPer100g, sugarsPer100g }) {
+export function validateFood({ barcode, name, carbsPer100g, sugarsPer100g, servingSizeG }) {
   const code = String(barcode || "").trim();
   if (!/^\d{6,14}$/.test(code)) return { ok: false, error: "The barcode should be 6 to 14 digits." };
   const cleanName = String(name || "").trim();
@@ -41,7 +41,9 @@ export function validateFood({ barcode, name, carbsPer100g, sugarsPer100g }) {
   if (carbs != null && sugars != null && sugars > carbs) {
     return { ok: false, error: "Sugars can't be more than total carbs (sugars are part of the carbs)." };
   }
-  return { ok: true, food: { barcode: code, name: cleanName, carbsPer100g: carbs, sugarsPer100g: sugars } };
+  const serving = num(servingSizeG);
+  if (serving != null && (serving <= 0 || serving > 5000)) return { ok: false, error: "Serving size should be in grams (or ml), above 0." };
+  return { ok: true, food: { barcode: code, name: cleanName, carbsPer100g: carbs, sugarsPer100g: sugars, servingSizeG: serving } };
 }
 
 export function saveMyFood(input, storage) {
@@ -72,7 +74,7 @@ export function listMyFoods(storage) {
 export async function lookupWithMyFoods(barcode, lookupFn, storage) {
   const mine = getMyFood(barcode, storage);
   if (mine) {
-    return { found: true, fromMyFoods: true, barcode: mine.barcode, name: mine.name, brand: "", carbsPer100g: mine.carbsPer100g, sugarsPer100g: mine.sugarsPer100g };
+    return { found: true, fromMyFoods: true, barcode: mine.barcode, name: mine.name, brand: "", carbsPer100g: mine.carbsPer100g, sugarsPer100g: mine.sugarsPer100g, servingSizeG: mine.servingSizeG ?? null };
   }
   return lookupFn(barcode);
 }
@@ -80,11 +82,13 @@ export async function lookupWithMyFoods(barcode, lookupFn, storage) {
 // After a built meal is saved: remember every scanned ingredient that has a
 // per-100 g carbs figure, including any the user corrected from the pack.
 // Items without a barcode or without figures are skipped; nothing is guessed.
+// Returns the saved foods, so the caller can also send them to the food bank.
 export function rememberFromItems(items, storage) {
-  let saved = 0;
+  const saved = [];
   for (const item of items) {
     if (!item.barcode || num(item.carbsPer100g) == null) continue;
-    if (saveMyFood({ barcode: item.barcode, name: item.name, carbsPer100g: item.carbsPer100g, sugarsPer100g: item.sugarsPer100g }, storage).ok) saved += 1;
+    const food = { barcode: item.barcode, name: item.name, carbsPer100g: item.carbsPer100g, sugarsPer100g: item.sugarsPer100g, servingSizeG: item.servingSizeG };
+    if (saveMyFood(food, storage).ok) saved.push(getMyFood(item.barcode, storage));
   }
   return saved;
 }
@@ -116,4 +120,22 @@ export function importMyFoods(text, storage) {
   }
   writeAll(all, storage);
   return { ok: true, added, skipped };
+}
+
+// Food bank → device copy. For a barcode in both, the newer entry wins; nothing
+// is deleted locally (a product removed on another device stays here until
+// removed here too — safer than silently losing it).
+export function mergeFoods(foods, storage) {
+  const all = readAll(storage);
+  let changed = 0;
+  for (const f of foods || []) {
+    const v = validateFood(f);
+    if (!v.ok) continue;
+    const existing = all[v.food.barcode];
+    if (existing && existing.updatedAt && f.updatedAt && existing.updatedAt >= f.updatedAt) continue;
+    all[v.food.barcode] = { ...v.food, updatedAt: f.updatedAt || new Date().toISOString() };
+    changed += 1;
+  }
+  writeAll(all, storage);
+  return changed;
 }

@@ -125,6 +125,7 @@
               <button type="button" id="barcode-cancel-btn">Cancel scan</button>
               <p class="field-hint" id="barcode-status"></p>
             </div>
+            <p class="scan-result" id="barcode-result" aria-live="polite" hidden></p>
             <details id="meal-builder" class="meal-builder">
               <summary>🧺 Build a meal from ingredients</summary>
               <p class="field-hint">
@@ -133,6 +134,7 @@
                 them in "Carbs&nbsp;g" instead.
               </p>
               <div id="meal-items" class="meal-items"></div>
+              <datalist id="myfood-names"></datalist>
               <button type="button" id="meal-add-item-btn" class="secondary-btn">+ Add ingredient</button>
               <p id="meal-total" class="meal-total" aria-live="polite"></p>
             </details>
@@ -232,9 +234,9 @@
       <section id="view-my-foods" class="view" data-view="my-foods" hidden>
         <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
         <p class="field-hint">
-          Products you've checked against the pack, kept on this device only. Scanning a barcode on Home
-          looks here first, so a product you've saved works even offline or when the online database
-          lacks it or has it wrong.
+          Products you've checked against the pack. They're kept on this phone and, once the sync passcode
+          is saved in Settings, shared through your household food bank so every device sees the same list.
+          Scanning on Home looks here first, then the food bank, then the public database.
         </p>
 
         <form id="myfood-form" class="entry-form">
@@ -266,7 +268,11 @@
               <input type="number" id="myfood-sugars" inputmode="decimal" min="0" max="100" step="any" />
             </label>
           </div>
-          <p class="field-hint">Use the pack's "per 100 g" (or "per 100 mL") column, not "per serving".</p>
+          <label>
+            Serving size on the pack (g or mL, optional)
+            <input type="number" id="myfood-serving" inputmode="decimal" min="0" step="any" placeholder="e.g. 30" />
+          </label>
+          <p class="field-hint">Use the pack's "per 100 g" (or "per 100 mL") column for carbs and sugars, not "per serving". The serving size lets the meal builder offer ¼, ½, ¾ or a full serve.</p>
           <div class="button-row">
             <button type="submit">Save to My foods</button>
             <button type="button" id="myfood-clear-btn" class="secondary-btn">Clear</button>
@@ -274,6 +280,7 @@
           <p class="field-hint" id="myfood-status" aria-live="polite"></p>
         </form>
 
+        <p class="field-hint" id="myfood-bank-status" aria-live="polite"></p>
         <h2 id="myfood-list-heading">Saved (0)</h2>
         <div id="myfood-list" class="myfood-list"></div>
 

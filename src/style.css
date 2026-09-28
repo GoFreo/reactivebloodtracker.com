@@ -1000,3 +1000,47 @@ h2 {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+/* --- Scan result line and portion buttons --- */
+.scan-result {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.scan-result.scan-ok {
+  border-left: 4px solid var(--inrange);
+}
+
+.scan-result.scan-miss {
+  border-left: 4px solid var(--high);
+}
+
+.mi-portions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.mi-portions button {
+  width: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.mi-portions button.active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}

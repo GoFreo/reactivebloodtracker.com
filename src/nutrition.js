@@ -11,7 +11,7 @@ const API_BASE = "https://world.openfoodfacts.org/api/v2/product";
 // degrade to "describe it yourself", the same pattern as the AI proxy.
 export async function lookupBarcode(barcode) {
   try {
-    const res = await fetch(`${API_BASE}/${encodeURIComponent(barcode)}.json?fields=product_name,brands,nutriments`);
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(barcode)}.json?fields=product_name,brands,nutriments,serving_quantity`);
     // Open Food Facts answers 404 for a product it doesn't have (seen 2026-09-28 with real
     // pantry barcodes), so that's "not in the database", not a failed lookup.
     if (res.status === 404) {
@@ -30,6 +30,7 @@ export async function lookupBarcode(barcode) {
       brand: p.brands || "",
       sugarsPer100g: p.nutriments?.sugars_100g ?? null,
       carbsPer100g: p.nutriments?.carbohydrates_100g ?? null,
+      servingSizeG: Number(p.serving_quantity) > 0 ? Number(p.serving_quantity) : null,
     };
   } catch {
     return { found: false, barcode, error: "Couldn't reach Open Food Facts — check your connection, or describe the item yourself." };
