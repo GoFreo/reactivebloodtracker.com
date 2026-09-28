@@ -11,7 +11,7 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **498 passed / 10 skipped / 0 failed** on `main` (skips: WebKit photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
+**Health:** `npm test` **502 passed / 10 skipped / 0 failed** on `main` (skips: WebKit photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
 the documented WebKit photo-save automation gap).
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
@@ -1528,3 +1528,15 @@ Scott: the top-left said "Home" — better for the app's name and the date/time;
 Its one unmerged commit (`d6f7ce4`, an early manual device-to-device sync + threshold prototype) was saved first
 as `PROJECTS - START HERE/Scott Check Here/tracker-device-sync-prototype-3cd4a9 (dropped 2026-09-28).patch`
 (recover with `git am`), then deleted locally and on GitHub. The repo now has only `main`.
+
+## 2026-09-28 22:13 — Libre passcode still refused (Scott: "checked the password twice, still not accepting")
+
+**Evidence:** `cgm-sync` logs show his 5 attempts (22:02–22:09 AEST) reached the server, each ~1,000 ms = the
+wrong-passcode path. So the new Home prompt works; the passcode doesn't match `CGM_SYNC_PASSCODE`.
+**Shipped (`03b1272`, 502 passed):** the comparison now ignores spaces at either end on both sides (also used by
+the food bank). **Not verified** — the value in Netlify was not read (credentials are Scott's).
+**Likely remaining causes, for Scott:** (1) he's typing his LibreLinkUp/Libre app password, not the separate
+passcode he made up for `CGM_SYNC_PASSCODE`; (2) the Production value in Netlify differs from what he remembers.
+**Fix path (his):** Netlify → Site configuration → Environment variables → `CGM_SYNC_PASSCODE` → view or set a new
+value (8+ characters) for Production; **then a redeploy is needed** (functions only see env changes after one) —
+tell a session "redeploy" and it runs the standard deploy line.
