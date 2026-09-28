@@ -1637,3 +1637,5 @@ re-entering the passwords… if they fail to register."
 - **Check / re-enter credentials per device:** a "Test connection" button on each device; on failure the exact reason
   and a re-enter box (the Home passcode prompt already does this for the Libre sync passcode; extend it per device).
 - Readings keep the device they came from, so the graph can compare devices.
+
+**22:45 — redeployed at Scott's request** (same code, live `index-Ct3LwouD.js`), so the sync functions pick up any Netlify setting he just changed. `cgm-sync` confirms a passcode is set (answers "Wrong sync passcode" to a blank one, not "not configured"). His next Sync CGM tap is the test.
