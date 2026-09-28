@@ -52,6 +52,10 @@ Help & sources page + first-run welcome with an "I understand" checkbox. Needs S
 public, a lawyer should review the wording** (Scott's item — legal). To ship: `git merge help-and-welcome`,
 `npm test`, deploy line above. Scott will see the welcome once after it ships (his data is untouched).
 
+**🧹 Also waiting, branch `cleanup` (on top of `help-and-welcome`, on GitHub), 374 passed:** Readings list shows
+the newest 200 with "Show more" (a year of data was ~188,000 page elements); three pieces of dead code removed.
+Shipping `cleanup` ships `help-and-welcome` too (`git merge cleanup`).
+
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
 (BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
@@ -1435,3 +1439,38 @@ optional. Replaced a placeholder that used real names (Dr Foley, Marg) with a ge
 **Needs Scott:** "ship it" for `help-and-welcome`; **a lawyer's review of the Help and welcome wording before
 the app is public** (Australian Consumer Law guarantees can't be excluded by a disclaimer; a lawyer should
 also check the privacy wording against the Privacy Act for health information).
+
+## 2026-09-28 (late) — size, memory and a stale-code sweep (branch `cleanup`)
+
+Scott asked how big the app is and whether there's stale code.
+
+**Size:** a phone downloads ~620 KB raw, **~150 KB compressed**: the app itself is 63 KB JS + 15 KB CSS (≈24 KB
+compressed); the barcode reader is 478 KB (≈123 KB compressed) but **only loads when Barcode is tapped**. Source:
+~5,200 lines of app code + ~1,500 lines of tests. `node_modules` (96 MB) is development-only, never shipped.
+
+**Memory and storage (load test, synthetic data in a throwaway browser, Pixel 7 profile):**
+| | 1 month (2,970 entries) | 1 year (36,135 entries) |
+|---|---|---|
+| Memory after opening | 2.6 MB | 8.6 MB |
+| Readings list, before fix | 2.2 s, 15,787 elements | 4.4 s, **188,312 elements** |
+| Readings list, after fix | — | 2.2 s, **1,451 elements** |
+| Storage on the phone (no photos) | 1.0 MB | 11.7 MB |
+The remaining ~2 s is reading a year from storage; fine for now, could load recent data first later.
+Meals tab 0.56 s and graph 0.34 s at a year. Script: session scratchpad `perf/load.mjs` (not kept in the repo).
+
+**Findings and what was done:**
+- Readings list drew every entry → now newest 200 + "Show more" (`cleanup`, `9e0f7e2`, test added).
+- Dead code removed: `db.deleteEntry` (never called), `myFoods.lookupWithMyFoods` (replaced by
+  `foodBank.lookupFood`), `timeline.renderTimeline` alias.
+- Several helpers are exported but only used inside their own file — harmless, left alone.
+- **Photos are stored full size** (~2–5 MB each from an iPhone → ~5 GB/year at 3 a day; iPhone browsers may
+  clear a site's storage). **Needs Scott:** OK to also shrink the saved copy (see the photo patch README).
+- The 20 Sept photo patch no longer applied → refreshed (`proposed-patches/…/REFRESHED-2026-09-28.patch`);
+  466 passed with it applied. Still not applied.
+- Stale worktree `…-0f088a` (146 MB; 116 MB of it a Netlify build cache; nothing uncommitted) moved to
+  `Dropbox/Pending Deletion/tracker-stale-worktree-0f088a-moved-2026-09-28`; merged local branches
+  (`meal-builder`, `readings-filter`, `my-foods`, `claude/…-0f088a`) deleted.
+- Old branch `claude/reactive-hypoglycemia-tracker-3cd4a9` (on GitHub) has **one unmerged commit**, an early
+  "manual device-to-device sync" prototype. **Needs Scott:** keep or drop (the food bank now covers sharing
+  products; it doesn't cover readings).
+- `CLAUDE.md`'s test counts were stale (still "four files, 30 test cases") → updated.

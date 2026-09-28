@@ -218,7 +218,13 @@ but is secondary. Keep that priority in mind for any framework/UI decisions once
 
 ## Testing — run before every deploy (added 2026-09-12, grown heavily 2026-09-14)
 
-A real Playwright test suite exists — four files, 30 test cases: `tests/smoke.spec.js` (full
+> **Current count (2026-09-28):** 17 test files; `npm test` = 374 passed / 6 skipped / 0 failed on branch
+> `cleanup` (354 on `main`). The file-by-file description below is the original 2026-09-14 set; newer files
+> cover the meal builder, My foods, the food bank function, the readings filter, the pantry fixture, the
+> welcome screen, spike detection, meal outcomes and CGM sync. On iCloud the build can outlast Playwright's
+> 60 s web-server wait: start `npm run preview -- --port 4173` by hand and Playwright reuses it.
+
+A real Playwright test suite exists — originally four files, 30 test cases: `tests/smoke.spec.js` (full
 app-shell/UI flows: Home's glucose+food quick-entry, Readings list/graph, the threshold-floor rule,
 date-format lock, barcode scanner open/close, photo import, settings, export+import),
 `tests/bluetoothGlucose.spec.js` (pure SFLOAT/byte-layout decoding unit tests against hand-built
@@ -241,8 +247,7 @@ silently until this was found. Keep this setting; don't remove it as unnecessary
 
 **Run `npm test` before every deploy, no exceptions.** It builds and serves the real production
 bundle (`playwright.config.js`'s `webServer`, not the dev server) — a true pre-deploy gate, not a
-dev-mode sanity check. 222 passed / 2 skipped (the documented WebKit photo-save automation gap) /
-0 failed as of 2026-09-28. If a deploy is proposed without this having
+dev-mode sanity check. See the current count at the top of this section. If a deploy is proposed without this having
 been run against the current code, run it first; don't skip on the assumption "it's a small change."
 Add a new test case when a new feature ships — this suite is meant to grow, not stay frozen at any
 particular count. **A recurring bug pattern worth specifically testing for in any new element:** if
