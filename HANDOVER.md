@@ -70,7 +70,7 @@ welcome wording before going public.
 entry at the bottom of this file): (1) graph redesign — smoothed line, peaks above / troughs below, low and high
 threshold crossings highlighted; (2) "Report a problem" in the app; (3) people who monitor (family, carers,
 diabetes educator, endocrinologist); (4) a letter to doctors, drafted in
-`research/2026-09-28 DRAFT letter to doctors.md`. Build in that order; (1) and (2) need nothing from Scott.
+`research/2026-09-28 DRAFT letter to doctors.md`. Build in that order; (1) and (2) need nothing from Scott. **22:40 — Scott asked again for Settings → "My devices" (add/change a device: Accu-Chek, Libre, Dexcom G7, others): promoted to build right after the graph** (backlog item 5 below).
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
