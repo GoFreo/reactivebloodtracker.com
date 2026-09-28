@@ -30,6 +30,7 @@ import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } f
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
 import { hasAccepted, getProfile, acceptWelcome } from "./welcome.js";
+import { listSavedMeals, saveMeal, deleteSavedMeal, mealToBuilderItems } from "./savedMeals.js";
 import { lookupFood, STAGE_TEXT, syncFoodBank, pushToFoodBank, deleteFromFoodBank, foodBankAvailable } from "./foodBank.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
 import {
@@ -638,10 +639,61 @@ mealBuilderEl.addEventListener("toggle", () => {
   if (mealBuilderEl.open && !mealItems.length) addMealItem();
 });
 
+// Saved meals: chips at the top of the builder load a saved meal's ingredients
+// (then portions can be changed as usual); the row under the total saves one.
+function renderSavedMeals() {
+  const wrap = document.getElementById("saved-meals");
+  wrap.innerHTML = "";
+  const meals = listSavedMeals();
+  if (!meals.length) return;
+  const label = document.createElement("span");
+  label.className = "saved-meals-label";
+  label.textContent = "Your saved meals:";
+  wrap.appendChild(label);
+  for (const m of meals) {
+    const chip = document.createElement("span");
+    chip.className = "saved-meal";
+    const load = document.createElement("button");
+    load.type = "button";
+    load.className = "saved-meal-load";
+    load.textContent = m.name;
+    load.addEventListener("click", () => {
+      mealItems = mealToBuilderItems(m);
+      renderMealItems();
+      document.getElementById("save-meal-name").value = m.name;
+      document.getElementById("save-meal-status").textContent = `Loaded ${m.name}. Change anything for today; it's only saved back if you tap Save meal.`;
+    });
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "saved-meal-del";
+    del.setAttribute("aria-label", `Delete saved meal ${m.name}`);
+    del.textContent = "✕";
+    del.addEventListener("click", () => {
+      if (!confirm(`Delete the saved meal "${m.name}"?`)) return;
+      deleteSavedMeal(m.name);
+      renderSavedMeals();
+    });
+    chip.append(load, del);
+    wrap.appendChild(chip);
+  }
+}
+
+document.getElementById("save-meal-btn").addEventListener("click", () => {
+  const r = saveMeal(document.getElementById("save-meal-name").value, cleanItems(mealItems));
+  document.getElementById("save-meal-status").textContent = r.ok ? `Saved "${r.meal.name}". It's at the top of the builder next time.` : r.error;
+  if (r.ok) renderSavedMeals();
+});
+
+mealBuilderEl.addEventListener("toggle", () => {
+  if (mealBuilderEl.open) renderSavedMeals();
+});
+
 function resetMealBuilder() {
   mealItems = [];
   renderMealItems();
   mealBuilderEl.open = false;
+  document.getElementById("save-meal-name").value = "";
+  document.getElementById("save-meal-status").textContent = "";
 }
 
 const barcodeResultEl = document.getElementById("barcode-result");

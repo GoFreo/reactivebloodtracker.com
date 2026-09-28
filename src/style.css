@@ -1167,3 +1167,61 @@ h2 {
 .timeline-list .show-more {
   margin-top: 12px;
 }
+
+/* --- Saved meals --- */
+.saved-meals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.saved-meals:empty {
+  display: none;
+}
+
+.saved-meals-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  width: 100%;
+}
+
+.saved-meal {
+  display: inline-flex;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.saved-meal button {
+  width: auto;
+  border: 0;
+  border-radius: 0;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.saved-meal .saved-meal-del {
+  color: var(--text-muted);
+  border-left: 1px solid var(--border);
+}
+
+.save-meal-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.save-meal-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.save-meal-row button {
+  width: auto;
+  margin-top: 0;
+  white-space: nowrap;
+}

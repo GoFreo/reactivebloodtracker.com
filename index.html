@@ -133,10 +133,16 @@
                 Barcode while this is open to add a product. If you already know an item's carbs, put
                 them in "Carbs&nbsp;g" instead.
               </p>
+              <div id="saved-meals" class="saved-meals" aria-label="Saved meals"></div>
               <div id="meal-items" class="meal-items"></div>
               <datalist id="myfood-names"></datalist>
               <button type="button" id="meal-add-item-btn" class="secondary-btn">+ Add ingredient</button>
               <p id="meal-total" class="meal-total" aria-live="polite"></p>
+              <div class="save-meal-row">
+                <input type="text" id="save-meal-name" placeholder="Name it to reuse, e.g. Usual breakfast" autocomplete="off" />
+                <button type="button" id="save-meal-btn" class="secondary-btn">⭐ Save meal</button>
+              </div>
+              <p class="field-hint" id="save-meal-status" aria-live="polite"></p>
             </details>
             <img id="food-photo-preview" class="photo-preview" hidden />
 
@@ -164,7 +170,7 @@
           <button type="button" data-nav="export">📤 Export</button>
           <button type="button" data-nav="food-guidance">🍎 Food guidance</button>
           <button type="button" data-nav="my-foods">🗂 My foods</button>
-          <button type="button" data-nav="help">❓ Help &amp; sources</button>
+          <button type="button" data-nav="help">❓ Help</button>
         </div>
       </section>
 

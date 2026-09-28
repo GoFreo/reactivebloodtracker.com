@@ -731,3 +731,36 @@ test.describe("readings list paging", () => {
     await expect(page.locator("#timeline-list .show-more")).toHaveCount(0);
   });
 });
+
+test.describe("saved meals", () => {
+  test("save a built meal, load it next time, adjust, and delete it", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#meal-builder > summary").click();
+    const rows = page.locator(".meal-item");
+    await rows.nth(0).locator(".mi-name input").fill("Rolled oats");
+    await rows.nth(0).locator(".mi-grams input").fill("40");
+    await rows.nth(0).locator(".mi-per100 input").fill("60");
+    await page.locator("#meal-add-item-btn").click();
+    await rows.nth(1).locator(".mi-name input").fill("Milk");
+    await rows.nth(1).locator(".mi-grams input").fill("250");
+    await rows.nth(1).locator(".mi-per100 input").fill("4.8");
+    await page.locator("#save-meal-btn").click();
+    await expect(page.locator("#save-meal-status")).toContainText("Give the meal a name");
+    await page.locator("#save-meal-name").fill("Usual breakfast");
+    await page.locator("#save-meal-btn").click();
+    await expect(page.locator("#save-meal-status")).toContainText('Saved "Usual breakfast"');
+
+    // Next time: open the builder fresh and load it.
+    await page.reload();
+    await page.locator("#meal-builder > summary").click();
+    await page.locator(".saved-meal-load", { hasText: "Usual breakfast" }).click();
+    await expect(page.locator(".meal-item")).toHaveCount(2);
+    await expect(page.locator("#meal-total")).toContainText("Total: 36 g carbs");
+    await page.locator(".meal-item").nth(1).locator(".mi-grams input").fill("125");
+    await expect(page.locator("#meal-total")).toContainText("Total: 30 g carbs");
+
+    page.once("dialog", (d) => d.accept());
+    await page.locator('[aria-label="Delete saved meal Usual breakfast"]').click();
+    await expect(page.locator(".saved-meal")).toHaveCount(0);
+  });
+});
