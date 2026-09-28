@@ -17,7 +17,13 @@ function formatTime(ts) {
 }
 
 function entryLabel(entry) {
-  if (entry._kind === "glucose") return "🩸 Glucose";
+  if (entry._kind === "glucose") {
+    // Tag where a reading came from so CGM and finger-prick values can be told
+    // apart at a glance — they genuinely differ (interstitial vs blood, lag).
+    if (entry.sourceId === "librelinkup") return "🩸 Glucose · CGM";
+    if (entry.sourceId === "bluetooth-meter") return "🩸 Glucose · Meter";
+    return "🩸 Glucose";
+  }
   if (entry._kind === "food") return "🍽️ Food";
   if (entry._kind === "diary") return "📝 Diary";
   return "";

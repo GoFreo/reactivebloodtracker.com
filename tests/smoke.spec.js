@@ -214,6 +214,54 @@ test.describe("food entry + AI clarify loop", () => {
 });
 
 test.describe("settings", () => {
+  test("CGM sync saves Libre readings once, tagged as CGM, and asks for a passcode first", async ({ page }) => {
+    let calls = 0;
+    let sentPasscode = null;
+    await page.route("**/.netlify/functions/cgm-sync", async (route) => {
+      calls++;
+      sentPasscode = route.request().headers()["x-cgm-passcode"];
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          configured: true,
+          readings: [
+            { value: 5.5, unit: "mmol/L", timestamp: "2026-09-28T01:15:00.000Z" },
+            { value: 4.0, unit: "mmol/L", timestamp: "2026-09-28T01:30:00.000Z" },
+          ],
+        }),
+      });
+    });
+    await page.goto("/");
+
+    await page.locator("#home-cgm-sync-btn").click();
+    await expect(page.locator("#home-cgm-status")).toContainText("passcode");
+    expect(calls).toBe(0);
+
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await page.locator("#cgm-passcode").fill("test-passcode-123");
+    await page.locator("#cgm-sync-btn").click();
+    await expect(page.locator("#cgm-status")).toContainText("2 new CGM readings");
+    expect(sentPasscode).toBe("test-passcode-123");
+
+    await page.locator("#cgm-sync-btn").click();
+    await expect(page.locator("#cgm-status")).toContainText("0 new CGM readings, 2 already saved");
+
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator(".timeline-entry", { hasText: "CGM" })).toHaveCount(2);
+  });
+
+  test("a wrong CGM passcode shows a clear message and saves nothing", async ({ page }) => {
+    await page.route("**/.netlify/functions/cgm-sync", (route) =>
+      route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "Wrong sync passcode." }) })
+    );
+    await page.goto("/");
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await page.locator("#cgm-passcode").fill("wrong-passcode");
+    await page.locator("#cgm-sync-btn").click();
+    await expect(page.locator("#cgm-status")).toContainText("Wrong sync passcode");
+  });
+
   test("unit choice carries into the glucose form default", async ({ page }) => {
     await page.goto("/");
     await page.locator('button.nav-btn[data-nav="settings"]').click();

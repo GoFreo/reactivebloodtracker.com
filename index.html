@@ -63,8 +63,12 @@
             </label>
             <button type="submit">Save reading</button>
           </form>
-          <button type="button" id="home-bluetooth-connect-btn" class="secondary-btn" hidden>🔵 Sync meter</button>
+          <div class="button-row sync-row">
+            <button type="button" id="home-bluetooth-connect-btn" class="secondary-btn" hidden>🔵 Sync meter</button>
+            <button type="button" id="home-cgm-sync-btn" class="secondary-btn">📈 Sync CGM</button>
+          </div>
           <p class="field-hint" id="home-bluetooth-status"></p>
+          <p class="field-hint" id="home-cgm-status"></p>
         </div>
 
         <div class="home-section">
@@ -330,6 +334,23 @@
           window after you trigger it).
         </p>
         <p class="field-hint" id="bluetooth-status"></p>
+
+        <h2>Libre 2 Plus (CGM) sync</h2>
+        <label>
+          Sync passcode
+          <input type="password" id="cgm-passcode" autocomplete="off" placeholder="The passcode you set in Netlify" />
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="cgm-remember" />
+          Remember on this device
+        </label>
+        <button type="button" id="cgm-sync-btn">Sync CGM readings</button>
+        <p class="field-hint">
+          Pulls roughly the last 12 hours of Libre readings through LibreLinkUp. Readings already
+          saved are skipped, so syncing often is fine. The passcode stops anyone else who finds
+          this site from reading your glucose.
+        </p>
+        <p class="field-hint" id="cgm-status"></p>
 
         <h2>Reminders</h2>
         <div class="entry-form">

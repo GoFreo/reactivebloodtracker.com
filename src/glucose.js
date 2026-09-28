@@ -21,7 +21,15 @@ export const glucoseSources = [
     // Bluetooth, an Apple platform restriction. See HANDOVER.md 2026-09-14.
     isAvailable: isBluetoothAvailable,
   },
-  // Future: { id: "librelinkup", label: "LibreLinkUp (Libre 2 Plus)", ... }
+  {
+    id: "librelinkup",
+    label: "Libre 2 Plus CGM",
+    description: "Pulls the last ~12 hours of sensor readings on demand, protected by a sync passcode.",
+    // Server-side sync (netlify/functions/cgm-sync.js), so any browser works —
+    // unlike Bluetooth. Whether it's actually set up is only known after a sync.
+    isAvailable: () => true,
+  },
+  // Future: Dexcom G7 — expected from ADACare (2026-09-28), not built yet.
 ];
 
 export async function saveGlucoseReading({ value, unit, timestamp, note, sourceId = "manual" }) {

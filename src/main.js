@@ -26,6 +26,7 @@ import { getSoundEnabled, saveSoundEnabled, playTone } from "./sound.js";
 import { connectAndFetchReadings, isBluetoothAvailable } from "./bluetoothGlucose.js";
 import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
+import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
 
 // Dynamically imported on first use — ZXing (the barcode decoder) adds ~500KB
 // before compression, and most visits never touch the scanner. No reason to
@@ -629,6 +630,63 @@ document.getElementById("bluetooth-connect-btn").addEventListener("click", () =>
 
 document.getElementById("home-bluetooth-connect-btn").addEventListener("click", () =>
   runBluetoothSync(document.getElementById("home-bluetooth-connect-btn"), document.getElementById("home-bluetooth-status"))
+);
+
+// --- Libre 2 Plus (CGM) sync via LibreLinkUp ---
+const cgmPasscodeEl = document.getElementById("cgm-passcode");
+const cgmRememberEl = document.getElementById("cgm-remember");
+cgmPasscodeEl.value = getSavedPasscode();
+cgmRememberEl.checked = Boolean(cgmPasscodeEl.value);
+
+function persistCgmPasscodeChoice() {
+  savePasscode(cgmRememberEl.checked ? cgmPasscodeEl.value.trim() : "");
+}
+cgmRememberEl.addEventListener("change", persistCgmPasscodeChoice);
+cgmPasscodeEl.addEventListener("change", persistCgmPasscodeChoice);
+
+// Shared by the Settings button and the Home shortcut, like runBluetoothSync.
+async function runCgmSync(btn, statusEl) {
+  const passcode = cgmPasscodeEl.value.trim() || getSavedPasscode();
+  if (!passcode) {
+    statusEl.textContent = "Enter your sync passcode in Settings → Libre 2 Plus (CGM) sync first.";
+    return;
+  }
+  btn.disabled = true;
+  statusEl.textContent = "Syncing with LibreLinkUp…";
+  try {
+    const { readings } = await fetchCgmReadings(passcode);
+    await refreshAllCaches();
+    let imported = 0;
+    let skipped = 0;
+    for (const r of readings) {
+      const isDup = cachedGlucose.some(
+        (g) => g.sourceId === "librelinkup" && new Date(g.timestamp).getTime() === new Date(r.timestamp).getTime()
+      );
+      if (isDup) {
+        skipped++;
+        continue;
+      }
+      await saveGlucoseReading({ value: r.value, unit: r.unit, timestamp: r.timestamp, note: "", sourceId: "librelinkup" });
+      imported++;
+    }
+    statusEl.textContent = `Done — ${imported} new CGM reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.`;
+    try {
+      localStorage.setItem(CGM_LAST_SYNC_KEY, new Date().toISOString());
+    } catch {}
+    await refreshAllCaches();
+    await refreshHome();
+  } catch (err) {
+    statusEl.textContent = `CGM sync failed: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("cgm-sync-btn").addEventListener("click", () =>
+  runCgmSync(document.getElementById("cgm-sync-btn"), document.getElementById("cgm-status"))
+);
+document.getElementById("home-cgm-sync-btn").addEventListener("click", () =>
+  runCgmSync(document.getElementById("home-cgm-sync-btn"), document.getElementById("home-cgm-status"))
 );
 
 const reminderEnabled = document.getElementById("reminder-enabled");

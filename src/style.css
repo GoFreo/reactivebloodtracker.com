@@ -229,6 +229,14 @@ button:active {
   margin-top: -4px;
 }
 
+.sync-row {
+  margin-top: 10px;
+}
+
+.sync-row .secondary-btn {
+  margin-top: 0;
+}
+
 #barcode-scanner {
   margin: 4px 0;
   display: flex;
