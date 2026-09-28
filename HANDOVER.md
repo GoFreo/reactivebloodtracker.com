@@ -1,64 +1,54 @@
 # Reactive Hypoglycemia Tracker — Handover
 
-## Status: 🟢 live and in daily use — reactivebloodtracker.com
+## Status: 🟢 live, in daily use, heading public — reactivebloodtracker.com
 
-Deployed, tested (118 passed / 2 intentionally-skipped across 4 browser projects), and actively
-used by Scott for real glucose/food/diary tracking. See the 2026-09-16 entry at the bottom of this
-file for the most recent session (branch/worktree reconciliation) — read bottom-up for the current
-state, this header is kept current but the detail lives in the dated entries below.
+Read the **At a glance** block below first. Everything after it is dated history (read bottom-up for
+detail). **Scope changed 2026-09-28:** public app, bring-your-own Anthropic key, diabetes and insulin
+as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 
-**Objective:** A mobile-first personal tool for reactive hypoglycemia, grounded in Scott's own
-medical evidence, `DVA New Master`'s medical-evidence material, and existing open-source JS/Python
-approaches — with an AI-assisted section once a dedicated Anthropic key is wired in.
+## At a glance — current state as of 2026-09-28 (supersedes the 2026-09-20 block)
 
-## At a glance — current state as of 2026-09-20 (read this first; everything below is dated history)
+**Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
+`assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
+`github.com/GoFreo/reactivebloodtracker.com`.
+**Health:** `npm test` **222 passed / 2 skipped / 0 failed** across 4 browser projects (the 2 skips are
+the documented WebKit photo-save automation gap).
+**Deploy (manual, from this Mac):** `npm test` → `npm run build` →
+`npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
+**`--skip-functions-cache` is required.** Without it Netlify has silently shipped a stale function
+bundle. Env-var changes only reach functions after a redeploy. Check function logs with
+`npx netlify-cli logs --function cgm-sync --since 30m`.
 
-> **2026-09-28 update:** live site now serves `main` @ `dee45e8` (adds Libre CGM sync), deployed
-> via netlify-cli with `--functions=netlify/functions`. `npm test`: 146 passed / 2 skipped / 0 failed.
-> `main` is ahead of `origin/main` by one commit (not pushed). The 2026-09-20 doc edits and
-> `proposed-patches/` are still uncommitted, and the patch still applies cleanly on top of `dee45e8`.
+**What the app does now:** Home quick entry (glucose / food / diary); Accu-Chek Guide Me over Web
+Bluetooth (Chrome only); **Libre 2 Plus CGM sync via LibreLinkUp** (`netlify/functions/cgm-sync.js`,
+passcode-gated, stores nothing server-side); **"why did your sugar spike?" prompts**
+(`src/spikeDetection.js`); Readings → List / **Graph** (CGM line with gaps shaded, finger-pricks as
+diamonds, meal markers) / **Meals** (5-hour outcome per meal, `src/mealOutcome.js`); barcode + Open Food
+Facts; photo import; AI food parsing (Scott's key); thresholds with the ADA floor; CSV import/export and
+a printable report; Food Guidance; **animated opening** (red droplet lands on a spring); red-droplet
+icon with real PNGs (`scripts/render-icons.mjs`).
 
-**Live:** `reactivebloodtracker.com` serves exactly `main` @ `a695000` — verified 2026-09-20: the live
-`index.html` and a fresh build of `main` reference the same content-hashed bundles
-(`index-BD-HkEMY.js`, `index-DSAxtjuE.css`). AI food parsing: key set by Scott, live text-parse
-verified 2026-09-14. (The **photo** path has never been verified on a real phone — see below.)
-**Health:** `npm test` 118 passed / 2 skipped (documented WebKit photo-save automation gap) / 0 failed;
-`npm audit` 0 vulnerabilities (all + production deps); nothing outdated at top level.
-**Git:** `main` == `origin/main` (`github.com/GoFreo/reactivebloodtracker.com`, pushed 2026-09-16
-11:35 +1000). Branch `claude/reactive-hypoglycemia-tracker-3cd4a9` (dormant `src/sync.js`) is also on
-origin, deliberately unmerged. Only uncommitted changes: docs (`CLAUDE.md`, this file).
-**Deploy:** still manual — `npm run build`, then `npx netlify-cli deploy --prod --dir=dist
---site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`. Whether Netlify continuous deployment is now linked to
-the GitHub repo is only visible in the Netlify dashboard (it read "Not linked" on 2026-09-16) — unknown.
+**CGM sync status:** all three Netlify values are set (live endpoint answers 401 "Wrong sync passcode"
+to a passcode-less probe, which is correct). **Scott has not yet made a sync attempt from his device**
+(no calls in the function logs). If it fails, his screen now shows the exact reason.
 
-**Needs Scott (nobody else can):**
-- **Netlify → link continuous deployment to the GitHub repo** (dashboard action) — or say it isn't wanted.
-- **Set a monthly spend limit** on the Anthropic key/workspace behind the AI proxy (Anthropic console).
-  The endpoint is public and has no per-caller limit — see the 2026-09-20 entry.
-- **Try a big photo on the phone** (~4.5 MB+; his biggest staged photo is 4.68 MB) and say whether
-  "Parse with AI" fails — confirms the finding behind the proposed patch below.
-- **Yes/no on the proposed patch:** `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/`
-  (tested, applies cleanly, **not applied**; its README has the one-command apply).
-- Surgery-timeline date for the export report (unanswered since 2026-09-12).
-- Meal-timed multiple reminders — the *shape* is his to specify (how many / meal-relative vs fixed /
-  editable list). Do not build from a guess.
-- "Food button" on Home: a shortcut to the Food section, or a separate Food tab?
-- Landing-page contact email (a personal address on a public page is his call).
-- Guide Me Bluetooth: needs him at the keyboard with the meter in pairing mode (Chrome's native device
-  picker can't be automated). If a food photo ever fails to save on iPhone, report the exact error text now shown.
-- `src/sync.js` (manual device-to-device sync): he called cross-device sync "food for thought" — don't
-  build or merge it without a yes.
-- **Libre 2 Plus CGM sync — built & deployed 2026-09-28, waiting on Scott's setup** (see that entry):
-  accept a LibreLinkUp invite, then add `LIBRELINKUP_EMAIL`, `LIBRELINKUP_PASSWORD`,
-  `CGM_SYNC_PASSCODE` (8+ chars) in Netlify himself. Dexcom G7 also coming from ADACare.
+**Needs Scott:** first real Sync CGM tap (hard-refresh first; his home-screen shortcut may hold an old
+copy); Anthropic monthly spend limit; yes/no on `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/`
+(still untracked, still applies cleanly); optional Netlify ↔ GitHub continuous deploy.
 
-**Deliberately not built — don't add without asking:** portion-size / "safe amount" advice; a low
-threshold below the ADA floor (`LOW_THRESHOLD_FLOOR`); anything that syncs to a cloud by default; any
-copy of SparkyFitness source (non-commercial licence).
-**Never touch:** `data/` and `food photos/` (Scott's real health data, gitignored). Never enter the
-Anthropic key value anywhere, in any tool.
-**SITREP (standing rule in `CLAUDE.md`):** one living artifact — https://claude.ai/artifact/QhRy9XngkyybAL5K5upcFz
-("Reactive Tracker Sit Rep", republished 2026-09-20 as version 5). Republish to that URL; don't create a new one.
+**Agreed build order (next first):** meal builder (ingredients/barcodes, carbs totalled, co-logger
+friendly) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
+go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
+(BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
+calculator**).
+
+**Deliberately not built — don't add without asking:** portion/"safe amount" advice or any dosing
+suggestion; a low threshold below the ADA floor; anything that syncs to a cloud by default; scores
+that grade the user; any SparkyFitness source (non-commercial licence).
+**Never touch:** `data/` and `food photos/` (Scott's real health data, gitignored). Never enter
+credentials or API keys anywhere, in any tool.
+**SITREP:** one living artifact, https://claude.ai/artifact/QhRy9XngkyybAL5K5upcFz (republish to it).
+**Research:** https://claude.ai/artifact/Ya7Fr1FHxAj1iVfrHwGNNc (ten-app field study, 2026-09-28).
 
 ## 2026-09-12 — Claude (project created)
 

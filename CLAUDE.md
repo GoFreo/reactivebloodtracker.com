@@ -241,8 +241,8 @@ silently until this was found. Keep this setting; don't remove it as unnecessary
 
 **Run `npm test` before every deploy, no exceptions.** It builds and serves the real production
 bundle (`playwright.config.js`'s `webServer`, not the dev server) — a true pre-deploy gate, not a
-dev-mode sanity check. 118 passed / 2 skipped (the documented WebKit photo-save automation gap) /
-0 failed as of 2026-09-20. If a deploy is proposed without this having
+dev-mode sanity check. 222 passed / 2 skipped (the documented WebKit photo-save automation gap) /
+0 failed as of 2026-09-28. If a deploy is proposed without this having
 been run against the current code, run it first; don't skip on the assumption "it's a small change."
 Add a new test case when a new feature ships — this suite is meant to grow, not stay frozen at any
 particular count. **A recurring bug pattern worth specifically testing for in any new element:** if
@@ -253,6 +253,9 @@ three separate elements before this pattern was recognized (`.timeline-list`, `.
 guarded against pre-emptively for `#barcode-scanner`) — see HANDOVER.md's 2026-09-14 entry.
 
 ## Next steps (PICK UP HERE) — updated 2026-09-14
+
+> **Superseded 2026-09-28:** the live open-items list and build order are in `HANDOVER.md`'s "At a
+> glance" block. The bullets below are history. Deploys also now need `--skip-functions-cache`.
 
 > **Superseded 2026-09-20:** the current open-items list lives in `HANDOVER.md`'s "At a glance"
 > block. Two facts below are out of date: the repo **was** pushed to GitHub on 2026-09-16 (only
