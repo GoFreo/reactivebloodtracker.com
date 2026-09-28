@@ -11,7 +11,7 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **222 passed / 2 skipped / 0 failed** across 4 browser projects (the 2 skips are
+**Health:** `npm test` **294 passed / 6 skipped / 0 failed** (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
 the documented WebKit photo-save automation gap).
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
@@ -36,14 +36,11 @@ to a passcode-less probe, which is correct). **Scott has not yet made a sync att
 copy); Anthropic monthly spend limit; yes/no on `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/`
 (still untracked, still applies cleanly); optional Netlify ↔ GitHub continuous deploy.
 
-**Waiting to ship, all on branch `readings-filter` (built 2026-09-28 evening, NOT merged, NOT deployed):**
-it contains three commits on top of `main`: 🧺 meal builder (`bdc7da7`), Readings list filter chips
-(`c9fa631`), and Scott's pantry test starter + a **real bug fix** (`4b55a44`: scanning a product Open Food
-Facts doesn't have showed "Lookup failed (404)" instead of "describe it yourself" — this bug is live today).
-Branch `meal-builder` is the first of those alone. Tests on `readings-filter`: **294 passed / 6 skipped /
-0 failed** (4 of the skips are the opt-in live database check). The folder is back on `main` (matches
-live), `dist/` rebuilt from `main`. To ship all three: `git merge readings-filter` (fast-forward), `npm test`,
-then the deploy line above. Detail: the dated entries at the bottom of this file.
+**✅ Shipped 2026-09-28 late evening (Scott: "ship it"):** meal builder, Readings filter chips, the pantry test
+starter and the barcode 404 fix — merged into `main` (`1085eef`), `npm test` 294 passed / 6 skipped / 0 failed,
+deployed with `--skip-functions-cache`, live bundle `index-DlnIf1SS.js` confirmed on reactivebloodtracker.com,
+`cgm-sync` answers 401 without a passcode (correct), pushed to GitHub. Branches `meal-builder` and
+`readings-filter` are fully merged (safe to delete later).
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
@@ -1353,3 +1350,9 @@ until the branch ships.**
 **Decisions I made — revisit if you disagree:** the fixture lives in `tests/` (it's shop products, no health
 data, so it's fine in git); the pack label wins over the database when they disagree (the user types the
 pack figure in "Carbs g"); the live check is opt-in so the normal suite never needs the internet.
+
+### 2026-09-28 (later) — shipped; Scott is scanning at Coles tomorrow
+Scott will photograph more products at Coles to grow the pantry test set. The suggested scan list is on the
+SITREP. How to add them: each photo should show the barcode **and** the per-100 g column of the nutrition panel;
+a session reads both, looks each barcode up in Open Food Facts, and appends to
+`tests/fixtures/scott-pantry-barcodes.json` (snapshot + label figures), then reruns `tests/pantry.spec.js`.
