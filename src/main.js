@@ -27,6 +27,7 @@ import { connectAndFetchReadings, isBluetoothAvailable } from "./bluetoothGlucos
 import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
+import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import {
   findUnexplainedExcursions,
   describeExcursion,
@@ -157,14 +158,90 @@ function setReadingsMode(mode, merged) {
   for (const btn of document.querySelectorAll("#readings-view-toggle button")) {
     btn.classList.toggle("active", btn.dataset.mode === mode);
   }
-  if (mode === "graph") {
-    listEl.hidden = true;
-    graphWrap.hidden = false;
-    renderGraph();
-  } else {
-    graphWrap.hidden = true;
-    listEl.hidden = false;
-    renderReadingsList(listEl, merged);
+  const galleryEl = document.getElementById("meal-gallery");
+  listEl.hidden = mode !== "list";
+  graphWrap.hidden = mode !== "graph";
+  galleryEl.hidden = mode !== "meals";
+  if (mode === "graph") renderGraph();
+  else if (mode === "meals") renderMealGallery(galleryEl);
+  else renderReadingsList(listEl, merged);
+}
+
+// Meals tab: each logged meal with what glucose did over the next 5 hours.
+// Object URLs for photo thumbnails are revoked on every re-render so browsing
+// back and forth doesn't leak memory on a phone.
+let mealPhotoUrls = [];
+const MAX_MEALS_SHOWN = 60;
+
+function renderMealGallery(container) {
+  for (const url of mealPhotoUrls) URL.revokeObjectURL(url);
+  mealPhotoUrls = [];
+  const meals = [...cachedFood].sort(compareRecentFirst).slice(0, MAX_MEALS_SHOWN);
+  if (!meals.length) {
+    container.innerHTML = '<p class="timeline-empty">No meals logged yet. Add food on Home, and each meal will show here with what your glucose did afterwards.</p>';
+    return;
+  }
+  const t = getThresholds();
+  const lowLine = t.low != null ? convertUnit(t.low, t.unit, "mmol/L") : null;
+  container.innerHTML = "";
+  for (const meal of meals) {
+    const card = document.createElement("article");
+    card.className = "meal-card";
+    const outcome = mealOutcome(meal.timestamp, cachedGlucose);
+    const wentLow = outcome && lowLine != null && outcome.lowest.value < lowLine;
+    if (wentLow) card.classList.add("went-low");
+
+    if (meal.photoBlob) {
+      const url = URL.createObjectURL(meal.photoBlob);
+      mealPhotoUrls.push(url);
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      img.className = "meal-photo";
+      card.appendChild(img);
+    }
+    const body = document.createElement("div");
+    body.className = "meal-body";
+    const title = document.createElement("p");
+    title.className = "meal-title";
+    title.textContent = meal.text || meal.aiResult?.foodName || "Meal (photo)";
+    const when = document.createElement("p");
+    when.className = "meal-when";
+    when.textContent = formatDate(meal.timestamp);
+    body.append(title, when);
+
+    const stats = document.createElement("dl");
+    stats.className = "meal-stats";
+    const addStat = (label, value, cls = "") => {
+      const wrap = document.createElement("div");
+      if (cls) wrap.className = cls;
+      const dt = document.createElement("dt");
+      dt.textContent = label;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      wrap.append(dt, dd);
+      stats.appendChild(wrap);
+    };
+    if (outcome) {
+      addStat("Before", outcome.before != null ? `${outcome.before}` : "–");
+      addStat("Peak", `${outcome.peak.value}`, "");
+      addStat("Lowest", `${outcome.lowest.value}`, wentLow ? "stat-low" : "");
+      body.appendChild(stats);
+      const note = document.createElement("p");
+      note.className = "meal-note";
+      note.textContent =
+        `mmol/L · peak ${formatAfter(outcome.peak.afterMin)} after, lowest ${formatAfter(outcome.lowest.afterMin)} after` +
+        (wentLow ? ` · below your low of ${lowLine.toFixed(1)}` : "") +
+        (outcome.source === "cgm" ? " · Libre" : " · from finger-pricks, may miss the true peak or low");
+      body.appendChild(note);
+    } else {
+      const note = document.createElement("p");
+      note.className = "meal-note";
+      note.textContent = `No glucose readings in the ${OUTCOME_HOURS} hours after this meal.`;
+      body.appendChild(note);
+    }
+    card.appendChild(body);
+    container.appendChild(card);
   }
 }
 

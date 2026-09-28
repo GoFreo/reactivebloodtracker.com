@@ -677,3 +677,91 @@ h2 {
 .spike-explain-form[hidden] {
   display: none;
 }
+
+/* Readings → Meals: what glucose did after each meal */
+.meal-gallery {
+  display: grid;
+  gap: 12px;
+}
+
+/* .meal-gallery sets display:grid, so it needs its own [hidden] rule (CLAUDE.md pattern). */
+.meal-gallery[hidden] {
+  display: none;
+}
+
+.meal-card {
+  display: flex;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.meal-card.went-low {
+  border-color: var(--low);
+  box-shadow: inset 4px 0 0 var(--low);
+}
+
+.meal-photo {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.meal-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.meal-title {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.meal-when {
+  margin: 2px 0 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.meal-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0 0 6px;
+}
+
+.meal-stats > div {
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.meal-stats dt {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meal-stats dd {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.meal-stats .stat-low dd {
+  color: var(--low);
+}
+
+.meal-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}

@@ -317,6 +317,42 @@ test.describe("settings", () => {
     await expect(page.locator(".timeline-entry", { hasText: "🍽️" }).filter({ hasText: "chocolate biscuit" })).toHaveCount(1);
   });
 
+  test("Meals tab shows each meal with what glucose did afterwards, flagging a drop below the user's low", async ({ page }) => {
+    const now = Date.now();
+    const mealTime = new Date(now - 4 * 3600000);
+    const readings = [0, 30, 60, 120, 180].map((min, i) => ({
+      value: [5.1, 8.9, 10.2, 5.5, 3.6][i],
+      unit: "mmol/L",
+      timestamp: new Date(mealTime.getTime() + (min + 5) * 60000).toISOString(),
+    }));
+    await page.route("**/.netlify/functions/cgm-sync", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: true, readings }) })
+    );
+    await page.goto("/");
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await page.locator("#threshold-low").fill("4.0");
+    await page.locator("#threshold-low").press("Tab");
+    await page.locator("#cgm-passcode").fill("test-passcode-123");
+    await page.locator("#cgm-sync-btn").click();
+    await expect(page.locator("#cgm-status")).toContainText("5 new CGM readings");
+
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    const local = new Date(mealTime.getTime() - mealTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    await page.locator("#food-text").fill("toast and jam");
+    await page.locator("#food-time").fill(local);
+    await page.locator('#food-form button[type="submit"]').click();
+
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await page.locator('#readings-view-toggle button[data-mode="meals"]').click();
+    await expect(page.locator("#meal-gallery")).toBeVisible();
+    await expect(page.locator("#timeline-list")).toBeHidden();
+    const card = page.locator(".meal-card", { hasText: "toast and jam" });
+    await expect(card).toHaveClass(/went-low/);
+    await expect(card.locator(".meal-stats")).toContainText("10.2");
+    await expect(card.locator(".stat-low")).toContainText("3.6");
+    await expect(card.locator(".meal-note")).toContainText("below your low of 4.0");
+  });
+
   test("unit choice carries into the glucose form default", async ({ page }) => {
     await page.goto("/");
     await page.locator('button.nav-btn[data-nav="settings"]').click();
