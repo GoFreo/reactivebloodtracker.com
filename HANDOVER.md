@@ -36,8 +36,12 @@ to a passcode-less probe, which is correct). **Scott has not yet made a sync att
 copy); Anthropic monthly spend limit; yes/no on `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/`
 (still untracked, still applies cleanly); optional Netlify ↔ GitHub continuous deploy.
 
-**Agreed build order (next first):** meal builder (ingredients/barcodes, carbs totalled, co-logger
-friendly) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
+**🧺 Meal builder: built 2026-09-28 (evening, autonomous), on branch `meal-builder` (commit `bdc7da7`),
+NOT merged, NOT deployed.** Tests on the branch: **262 passed / 2 skipped / 0 failed**. The folder is
+back on `main` (matches live) and `dist/` was rebuilt from `main`. To ship it: `git merge meal-builder`,
+`npm test`, then the deploy line above. Detail: the dated entry at the bottom of this file.
+
+**Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
 (BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
 calculator**).
@@ -1278,3 +1282,40 @@ landed in the main checkout instead of the worktree (reverted with `git checkout
 that file); the LibreView Data Share code was rejected twice (AUTH_LOGIN 437), stopped retrying, and
 LibreLinkUp is the working route anyway.
 
+
+## 2026-09-28 (evening) — Meal builder built on a branch (autonomous pass, Scott away)
+
+**What:** a "🧺 Build a meal from ingredients" panel inside the Food form (collapsed by default,
+so the quick one-line food entry is unchanged). Each ingredient row takes **Grams**, **Per 100g**
+(the label's carbs figure) and **Carbs g** (for when the item's total is already known — it wins
+over the calculation). The running total updates live, and names any items that have no carb figures
+("not counting Whey powder") rather than quietly under-counting. Tapping **Barcode** while the panel
+is open adds the product as an ingredient (name + per-100g carbs from Open Food Facts); the portion
+is left empty for the user, the app never guesses it. Readings → Meals shows "🧺 36 g carbs from 2
+ingredients" and uses the ingredient names as the card title.
+
+**Where:** `src/mealBuilder.js` (pure arithmetic, no browser), UI in `src/main.js`, CSS at the end of
+`src/style.css`, storage change in `src/food.js` (food entries built this way carry `items` and
+`carbsTotal`; other entries are saved exactly as before). Tests: `tests/mealBuilder.spec.js` (8 unit)
++ 2 new smoke tests (full build/save/Meals flow, and "a plain meal saves as before"), all 4 browsers.
+
+**Branch, not main:** `main` is what's live, and deploying is Scott's call, so the work sits on
+`meal-builder` (commit `bdc7da7`). Not pushed to GitHub either (the repo's visibility wasn't
+checked; a push is outward-facing). Merge is a fast-forward.
+
+**Decisions I made — revisit if you disagree:**
+- Carbs only are totalled in the headline (sugars shown as a secondary figure when labels have it).
+  No fibre/"net carbs" maths: that's closer to dose-adjacent territory and labels vary.
+- ml is treated like g (Australian labels quote drinks per 100 ml).
+- The saved text line carries the breakdown ("Rolled oats 40g (24g carbs), Milk 250g (12g carbs) |
+  Total 36g carbs") so CSV export, print and the timeline need no format change. A CSV re-import
+  brings back the text, not the structured rows — acceptable for now.
+- No saved "recipes"/favourite meals yet — the existing quick-pick suggestion chips still work on
+  the text. A natural next step if Scott finds himself rebuilding the same breakfast.
+- Co-logger friendly means "simple enough for someone else to fill in"; real co-logger accounts are
+  the next item in the build order (sharing with roles), not part of this.
+
+**Friction, honestly:** `npm test`'s own web server times out (build takes ~80 s on iCloud vs a 60 s
+limit), so the suite was run against a manually started `vite preview` on port 4173, which Playwright
+reuses. Same code, same bundle — just started by hand. Consider raising `webServer.timeout` to 180000.
+HawkScan (the security-scan hook) can't run on this Mac: no hawk CLI or API key.
