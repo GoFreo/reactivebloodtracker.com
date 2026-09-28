@@ -56,6 +56,10 @@ public, a lawyer should review the wording** (Scott's item — legal). To ship: 
 the newest 200 with "Show more" (a year of data was ~188,000 page elements); three pieces of dead code removed.
 Shipping `cleanup` ships `help-and-welcome` too (`git merge cleanup`).
 
+**⭐ And on top of that, branch `saved-meals` (`1307c29`, on GitHub), 390 passed:** save a built meal by name
+("Usual breakfast"), load it from chips at the top of the builder, adjust portions, delete. Device only.
+**`git merge saved-meals` ships all three branches at once** (help-and-welcome → cleanup → saved-meals).
+
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
 (BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
@@ -1474,3 +1478,13 @@ Meals tab 0.56 s and graph 0.34 s at a year. Script: session scratchpad `perf/lo
   "manual device-to-device sync" prototype. **Needs Scott:** keep or drop (the food bank now covers sharing
   products; it doesn't cover readings).
 - `CLAUDE.md`'s test counts were stale (still "four files, 30 test cases") → updated.
+
+## 2026-09-28 (night) — Saved meals (branch `saved-meals`, on top of `cleanup`)
+
+Scott: "carry on with other stuff". Picked the top suggestion from the app study and his own point that
+people eat the same foods regularly. `src/savedMeals.js` (device-only list; same name replaces; alphabetical),
+chips at the top of the meal builder load a saved meal as editable rows; "⭐ Save meal" under the total. 3 unit
++ 1 smoke test (save → reload → load → adjust grams → total updates → delete). 390 passed / 6 skipped / 0 failed.
+Also shortened the Home link "Help & sources" to "Help" (it wrapped to three lines on a phone).
+**Decision I made:** saved meals stay on the device (not in the food bank), since a meal is personal eating
+data, and the food bank is product facts only.
