@@ -11,7 +11,7 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **502 passed / 10 skipped / 0 failed** on `main` (skips: WebKit photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
+**Health:** `npm test` **510 passed / 10 skipped / 0 failed** on `main` (skips: WebKit photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
 the documented WebKit photo-save automation gap).
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
@@ -46,6 +46,10 @@ deployed with `--skip-functions-cache`, live bundle `index-DlnIf1SS.js` confirme
 (`be32994`), 354 passed, deployed with `--skip-functions-cache`, live bundle `index-DDVhxCaK.js`,
 `/.netlify/functions/food-bank` answers 401 without / with a wrong passcode (correct). **Not yet verified:** a
 real save to Netlify Blobs — needs Scott's passcode; his first scan at Coles is the test.
+
+**✅ First-run opening + no keyboard on open + "Your setup" in Help: SHIPPED 2026-09-28 22:21** (Scott's design).
+Live bundle `index-Ct3LwouD.js`; 510 passed / 10 skipped / 0 failed. Scott: "at this stage it's pretty much all I
+can think of" for how he'd use it.
 
 **✅ Header + install tip + passcode drop-down: SHIPPED 2026-09-28 22:05** (Scott's requests). Live bundle
 `index-C4wNG0qk.js`; 498 passed / 10 skipped / 0 failed; manifest name "Reactive Blood Tracker".
@@ -1540,3 +1544,17 @@ passcode he made up for `CGM_SYNC_PASSCODE`; (2) the Production value in Netlify
 **Fix path (his):** Netlify → Site configuration → Environment variables → `CGM_SYNC_PASSCODE` → view or set a new
 value (8+ characters) for Production; **then a redeploy is needed** (functions only see env changes after one) —
 tell a session "redeploy" and it runs the standard deploy line.
+
+## 2026-09-28 22:15–22:21 — first-run opening, keyboard, "Your setup" (shipped)
+
+Scott: on first open a keyboard covered the bottom of Home; wanted the opening to be the bouncing droplet with the
+name, then optionally a short "what it does", then the agreement, then the app — the extra steps only once. Also:
+record in Help that the conditions were accepted and how the app was set up, with where to change it.
+- **Keyboard:** the glucose box had `autofocus`, which pops the keyboard on open. Removed.
+- **Opening:** the splash (droplet lands on the spring) now reads "Reactive / Blood Tracker" with "For reactive
+  hypoglycaemia and diabetes…". It plays every start and fades as before. **First run only:** it stays up with
+  "What does it do?" (a 5-point overview → Next) and "Get started" (straight to the agreement). After accepting,
+  those two screens never show again (until the wording version changes).
+- **Help → Your setup:** date the conditions were accepted, name, what's tracked, who helps, and "Change my setup"
+  (reopens the agreement pre-filled). `acceptedAt()` + `CONDITION_LABELS` in `src/welcome.js`.
+- Tests updated/added in `tests/welcome.spec.js` (incl. "no keyboard focus on first open").
