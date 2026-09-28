@@ -26,6 +26,7 @@ import { getSoundEnabled, saveSoundEnabled, playTone } from "./sound.js";
 import { connectAndFetchReadings, isBluetoothAvailable } from "./bluetoothGlucose.js";
 import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
+import { shrinkForStorage } from "./imageForAI.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
@@ -780,7 +781,7 @@ photoImportInput.addEventListener("change", async () => {
   let failed = 0;
   for (const { file, timestamp } of ordered) {
     try {
-      const blob = await toStorableBlob(file);
+      const blob = await toStorableBlob(await shrinkForStorage(file)); // dates were read from the original above
       await saveFoodEntry({ text: "", photoBlob: blob, timestamp: timestamp.toISOString(), aiResult: null });
       imported++;
     } catch (err) {
@@ -839,7 +840,7 @@ foodForm.addEventListener("submit", async (e) => {
     // store" — confirmed 2026-09-15 (see photoImport.js and HANDOVER.md). This
     // is very likely the actual cause behind food photos silently failing to
     // save on iPhone before now, not user error.
-    const storablePhoto = currentFoodPhotoBlob ? await toStorableBlob(currentFoodPhotoBlob) : null;
+    const storablePhoto = currentFoodPhotoBlob ? await toStorableBlob(await shrinkForStorage(currentFoodPhotoBlob)) : null;
     const items = cleanItems(mealItems);
     const notes = document.getElementById("food-text").value;
     await saveFoodEntry({

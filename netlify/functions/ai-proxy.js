@@ -5,6 +5,13 @@
 
 const MODEL = "claude-haiku-4-5-20251001"; // cheap + fast; fine for structured single-item parsing — bump if quality isn't enough
 
+// Input bounds. The model, token cap and system prompt are fixed server-side, so a caller can
+// only choose *what to describe* — but with no bound on that, one request could still carry up
+// to Netlify's ~6 MB body limit of text (a six-figure-token, real-money call). Legitimate use is
+// a meal description plus a few clarifying Q&A rounds, comfortably under this.
+const MAX_TEXT_CHARS = 4000;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]); // what Anthropic accepts
+
 const SYSTEM_PROMPT = `You are helping someone with reactive hypoglycemia log a meal. You will be given a text description and/or a food photo. Identify the food, estimate the portion, and rate your own confidence honestly — mixed or restaurant dishes with hidden oils/sauces are hard to estimate accurately, so say so rather than guessing with false confidence. If your confidence is below 70, include ONE specific clarifying question that would most improve the estimate (e.g. "Was that pan-fried or grilled?"). Respond ONLY with JSON matching this shape, no other text, no markdown fences:
 {"foodName": string, "portionEstimate": string, "confidencePercent": number, "assumptions": string, "clarifyingQuestion": string or null}`;
 
@@ -39,9 +46,26 @@ export const handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON body" }) };
   }
 
+  // JSON.parse happily returns null / an array / a string — none of which can be destructured
+  // below (null would throw an uncaught TypeError, i.e. a 500 instead of a clean 400).
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return { statusCode: 400, body: JSON.stringify({ error: "Body must be a JSON object" }) };
+  }
+
   const { text, imageBase64, mimeType } = payload;
   if (!text && !imageBase64) {
     return { statusCode: 400, body: JSON.stringify({ error: "Provide text and/or imageBase64" }) };
+  }
+
+  // Falsy values keep meaning "absent", exactly as before; only truthy-but-wrong ones are rejected.
+  if (text && (typeof text !== "string" || text.length > MAX_TEXT_CHARS)) {
+    return { statusCode: 400, body: JSON.stringify({ error: `text must be a string of at most ${MAX_TEXT_CHARS} characters` }) };
+  }
+  if (imageBase64 && typeof imageBase64 !== "string") {
+    return { statusCode: 400, body: JSON.stringify({ error: "imageBase64 must be a string" }) };
+  }
+  if (mimeType && !ALLOWED_IMAGE_TYPES.has(mimeType)) {
+    return { statusCode: 400, body: JSON.stringify({ error: "mimeType must be image/jpeg, image/png, image/webp or image/gif" }) };
   }
 
   const contentBlocks = [];
