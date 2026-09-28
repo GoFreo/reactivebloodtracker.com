@@ -34,9 +34,12 @@ function hostFor(region) {
 
 // Compare as fixed-length hashes so neither the length nor the content of the
 // real passcode leaks through response timing.
+// Spaces at either end are ignored on both sides (2026-09-28: a pasted or
+// mistyped trailing space, in the app or in Netlify's saved value, would
+// otherwise make a correct passcode look wrong with no way to tell).
 export function passcodeMatches(supplied, expected) {
-  const a = createHash("sha256").update(String(supplied ?? "")).digest();
-  const b = createHash("sha256").update(String(expected)).digest();
+  const a = createHash("sha256").update(String(supplied ?? "").trim()).digest();
+  const b = createHash("sha256").update(String(expected ?? "").trim()).digest();
   return timingSafeEqual(a, b);
 }
 

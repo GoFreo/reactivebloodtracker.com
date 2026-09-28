@@ -66,3 +66,13 @@ test.describe("LibreLinkUp CGM sync (server logic)", () => {
     }
   });
 });
+
+test.describe("passcode matching tolerates stray spaces", () => {
+  test("spaces at either end, on either side, don't matter; the middle still does", async () => {
+    const { passcodeMatches } = await import("../netlify/functions/cgm-sync.js");
+    expect(passcodeMatches("secret-pass-1 ", "secret-pass-1")).toBe(true);
+    expect(passcodeMatches("secret-pass-1", " secret-pass-1\n")).toBe(true);
+    expect(passcodeMatches("secret pass-1", "secret-pass-1")).toBe(false);
+    expect(passcodeMatches("Secret-pass-1", "secret-pass-1")).toBe(false);
+  });
+});
