@@ -36,10 +36,14 @@ to a passcode-less probe, which is correct). **Scott has not yet made a sync att
 copy); Anthropic monthly spend limit; yes/no on `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/`
 (still untracked, still applies cleanly); optional Netlify ↔ GitHub continuous deploy.
 
-**🧺 Meal builder: built 2026-09-28 (evening, autonomous), on branch `meal-builder` (commit `bdc7da7`),
-NOT merged, NOT deployed.** Tests on the branch: **262 passed / 2 skipped / 0 failed**. The folder is
-back on `main` (matches live) and `dist/` was rebuilt from `main`. To ship it: `git merge meal-builder`,
-`npm test`, then the deploy line above. Detail: the dated entry at the bottom of this file.
+**Waiting to ship, all on branch `readings-filter` (built 2026-09-28 evening, NOT merged, NOT deployed):**
+it contains three commits on top of `main`: 🧺 meal builder (`bdc7da7`), Readings list filter chips
+(`c9fa631`), and Scott's pantry test starter + a **real bug fix** (`4b55a44`: scanning a product Open Food
+Facts doesn't have showed "Lookup failed (404)" instead of "describe it yourself" — this bug is live today).
+Branch `meal-builder` is the first of those alone. Tests on `readings-filter`: **294 passed / 6 skipped /
+0 failed** (4 of the skips are the opt-in live database check). The folder is back on `main` (matches
+live), `dist/` rebuilt from `main`. To ship all three: `git merge readings-filter` (fast-forward), `npm test`,
+then the deploy line above. Detail: the dated entries at the bottom of this file.
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
@@ -1319,3 +1323,33 @@ checked; a push is outward-facing). Merge is a fast-forward.
 limit), so the suite was run against a manually started `vite preview` on port 4173, which Playwright
 reuses. Same code, same bundle — just started by hand. Consider raising `webServer.timeout` to 180000.
 HawkScan (the security-scan hook) can't run on this Mac: no hawk CLI or API key.
+
+## 2026-09-28 (late evening) — Readings filter, and Scott's pantry as test data (branch `readings-filter`)
+
+**Readings list filter (`c9fa631`):** chips above the List — All / Finger-prick / CGM / Food / Notes, each with
+its count — so ~48 Libre readings per 12 h don't bury finger-pricks, meals and notes (a follow-up this file
+listed). Remembered per device; default "All" (unchanged behaviour); hidden outside List mode. Logic in
+`src/readingsFilter.js`; readings with no `sourceId` (older entries) count as finger-pricks.
+
+**Pantry test starter (`4b55a44`) — from Scott's own barcode photos, sent mid-session with "test starter for
+reactive blood tracker" / "test data":** `tests/fixtures/scott-pantry-barcodes.json` holds 16 real products
+(barcode, what the photo shows, what Open Food Facts returned on 2026-09-28, and pack-label figures where
+legible). `tests/pantry.spec.js` runs offline against that snapshot: every barcode resolves as it did; a real
+breakfast (yoghurt 170 g + milk 250 ml + gouda + orange juice typed from the pack) totals 59.2 g carbs and
+names the gouda as uncounted; and a known disagreement is pinned (pepper cheddar: database 3.8 g/100 g, pack
+<1 g). `RUN_LIVE_OFF=1 npx playwright test tests/pantry.spec.js -g live --project="Desktop Chrome (Mac/PC)"`
+re-checks the live database for drift (rate-limit aware; ~1 min). Last live run: all 16 checked, no drift.
+- Coverage: 12 of 16 are in Open Food Facts; 3 of those have no carb figure (gouda, sparkling water,
+  vinegar). **Not in the database:** Primo prosciutto, Primo salami, Hilltop orange juice, Hilltop apple
+  juice — Scott types those from the pack (or adds them to Open Food Facts himself, which is free).
+- Two photos had no fully readable barcode (Bega cream jar, Vittoria coffee) — rescan if wanted. Primo and
+  mango-milk digits were read at medium confidence.
+
+**Bug found by the live check, fixed (`4b55a44`):** Open Food Facts now answers HTTP 404 for unknown products;
+`lookupBarcode` treated that as a failure, so the user saw "Lookup failed (404)" rather than "Not in Open Food
+Facts — describe it yourself". Now a 404 is "not in the database". Test added. **This bug is on the live site
+until the branch ships.**
+
+**Decisions I made — revisit if you disagree:** the fixture lives in `tests/` (it's shop products, no health
+data, so it's fine in git); the pack label wins over the database when they disagree (the user types the
+pack figure in "Carbs g"); the live check is opt-in so the normal suite never needs the internet.
