@@ -12,6 +12,11 @@ const API_BASE = "https://world.openfoodfacts.org/api/v2/product";
 export async function lookupBarcode(barcode) {
   try {
     const res = await fetch(`${API_BASE}/${encodeURIComponent(barcode)}.json?fields=product_name,brands,nutriments`);
+    // Open Food Facts answers 404 for a product it doesn't have (seen 2026-09-28 with real
+    // pantry barcodes), so that's "not in the database", not a failed lookup.
+    if (res.status === 404) {
+      return { found: false, barcode, error: "Not in Open Food Facts — describe it yourself instead." };
+    }
     if (!res.ok) return { found: false, barcode, error: `Lookup failed (${res.status})` };
     const data = await res.json();
     if (data.status !== 1 || !data.product) {

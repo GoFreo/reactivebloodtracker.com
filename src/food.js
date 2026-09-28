@@ -1,13 +1,19 @@
 import { addEntry, getAllEntries } from "./db.js";
 
-export async function saveFoodEntry({ text, photoBlob, timestamp, aiResult }) {
-  return addEntry("food", {
+export async function saveFoodEntry({ text, photoBlob, timestamp, aiResult, items, carbsTotal }) {
+  const entry = {
     type: "food",
     text: text || "",
     photoBlob: photoBlob || null,
     timestamp,
     aiResult: aiResult || null,
-  });
+  };
+  // Only meals built from ingredients carry these (see mealBuilder.js).
+  if (items?.length) {
+    entry.items = items;
+    entry.carbsTotal = carbsTotal ?? null;
+  }
+  return addEntry("food", entry);
 }
 
 export async function listFoodEntries() {

@@ -522,3 +522,94 @@ test.describe("export", () => {
     await rm(dir, { recursive: true, force: true });
   });
 });
+
+test.describe("meal builder", () => {
+  test("ingredients add up to a carb total, save as one meal, and show in Meals", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#meal-builder > summary").click();
+    // Opening the builder starts one empty ingredient row.
+    await expect(page.locator(".meal-item")).toHaveCount(1);
+
+    const rows = page.locator(".meal-item");
+    await rows.nth(0).locator(".mi-name input").fill("Rolled oats");
+    await rows.nth(0).locator(".mi-grams input").fill("40");
+    await rows.nth(0).locator(".mi-per100 input").fill("60");
+    await expect(page.locator("#meal-total")).toContainText("Total: 24 g carbs");
+
+    await page.locator("#meal-add-item-btn").click();
+    await rows.nth(1).locator(".mi-name input").fill("Milk");
+    await rows.nth(1).locator(".mi-grams input").fill("250");
+    await rows.nth(1).locator(".mi-per100 input").fill("4.8");
+    await expect(page.locator("#meal-total")).toContainText("Total: 36 g carbs");
+
+    await page.locator("#meal-add-item-btn").click();
+    await rows.nth(2).locator(".mi-name input").fill("Whey powder");
+    await expect(page.locator("#meal-total")).toContainText("not counting Whey powder");
+    // A known total typed straight in counts too.
+    await rows.nth(2).locator(".mi-carbs input").fill("2");
+    await expect(page.locator("#meal-total")).toContainText("Total: 38 g carbs");
+
+    // Removing a row takes its carbs out.
+    await rows.nth(2).locator(".mi-remove").click();
+    await expect(page.locator(".meal-item")).toHaveCount(2);
+    await expect(page.locator("#meal-total")).toContainText("Total: 36 g carbs");
+
+    await page.locator("#food-text").fill("Breakfast");
+    await page.locator('#food-form button[type="submit"]').click();
+    // The form resets: builder closed and emptied.
+    await expect(page.locator("#meal-builder")).not.toHaveAttribute("open", "");
+    await expect(page.locator(".meal-item")).toHaveCount(0);
+
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator("#timeline-list")).toContainText("Rolled oats 40g (24g carbs), Milk 250g (12g carbs) | Total 36g carbs");
+    await page.locator('#readings-view-toggle button[data-mode="meals"]').click();
+    const card = page.locator(".meal-card", { hasText: "Rolled oats, Milk" });
+    await expect(card.locator(".meal-carbs")).toContainText("36 g carbs from 2 ingredients");
+  });
+
+  test("a meal without the builder saves exactly as before", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#food-text").fill("an apple");
+    await page.locator('#food-form button[type="submit"]').click();
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator("#timeline-list")).toContainText("an apple");
+    await expect(page.locator("#timeline-list")).not.toContainText("Total");
+  });
+});
+
+test.describe("readings list filter", () => {
+  test("chips narrow the list to one kind, show counts, and remember the choice", async ({ page }) => {
+    await mockSpikySync(page);
+    await syncCgm(page); // 4 CGM readings
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator("#glucose-value").fill("4.6");
+    await page.locator('#glucose-form button[type="submit"]').click();
+    await page.locator("#food-text").fill("banana");
+    await page.locator('#food-form button[type="submit"]').click();
+
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await page.locator('#readings-view-toggle button[data-mode="list"]').click();
+    const chips = page.locator("#readings-filter");
+    await expect(chips).toBeVisible();
+    await expect(chips.locator('[data-filter="all"]')).toHaveText("All 6");
+    await expect(chips.locator('[data-filter="cgm"]')).toHaveText("CGM 4");
+    await expect(chips.locator('[data-filter="meter"]')).toHaveText("Finger-prick 1");
+
+    await chips.locator('[data-filter="meter"]').click();
+    await expect(chips.locator('[data-filter="meter"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#timeline-list .timeline-entry")).toHaveCount(1);
+    await expect(page.locator("#timeline-list")).toContainText("4.6");
+
+    await chips.locator('[data-filter="diary"]').click();
+    await expect(page.locator("#timeline-list")).toContainText("Nothing of this kind logged yet");
+
+    // Remembered after leaving and coming back; hidden outside List mode.
+    await chips.locator('[data-filter="food"]').click();
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator("#timeline-list .timeline-entry")).toHaveCount(1);
+    await expect(page.locator("#timeline-list")).toContainText("banana");
+    await page.locator('#readings-view-toggle button[data-mode="graph"]').click();
+    await expect(chips).toBeHidden();
+  });
+});
