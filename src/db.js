@@ -60,12 +60,3 @@ export async function getAllEntries(storeName) {
     req.onerror = () => reject(req.error);
   });
 }
-
-export async function deleteEntry(storeName, id) {
-  const store = await tx(storeName, "readwrite");
-  return new Promise((resolve, reject) => {
-    const req = store.delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}

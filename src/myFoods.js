@@ -69,16 +69,6 @@ export function listMyFoods(storage) {
   return Object.values(readAll(storage)).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Same result shape as nutrition.js lookupBarcode, so callers don't care where
-// the figures came from; `fromMyFoods` lets the UI say so.
-export async function lookupWithMyFoods(barcode, lookupFn, storage) {
-  const mine = getMyFood(barcode, storage);
-  if (mine) {
-    return { found: true, fromMyFoods: true, barcode: mine.barcode, name: mine.name, brand: "", carbsPer100g: mine.carbsPer100g, sugarsPer100g: mine.sugarsPer100g, servingSizeG: mine.servingSizeG ?? null };
-  }
-  return lookupFn(barcode);
-}
-
 // After a built meal is saved: remember every scanned ingredient that has a
 // per-100 g carbs figure, including any the user corrected from the pack.
 // Items without a barcode or without figures are skipped; nothing is guessed.

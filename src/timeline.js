@@ -102,10 +102,6 @@ export function renderReadingsList(container, entries) {
   }
 }
 
-// Kept as an alias — existing callers (tests, older code) that expect
-// renderTimeline keep working; new code should call renderReadingsList.
-export const renderTimeline = renderReadingsList;
-
 export const GRAPH_RANGES = [
   { label: "2h", hours: 2 },
   { label: "4h", hours: 4 },

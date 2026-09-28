@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  validateFood, saveMyFood, getMyFood, deleteMyFood, listMyFoods, lookupWithMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
+  validateFood, saveMyFood, getMyFood, deleteMyFood, listMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
 } from "../src/myFoods.js";
 
 function fakeStorage() {
@@ -29,17 +29,7 @@ test.describe("My foods (pure logic)", () => {
     expect(getMyFood("9311594019018", s)).toBeNull();
   });
 
-  test("a saved product is used before the online database", async () => {
-    const s = fakeStorage();
-    saveMyFood({ barcode: "9310645419336", name: "Coles Finest Pepper Cheddar", carbsPer100g: 0.5 }, s);
-    let online = 0;
-    const lookup = async () => { online += 1; return { found: true, name: "online", carbsPer100g: 3.85 }; };
-    const r = await lookupWithMyFoods("9310645419336", lookup, s);
-    expect(r).toMatchObject({ found: true, fromMyFoods: true, carbsPer100g: 0.5 });
-    expect(online).toBe(0);
-    await lookupWithMyFoods("9300601970223", lookup, s);
-    expect(online).toBe(1);
-  });
+  // Lookup order (device, food bank, public database) is tested in tests/foodBank.spec.js.
 
   test("saving a built meal remembers scanned items with figures, and nothing else", () => {
     const s = fakeStorage();

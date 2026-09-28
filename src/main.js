@@ -29,6 +29,8 @@ import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
+import { hasAccepted, getProfile, acceptWelcome } from "./welcome.js";
+import { listSavedMeals, saveMeal, deleteSavedMeal, mealToBuilderItems } from "./savedMeals.js";
 import { lookupFood, STAGE_TEXT, syncFoodBank, pushToFoodBank, deleteFromFoodBank, foodBankAvailable } from "./foodBank.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
 import {
@@ -63,6 +65,7 @@ const VIEW_TITLES = {
   export: "Export report",
   "food-guidance": "Food Guidance",
   "my-foods": "My foods",
+  help: "Help & sources",
   settings: "Settings",
 };
 
@@ -180,8 +183,14 @@ function setReadingsMode(mode, merged) {
 
 // List mode: filter chips (with counts) above the list. The last choice is
 // remembered on this device; "All" is the default, matching the old behaviour.
+// Only the newest entries are drawn at first: a year of Libre data is ~35,000
+// readings, and drawing them all took seconds and ~190,000 page elements
+// (measured 2026-09-28). "Show more" adds another page; changing filter resets.
+const LIST_PAGE = 200;
 let lastMerged = [];
+let listLimit = LIST_PAGE;
 function renderFilteredList(listEl, merged) {
+  if (merged !== lastMerged) listLimit = LIST_PAGE;
   lastMerged = merged;
   const active = normaliseFilter(localStorage.getItem(READINGS_FILTER_KEY));
   const counts = filterCounts(merged);
@@ -196,6 +205,7 @@ function renderFilteredList(listEl, merged) {
     btn.textContent = `${f.label} ${counts[f.key]}`;
     btn.addEventListener("click", () => {
       localStorage.setItem(READINGS_FILTER_KEY, f.key);
+      listLimit = LIST_PAGE;
       renderFilteredList(listEl, lastMerged);
     });
     chips.appendChild(btn);
@@ -204,7 +214,18 @@ function renderFilteredList(listEl, merged) {
   if (merged.length && !shown.length) {
     listEl.innerHTML = '<p class="timeline-empty">Nothing of this kind logged yet. Tap "All" to see everything.</p>';
   } else {
-    renderReadingsList(listEl, shown);
+    renderReadingsList(listEl, shown.slice(0, listLimit));
+    if (shown.length > listLimit) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "secondary-btn show-more";
+      more.textContent = `Show ${Math.min(LIST_PAGE, shown.length - listLimit)} more (${shown.length - listLimit} older)`;
+      more.addEventListener("click", () => {
+        listLimit += LIST_PAGE;
+        renderFilteredList(listEl, lastMerged);
+      });
+      listEl.appendChild(more);
+    }
   }
 }
 
@@ -618,10 +639,61 @@ mealBuilderEl.addEventListener("toggle", () => {
   if (mealBuilderEl.open && !mealItems.length) addMealItem();
 });
 
+// Saved meals: chips at the top of the builder load a saved meal's ingredients
+// (then portions can be changed as usual); the row under the total saves one.
+function renderSavedMeals() {
+  const wrap = document.getElementById("saved-meals");
+  wrap.innerHTML = "";
+  const meals = listSavedMeals();
+  if (!meals.length) return;
+  const label = document.createElement("span");
+  label.className = "saved-meals-label";
+  label.textContent = "Your saved meals:";
+  wrap.appendChild(label);
+  for (const m of meals) {
+    const chip = document.createElement("span");
+    chip.className = "saved-meal";
+    const load = document.createElement("button");
+    load.type = "button";
+    load.className = "saved-meal-load";
+    load.textContent = m.name;
+    load.addEventListener("click", () => {
+      mealItems = mealToBuilderItems(m);
+      renderMealItems();
+      document.getElementById("save-meal-name").value = m.name;
+      document.getElementById("save-meal-status").textContent = `Loaded ${m.name}. Change anything for today; it's only saved back if you tap Save meal.`;
+    });
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "saved-meal-del";
+    del.setAttribute("aria-label", `Delete saved meal ${m.name}`);
+    del.textContent = "✕";
+    del.addEventListener("click", () => {
+      if (!confirm(`Delete the saved meal "${m.name}"?`)) return;
+      deleteSavedMeal(m.name);
+      renderSavedMeals();
+    });
+    chip.append(load, del);
+    wrap.appendChild(chip);
+  }
+}
+
+document.getElementById("save-meal-btn").addEventListener("click", () => {
+  const r = saveMeal(document.getElementById("save-meal-name").value, cleanItems(mealItems));
+  document.getElementById("save-meal-status").textContent = r.ok ? `Saved "${r.meal.name}". It's at the top of the builder next time.` : r.error;
+  if (r.ok) renderSavedMeals();
+});
+
+mealBuilderEl.addEventListener("toggle", () => {
+  if (mealBuilderEl.open) renderSavedMeals();
+});
+
 function resetMealBuilder() {
   mealItems = [];
   renderMealItems();
   mealBuilderEl.open = false;
+  document.getElementById("save-meal-name").value = "";
+  document.getElementById("save-meal-status").textContent = "";
 }
 
 const barcodeResultEl = document.getElementById("barcode-result");
@@ -1476,3 +1548,43 @@ async function refreshFoodBank() {
     : `Food bank: ${r.error}`;
   if (r.ok && r.changed) renderMyFoods();
 }
+
+// --- Welcome / acknowledgement (logic in welcome.js) ---
+const welcomeEl = document.getElementById("welcome");
+const welcomeAccept = document.getElementById("welcome-accept");
+const welcomeContinue = document.getElementById("welcome-continue");
+
+function openWelcome() {
+  const p = getProfile();
+  document.getElementById("welcome-name").value = p.name;
+  document.getElementById("welcome-condition").value = p.condition;
+  document.getElementById("welcome-care").value = p.careTeam;
+  welcomeAccept.checked = hasAccepted();
+  welcomeContinue.disabled = !welcomeAccept.checked;
+  welcomeEl.hidden = false;
+}
+
+welcomeAccept.addEventListener("change", () => {
+  welcomeContinue.disabled = !welcomeAccept.checked;
+});
+
+document.getElementById("welcome-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const r = acceptWelcome({
+    accepted: welcomeAccept.checked,
+    name: document.getElementById("welcome-name").value,
+    condition: document.getElementById("welcome-condition").value,
+    careTeam: document.getElementById("welcome-care").value,
+  });
+  if (r.ok) welcomeEl.hidden = true;
+});
+
+document.getElementById("welcome-read-help").addEventListener("click", () => {
+  welcomeEl.hidden = true;
+  showView("help");
+});
+document.getElementById("help-show-welcome").addEventListener("click", openWelcome);
+
+// Shown once per wording version. Reading Help first is allowed; the welcome
+// comes back next time the app opens until it's accepted.
+if (!hasAccepted()) openWelcome();
