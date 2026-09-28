@@ -1472,7 +1472,8 @@ Meals tab 0.56 s and graph 0.34 s at a year. Script: session scratchpad `perf/lo
 - The 20 Sept photo patch no longer applied → refreshed (`proposed-patches/…/REFRESHED-2026-09-28.patch`);
   466 passed with it applied. Still not applied.
 - Stale worktree `…-0f088a` (146 MB; 116 MB of it a Netlify build cache; nothing uncommitted) moved to
-  `Dropbox/Pending Deletion/tracker-stale-worktree-0f088a-moved-2026-09-28`; merged local branches
+  `PROJECTS - START HERE/Scott Check Here/tracker-stale-worktree-0f088a (safe to delete, 2026-09-28)` (a move to
+  Dropbox stalled on iCloud downloads and was stopped before anything was copied; the same-drive move was instant); merged local branches
   (`meal-builder`, `readings-filter`, `my-foods`, `claude/…-0f088a`) deleted.
 - Old branch `claude/reactive-hypoglycemia-tracker-3cd4a9` (on GitHub) has **one unmerged commit**, an early
   "manual device-to-device sync" prototype. **Needs Scott:** keep or drop (the food bank now covers sharing
