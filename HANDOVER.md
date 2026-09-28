@@ -11,6 +11,55 @@ state, this header is kept current but the detail lives in the dated entries bel
 medical evidence, `DVA New Master`'s medical-evidence material, and existing open-source JS/Python
 approaches — with an AI-assisted section once a dedicated Anthropic key is wired in.
 
+## At a glance — current state as of 2026-09-20 (read this first; everything below is dated history)
+
+> **2026-09-28 update:** live site now serves `main` @ `dee45e8` (adds Libre CGM sync), deployed
+> via netlify-cli with `--functions=netlify/functions`. `npm test`: 146 passed / 2 skipped / 0 failed.
+> `main` is ahead of `origin/main` by one commit (not pushed). The 2026-09-20 doc edits and
+> `proposed-patches/` are still uncommitted, and the patch still applies cleanly on top of `dee45e8`.
+
+**Live:** `reactivebloodtracker.com` serves exactly `main` @ `a695000` — verified 2026-09-20: the live
+`index.html` and a fresh build of `main` reference the same content-hashed bundles
+(`index-BD-HkEMY.js`, `index-DSAxtjuE.css`). AI food parsing: key set by Scott, live text-parse
+verified 2026-09-14. (The **photo** path has never been verified on a real phone — see below.)
+**Health:** `npm test` 118 passed / 2 skipped (documented WebKit photo-save automation gap) / 0 failed;
+`npm audit` 0 vulnerabilities (all + production deps); nothing outdated at top level.
+**Git:** `main` == `origin/main` (`github.com/GoFreo/reactivebloodtracker.com`, pushed 2026-09-16
+11:35 +1000). Branch `claude/reactive-hypoglycemia-tracker-3cd4a9` (dormant `src/sync.js`) is also on
+origin, deliberately unmerged. Only uncommitted changes: docs (`CLAUDE.md`, this file).
+**Deploy:** still manual — `npm run build`, then `npx netlify-cli deploy --prod --dir=dist
+--site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`. Whether Netlify continuous deployment is now linked to
+the GitHub repo is only visible in the Netlify dashboard (it read "Not linked" on 2026-09-16) — unknown.
+
+**Needs Scott (nobody else can):**
+- **Netlify → link continuous deployment to the GitHub repo** (dashboard action) — or say it isn't wanted.
+- **Set a monthly spend limit** on the Anthropic key/workspace behind the AI proxy (Anthropic console).
+  The endpoint is public and has no per-caller limit — see the 2026-09-20 entry.
+- **Try a big photo on the phone** (~4.5 MB+; his biggest staged photo is 4.68 MB) and say whether
+  "Parse with AI" fails — confirms the finding behind the proposed patch below.
+- **Yes/no on the proposed patch:** `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/`
+  (tested, applies cleanly, **not applied**; its README has the one-command apply).
+- Surgery-timeline date for the export report (unanswered since 2026-09-12).
+- Meal-timed multiple reminders — the *shape* is his to specify (how many / meal-relative vs fixed /
+  editable list). Do not build from a guess.
+- "Food button" on Home: a shortcut to the Food section, or a separate Food tab?
+- Landing-page contact email (a personal address on a public page is his call).
+- Guide Me Bluetooth: needs him at the keyboard with the meter in pairing mode (Chrome's native device
+  picker can't be automated). If a food photo ever fails to save on iPhone, report the exact error text now shown.
+- `src/sync.js` (manual device-to-device sync): he called cross-device sync "food for thought" — don't
+  build or merge it without a yes.
+- **Libre 2 Plus CGM sync — built & deployed 2026-09-28, waiting on Scott's setup** (see that entry):
+  accept a LibreLinkUp invite, then add `LIBRELINKUP_EMAIL`, `LIBRELINKUP_PASSWORD`,
+  `CGM_SYNC_PASSCODE` (8+ chars) in Netlify himself. Dexcom G7 also coming from ADACare.
+
+**Deliberately not built — don't add without asking:** portion-size / "safe amount" advice; a low
+threshold below the ADA floor (`LOW_THRESHOLD_FLOOR`); anything that syncs to a cloud by default; any
+copy of SparkyFitness source (non-commercial licence).
+**Never touch:** `data/` and `food photos/` (Scott's real health data, gitignored). Never enter the
+Anthropic key value anywhere, in any tool.
+**SITREP (standing rule in `CLAUDE.md`):** one living artifact — https://claude.ai/artifact/QhRy9XngkyybAL5K5upcFz
+("Reactive Tracker Sit Rep", republished 2026-09-20 as version 5). Republish to that URL; don't create a new one.
+
 ## 2026-09-12 — Claude (project created)
 
 ### Completed
@@ -1051,7 +1100,9 @@ under `.claude/worktrees/`, none reflected in this file:
   `940786` — its commits live on in `main`'s history via the merge). Kept `3cd4a9`'s branch.
   **One leftover:** the now-empty `.claude/worktrees/` directory itself couldn't be removed this
   session (a `rm -rf` was declined) — cosmetic only, safe for Scott to trash via Finder, or ask a
-  future session to clear it.
+  future session to clear it. *(Update 2026-09-20: it wasn't actually empty — it held a stale
+  160 KB snapshot folder, `reactive-hypoglycemia-tracker-3cd4a9/`, byte-identical to what's committed
+  on that branch. Handled — see the 2026-09-20 entry at the bottom.)*
 - `npm install` (picks up `@zxing/browser` and other deps the merged code needs) + `npm test`:
   **118 passed, 2 skipped (the documented WebKit photo-save automation-environment gap), 0 failed.**
 - Updated this file's top status line to match reality (was still "pre-code" — four days and a full
@@ -1068,8 +1119,172 @@ up. Linking Netlify's continuous deployment to it would mean every future deploy
 "where's the deploy folder, let's make it findable" instinct today. **Not done unilaterally this
 session** — pushing this repo's code to a GitHub remote for the first time is a real, visible
 action worth Scott's explicit go-ahead rather than assuming it. Ask him next time this comes up if
-he hasn't already answered.
+he hasn't already answered. *(Update 2026-09-20: the push **did** happen — git's own reflog shows
+`origin/main` updated "by push" on 2026-09-16 11:35 +1000, about 4 minutes after the last commit, and
+the dormant `3cd4a9` branch went up at 11:35:30. `main` == `origin/main`. This paragraph and the
+root index were never updated afterwards. What's still unconfirmed is only Netlify's own
+continuous-deployment link to that repo, which is a dashboard setting — see the "At a glance" block.)*
 
 **Not investigated this session, lower priority:** whether `3cd4a9`'s `sync.js` should be reconciled
 into `main` (real feature, just needs a deliberate merge pass against the 940786-derived code it
 overlaps with).
+
+## 2026-09-20 — Autonomous verification pass (Claude, Scott away)
+
+Picked from `MASTER_HANDOVER.md` because this project's only open "needs Scott" item was the git
+remote. Worked only inside this folder. **Docs only were changed** — no source, no commit, no push, no
+deploy (see "Left alone on purpose").
+
+**Verified (all read-only or in a scratch copy)**
+- **Live == `main`.** Fresh `vite build` of `main` (built into a scratch folder, not `dist/`) and the
+  live `index.html` reference identical hashed bundles — same code.
+- **`npm test`: 118 passed / 2 skipped / 0 failed** (1.1 min) — exactly the 2026-09-16 figure; nothing
+  drifted. `npm audit`: 0 vulnerabilities (all and production). `npm outdated`: nothing.
+- **The GitHub push HAS happened.** `git reflog --date=iso origin/main` → "update by push"
+  2026-09-16 11:35:21 +1000 (last commit 11:31); the `3cd4a9` branch went up at 11:35:30. `main` ==
+  `origin/main` (`a695000`). The 2026-09-16 entry above, `MASTER_HANDOVER.md` and `SCOTT-TO-ACTION.md`
+  all still said the push needed Scott's go-ahead / the repo was empty — they had been written just
+  before it happened and never updated. What is genuinely still open is only Netlify's own
+  continuous-deployment link, a dashboard setting nothing on disk can reveal.
+
+**Docs corrected:** `CLAUDE.md` (status line, "key not configured yet" → configured & verified,
+test count, and a "superseded" pointer above its stale Next-steps list); two inline "Update
+2026-09-20" annotations on the 2026-09-16 entry; the "At a glance" block at the top of this file.
+
+**Housekeeping:** the "empty `.claude/worktrees/`" left over from 2026-09-16 was not empty — it held a
+stale 160 KB snapshot folder (`reactive-hypoglycemia-tracker-3cd4a9/`, orphaned: git no longer listed
+it). Every tracked file in it was diffed against branch `3cd4a9` and was **byte-identical** (the rest
+was `.netlify/` build output, `test-results/`, `.DS_Store`). Moved — not deleted — to
+`~/Dropbox/Pending Deletion/tracker-stale-worktree-snapshot-3cd4a9-moved-2026-09-20/`.
+`.claude/worktrees/` now holds only a `.DS_Store`.
+
+**Findings — real and evidenced, deliberately not fixed in live code**
+1. **Big photos probably can't be AI-parsed.** `parseFoodWithAI` base64s the raw camera file — there is
+   no resize anywhere in `src/`. Scott's 3 staged photos are 1.97 / 3.19 / **4.68** MB (file sizes only
+   were read). Netlify's docs give a 6 MB buffered request limit, effectively ~4.5 MB for a photo once
+   base64'd; the 4.68 MB one is over it and would be turned away before `ai-proxy` runs. **Not
+   reproduced on a device.** (Anthropic's own per-image cap on the direct API is 10 MB, so it is *not*
+   the binding limit.)
+2. **…and the message shown would be wrong:** Netlify's non-JSON rejection makes `res.json()` throw and
+   the old catch says "needs `netlify dev`…", misleading on the live site.
+3. **The AI endpoint is public with no per-caller limit.** Good news first: model, `max_tokens` and the
+   system prompt are fixed server-side, so it is *not* an open Claude proxy. But `text`/`mimeType` were
+   unbounded, a bare `null` body threw an uncaught `TypeError`, and there is no auth or rate limiting
+   (the optional `APP_SHARED_SECRET` guard, if set, only deters casual callers — `VITE_` values are
+   readable in the shipped bundle). Real exposure is calls-per-second × ~$0.003–0.005 each on Scott's
+   key. **The actual backstop is a monthly spend limit in the Anthropic console — Scott only.**
+
+**Proposed, not applied:** `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/` — shrinks only
+the copy sent to the AI (≤1568 px — Haiku 4.5's own native limit — JPEG q0.85; falls back to the
+original on any failure), separates "unreachable" from "rejected" errors, and bounds the proxy's
+inputs. Built and tested in a scratch copy of `main`: the 5 tests describing new behaviour fail on
+the unpatched source, and with the patch the **full suite is 210 passed / 2 skipped / 0 failed on all
+4 browser projects**; a worst-case ~9–10 MB photo went from ~11.4 MB uploaded to 0.76 MB (Chromium) /
+1.27 MB (WebKit). `git apply --check` against real `HEAD` is clean. Its README lists what is
+unverified (real iPhone Safari, EXIF rotation, 48 MP memory, photos of text).
+
+**Left alone on purpose:** `data/` and `food photos/` (only file *sizes* of the latter were read — no
+image opened); `src/sync.js` and the `3cd4a9` branch; no commit, push or deploy (deploys are Scott's,
+and nothing here is his to be surprised by); HawkScan could not run (no `hawk` CLI / `HAWK_API_KEY`
+in this environment — same limitation as 2026-09-12). The scratch copy lives only in the session
+scratchpad; the patch file in `proposed-patches/` is the durable result.
+
+**Next safe step for a future session with Scott present:** ask for the yes/no on the patch and the
+photo test; if yes, apply → `npm test` → he reviews → commit → manual deploy per "At a glance".
+
+## 2026-09-28 — Libre 2 Plus CGM sync built (LibreLinkUp + passcode); Dexcom G7 & fitness requested
+
+**Context:** both the Libre 2 Plus and the Accu-Chek Guide Me are now in hand and in daily use. Scott
+sees a "large discrepancy" between them. Explained as expected up to a point: CGM reads interstitial
+fluid and lags blood by ~5–15 min, most of all during fast drops (exactly a reactive crash), and new
+sensors read worse on day 1. No numbers given yet; offered to look at paired readings.
+
+**Built (commit `dee45e8`, deployed, live endpoint confirmed answering `configured:false`):**
+- `netlify/functions/cgm-sync.js`: logs in to LibreLinkUp server-side (follower account from Netlify
+  env vars), fetches `/llu/connections` then `/graph` (~12h at 15-min intervals + current), returns
+  mmol/L readings. **Stores nothing server-side.** API details checked 2026-09-28 against
+  `timoschlueter/nightscout-librelink-up`: `version` 4.16.0 (override via `LIBRELINKUP_VERSION`),
+  `product: llu.ios`, `account-id` = sha256(user id), host `api-au.libreview.io` (follows a region
+  redirect once). `FactoryTimestamp` is parsed explicitly as UTC. Implausible values are dropped.
+- **Passcode gate:** `CGM_SYNC_PASSCODE` (refused if under 8 chars), compared via hashed
+  timing-safe equality, with a 1s delay on a wrong guess. Without it the URL would hand anyone
+  Scott's glucose. It's still a single static secret with no real rate limit, so use a long one.
+- App: `src/libreLinkUp.js`, a "📈 Sync CGM" button on Home (side by side with Sync meter), and a
+  Settings section for the passcode with opt-in "remember on this device" (localStorage). Dedupes on
+  source + exact timestamp, so repeated syncs are safe. Readings list now tags glucose as "· CGM" or
+  "· Meter" so the two sources can be compared.
+- Tests: new `tests/cgmSync.spec.js` (timestamp/UTC, AM/PM edges, conversion, dedupe, implausible
+  values, passcode, not-configured paths) plus 2 smoke tests (mocked function: passcode required,
+  import + re-sync dedupe, CGM tag, wrong passcode). **146 passed / 2 skipped / 0 failed.**
+
+**Not verified:** a real LibreLinkUp login. That needs Scott's follower account + env vars, and
+Abbott changes this unofficial API without notice. The first real sync is the test.
+
+**Scott's next steps (his, not Claude's — credentials):**
+1. Libre app → Connected Apps → LibreLinkUp → **Add Connection** → invite an email he controls.
+2. Install LibreLinkUp, sign up with that email, accept the invite and terms, confirm a reading shows.
+3. Netlify → Site configuration → Environment variables: `LIBRELINKUP_EMAIL`, `LIBRELINKUP_PASSWORD`,
+   `CGM_SYNC_PASSCODE`. Env var changes apply to functions on the next deploy, so do one redeploy after.
+4. In the app: Settings → type the passcode → Sync CGM readings.
+
+**Noted from Scott's screenshot:** a "Libre Data Share" code is active until 1 Oct. It's a separate
+Abbott feature, not needed for this. It's his call whether it was intended; "Manage Code" ends it.
+
+**New requests, captured, not built:**
+- **Dexcom G7** coming from ADACare for a trial. Add it as another `glucoseSources` entry when it
+  arrives. Options: Dexcom Share (unofficial, same pattern as LibreLinkUp, has an outside-US server)
+  or Dexcom's official developer API (OAuth, but data is delayed). Decide once the device is here.
+- **Fitness section (steps/activity), plus separate Carbs / Fitness / History sections.** Hard
+  platform limit: a web app **cannot read Apple Health/HealthKit**. Realistic routes: an iOS Shortcut
+  that exports daily steps to a file the app imports; Health's own "Export All Health Data" XML
+  import; or a native iOS wrapper (big step). Needs Scott's call on the route and on how the
+  sections should be laid out before building.
+
+**Follow-ups worth doing:** ~48 CGM points per 12h will crowd the Readings list, so consider
+collapsing or filtering by source. Also consider a paired CGM-vs-finger-prick comparison view (purely
+descriptive). The graph currently plots all sources as one line.
+
+### 2026-09-28 (continued) — spike prompt, graph honesty, new icon, research, scope change
+
+**Built & deployed (all live, `npm test` 198 passed / 2 skipped / 0 failed):**
+- `e6ed865`: CGM sync now names *which* Netlify settings are missing (names only). It showed all three
+  Production values are empty; the names were saved but the values weren't. **Scott to re-enter the values.**
+- `d11f121`: "Why did your sugar spike?" (`src/spikeDetection.js`). A rise or drop of 2+ mmol/L within
+  60 min on CGM data, with nothing logged in the prior 2 h (4 h for drops), gets a Home card with
+  Yes (logs the food at that time) / Not sure (recorded as unexplained) / Sensor glitch / Dismiss.
+  Answering a rise also settles the crash after it. Answers are diary entries tagged `excursionId`,
+  so they show in the timeline and export. Thresholds are editable in Settings.
+- `0a60adf`: new icon, a droplet on a coil spring (Scott's "reactive" idea), plus real PNG icons
+  (`icon-180` apple-touch, 192, 512, maskable 512), because iOS ignores SVG home-screen icons.
+  `scripts/render-icons.mjs` regenerates them. Service worker cache bumped to v2.
+- `c397b53`: graph rewrite. The Libre line breaks at gaps over 45 min (shaded "no data"),
+  finger-pricks are diamonds on top (device differences are visible), meal markers run along the
+  bottom, the time axis spans the whole range, and there's a legend and an optional low-threshold rule.
+
+**Deploy gotcha found:** `netlify deploy` can silently reuse a cached function bundle (two deploys
+uploaded an identical `cgm-sync` digest despite different code). **Always deploy with
+`--skip-functions-cache`:**
+`npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`,
+then confirm by curling the function.
+
+**Research:** "Glucose App Field Study" (https://claude.ai/artifact/Ya7Fr1FHxAj1iVfrHwGNNc) covers ten
+apps (Gluroo, Undermyfork, mySugr, LibreLink, Dexcom G7/Follow, Sugarmate, Lingo, One Drop, Glucose
+Buddy, xDrip+/Juggluco/Nightscout), each with pros, cons and a take/avoid note, plus a scorecard.
+Key finding: nobody builds for lows first.
+
+**Scope change (Scott, 2026-09-28):** public app, BYO key, diabetes + insulin as well as reactive
+hypo, co-loggers + clinician viewers, exercise, care-team involvement. Recorded at the top of
+`CLAUDE.md`. Scott also set new working rules (decide logical questions yourself, log them in the
+SITREP, batch only Scott-only questions), recorded in root `MASTER_HANDOVER.md` and in memory.
+
+**Agreed build order:** (1) Libre sync ✅ built, waiting on values; (2) spike prompt ✅; then meal
+gallery with after-meal outcome → meal builder (ingredients/barcodes, carbs totalled) → sharing
+with roles (encrypted, opt-in) → "tell my family if I go low" → exercise → BYO key + condition
+profile for going public.
+
+**Small stumbles, all fixed:** the icon script mis-wrote to a `%20`-encoded path (moved the 4 files
+in, removed only the empty stray folders, script now uses `fileURLToPath`); one test edit briefly
+landed in the main checkout instead of the worktree (reverted with `git checkout`, main was clean at
+that file); the LibreView Data Share code was rejected twice (AUTH_LOGIN 437), stopped retrying, and
+LibreLinkUp is the working route anyway.
+

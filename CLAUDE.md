@@ -29,8 +29,29 @@ tracking/analysing it. Mobile-first (used mostly on Scott's phone), with a Mac-u
 Will call the Anthropic API for its AI-driven sections — Scott is generating a fresh, dedicated key
 for this project once that part is actually being built; don't hardcode or ask for one before then.
 
-**Status as of 2026-09-12: working v1 built** (Vite PWA, `npm run dev`/`npm run build` both work).
-See `HANDOVER.md` for what's built, tested, and open.
+**Status as of 2026-09-20: live and in daily use at reactivebloodtracker.com** (Vite PWA; the live
+site serves exactly `main`). Originally a working v1 on 2026-09-12 — far past that now. Start with
+`HANDOVER.md`'s "At a glance" block for the current picture; the dated entries below it are history.
+
+## ⚠️ Scope change — 2026-09-28 (Scott's explicit decision, supersedes "Phase 1 only" below)
+
+Scott has decided this becomes a **public app**. Read the rest of this file with that in mind:
+- **Bring-your-own Anthropic key** for AI features, exactly as the "Phase 2" section further down already
+  describes (risk disclosure before the key field; the app still fully works without a key). That
+  architecture is now the target, not a hypothetical. It still needs building.
+- **Conditions covered:** reactive hypoglycemia (lows-first, the app's origin) **plus type 1 /
+  insulin-dependent and other diabetes**. Design for a per-user condition profile, not one hardcoded
+  audience. Insulin can be *logged* as an entry, but **never build a bolus/dose calculator or any
+  dosing suggestion**: that is regulated medical-device territory and stays out under "Descriptive,
+  not prescriptive".
+- **People around the user:** co-loggers (partner, home help, meal services, who can add meals via
+  scan or ingredients) and viewers (diabetes educators, dietitians, GPs, specialists). Sharing is
+  opt-in, off by default, encrypted, per-person isolated (privacy principles 1–3 below still bind).
+- **Exercise** (steps, walks, pool, gym) belongs alongside glucose. The Apple Health route is still to
+  be chosen, since a web app can't read HealthKit directly.
+- **Descriptive, not prescriptive is unchanged** and matters more now: for a public app it is also what
+  keeps the product out of TGA software-as-a-medical-device classification.
+- Competitive research informing this: https://claude.ai/artifact/Ya7Fr1FHxAj1iVfrHwGNNc
 
 ## Product scope (confirmed by Scott, 2026-09-12)
 
@@ -101,7 +122,9 @@ empty, the research hasn't come across yet — don't assume or invent findings.
 (`reactive-hypoglycemia-tracker.netlify.app`, team `smfraser60`, site id
 `0b9a9624-13b7-4441-8056-0807f9cbbf7c`). Scott picked Anthropic himself ("I like their policies").
 The key is a server-side env var (`ANTHROPIC_API_KEY`) read by `netlify/functions/ai-proxy.js` —
-architecture already built for exactly this, nothing to change. **Not configured yet.**
+architecture already built for exactly this, nothing to change. **Configured — Scott added the
+key himself as a Secret env var on 2026-09-12, and a live text-parse call was verified working
+2026-09-14** (see `HANDOVER.md`). The rule below still stands: never enter the value yourself.
 
 **Whoever picks this up: do not enter the key value yourself, in any tool, ever — not into
 Netlify's env vars, not into a `.env` file, not anywhere.** Handling API keys/secrets on Scott's
@@ -218,7 +241,8 @@ silently until this was found. Keep this setting; don't remove it as unnecessary
 
 **Run `npm test` before every deploy, no exceptions.** It builds and serves the real production
 bundle (`playwright.config.js`'s `webServer`, not the dev server) — a true pre-deploy gate, not a
-dev-mode sanity check. All 100 passed as of 2026-09-14. If a deploy is proposed without this having
+dev-mode sanity check. 118 passed / 2 skipped (the documented WebKit photo-save automation gap) /
+0 failed as of 2026-09-20. If a deploy is proposed without this having
 been run against the current code, run it first; don't skip on the assumption "it's a small change."
 Add a new test case when a new feature ships — this suite is meant to grow, not stay frozen at any
 particular count. **A recurring bug pattern worth specifically testing for in any new element:** if
@@ -229,6 +253,11 @@ three separate elements before this pattern was recognized (`.timeline-list`, `.
 guarded against pre-emptively for `#barcode-scanner`) — see HANDOVER.md's 2026-09-14 entry.
 
 ## Next steps (PICK UP HERE) — updated 2026-09-14
+
+> **Superseded 2026-09-20:** the current open-items list lives in `HANDOVER.md`'s "At a glance"
+> block. Two facts below are out of date: the repo **was** pushed to GitHub on 2026-09-16 (only
+> Netlify's continuous-deployment link, a dashboard action, is still unconfirmed), and the bullet
+> list is kept only as history.
 
 - **Genuinely needs Scott:** surgery-timeline date for the export report (still unanswered from
   2026-09-12); **Resolved 2026-09-15:** the stale-deploy issue is fixed and today's work (Food Guidance, Home
@@ -254,3 +283,14 @@ guarded against pre-emptively for `#barcode-scanner`) — see HANDOVER.md's 2026
   dashboard idea, and section 4 "DVA Folder" flagged 2026-09-07 that its medical file was "meant
   to feed a new program going forward" — this is that program. Worth a conscious call with Scott
   on whether this absorbs those or stays separate; don't assume.
+
+---
+
+## Specialist role (added 2026-09-16, Scott's instruction — team of experts)
+
+**Role: Health-Tech Product Engineer.** Building and maintaining Scott's own reactive-hypoglycemia
+tracker — Vite PWA, real Bluetooth meter integration, barcode/food-database lookup, glucose
+thresholds. This is a personal medical tool built from Scott's own evidence and daily real use
+(see `HANDOVER.md`), not a generic app — treat data accuracy and export-for-clinician quality as
+load-bearing, the same standard as the Dictation App's accessibility role. Deploy is manual
+(Netlify CLI push, not yet linked to git) — check `HANDOVER.md` before assuming that's changed.
