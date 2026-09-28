@@ -28,6 +28,7 @@ import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
+import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems } from "./mealBuilder.js";
 import {
   findUnexplainedExcursions,
   describeExcursion,
@@ -204,11 +205,20 @@ function renderMealGallery(container) {
     body.className = "meal-body";
     const title = document.createElement("p");
     title.className = "meal-title";
-    title.textContent = meal.text || meal.aiResult?.foodName || "Meal (photo)";
+    title.textContent = meal.items?.length
+      ? meal.items.map((i) => i.name).join(", ")
+      : meal.text || meal.aiResult?.foodName || "Meal (photo)";
     const when = document.createElement("p");
     when.className = "meal-when";
     when.textContent = formatDate(meal.timestamp);
     body.append(title, when);
+    if (meal.items?.length && meal.carbsTotal != null) {
+      const carbs = document.createElement("p");
+      carbs.className = "meal-carbs";
+      const n = meal.items.length;
+      carbs.textContent = `🧺 ${meal.carbsTotal} g carbs from ${n} ingredient${n > 1 ? "s" : ""}`;
+      body.appendChild(carbs);
+    }
 
     const stats = document.createElement("dl");
     stats.className = "meal-stats";
@@ -435,6 +445,106 @@ foodPhotoInput.addEventListener("change", () => {
 
 document.getElementById("food-camera-btn").addEventListener("click", () => foodPhotoInput.click());
 
+// --- Meal builder (ingredients → carbs total; logic in mealBuilder.js) ---
+const mealBuilderEl = document.getElementById("meal-builder");
+const mealItemsEl = document.getElementById("meal-items");
+const mealTotalEl = document.getElementById("meal-total");
+let mealItems = [];
+
+const MEAL_FIELDS = [
+  { key: "grams", label: "Grams", cls: "mi-grams" },
+  { key: "carbsPer100g", label: "Per 100g", cls: "mi-per100" },
+  { key: "carbsGrams", label: "Carbs g", cls: "mi-carbs" },
+];
+
+function updateMealTotal() {
+  const named = mealItems.filter((i) => (i.name || "").trim());
+  if (!named.length) {
+    mealTotalEl.textContent = "";
+    return;
+  }
+  const t = mealTotals(named);
+  let msg = `Total: ${t.carbs} g carbs`;
+  if (t.sugars != null) msg += ` · ${t.sugars} g sugars`;
+  if (t.missing.length) msg += ` · not counting ${t.missing.join(", ")} (no carb figures yet)`;
+  mealTotalEl.textContent = msg;
+  // Each row's computed carbs, shown as the Carbs g placeholder so a typed value still wins.
+  mealItemsEl.querySelectorAll(".meal-item").forEach((row, idx) => {
+    const c = itemCarbs(mealItems[idx]);
+    row.querySelector(".mi-carbs input").placeholder = c != null ? String(c) : "–";
+  });
+}
+
+function renderMealItems() {
+  mealItemsEl.innerHTML = "";
+  mealItems.forEach((item, idx) => {
+    const row = document.createElement("div");
+    row.className = "meal-item";
+    const nameLabel = document.createElement("label");
+    nameLabel.className = "mi-name";
+    nameLabel.textContent = "Ingredient";
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = item.name;
+    nameInput.placeholder = "e.g. rolled oats";
+    nameInput.addEventListener("input", () => {
+      item.name = nameInput.value;
+      updateMealTotal();
+    });
+    nameLabel.appendChild(nameInput);
+    row.appendChild(nameLabel);
+    for (const f of MEAL_FIELDS) {
+      const label = document.createElement("label");
+      label.className = f.cls;
+      label.textContent = f.label;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.inputMode = "decimal";
+      input.min = "0";
+      input.step = "any";
+      input.value = item[f.key] ?? "";
+      input.addEventListener("input", () => {
+        item[f.key] = input.value;
+        updateMealTotal();
+      });
+      label.appendChild(input);
+      row.appendChild(label);
+    }
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "mi-remove";
+    remove.setAttribute("aria-label", `Remove ${item.name || "ingredient"}`);
+    remove.textContent = "✕";
+    remove.addEventListener("click", () => {
+      mealItems.splice(idx, 1);
+      renderMealItems();
+    });
+    row.appendChild(remove);
+    mealItemsEl.appendChild(row);
+  });
+  updateMealTotal();
+}
+
+function addMealItem(item = emptyItem()) {
+  mealItems.push(item);
+  renderMealItems();
+  const rows = mealItemsEl.querySelectorAll(".meal-item");
+  const last = rows[rows.length - 1];
+  // A scanned product already has its name, so the next thing to fill is the amount.
+  last?.querySelector(item.name ? ".mi-grams input" : ".mi-name input")?.focus();
+}
+
+document.getElementById("meal-add-item-btn").addEventListener("click", () => addMealItem());
+mealBuilderEl.addEventListener("toggle", () => {
+  if (mealBuilderEl.open && !mealItems.length) addMealItem();
+});
+
+function resetMealBuilder() {
+  mealItems = [];
+  renderMealItems();
+  mealBuilderEl.open = false;
+}
+
 const barcodeScannerEl = document.getElementById("barcode-scanner");
 const barcodeVideoEl = document.getElementById("barcode-video");
 const barcodeStatusEl = document.getElementById("barcode-status");
@@ -456,7 +566,13 @@ document.getElementById("food-barcode-btn").addEventListener("click", async () =
       barcodeStatusEl.textContent = `Found ${code} — looking it up…`;
       const product = await lookupBarcode(code);
       barcodeScannerEl.hidden = true;
-      if (product.found) {
+      if (product.found && mealBuilderEl.open) {
+        // Building a meal: the product becomes an ingredient row instead of replacing the description.
+        // An untouched blank row (the one opening the builder adds) is replaced rather than left behind.
+        const last = mealItems[mealItems.length - 1];
+        if (last && !last.name && !last.grams && !last.carbsPer100g && !last.carbsGrams) mealItems.pop();
+        addMealItem(productToItem(product));
+      } else if (product.found) {
         document.getElementById("food-text").value = productToFoodText(product);
       } else {
         foodAiResultEl.hidden = false;
@@ -557,13 +673,18 @@ foodForm.addEventListener("submit", async (e) => {
     // is very likely the actual cause behind food photos silently failing to
     // save on iPhone before now, not user error.
     const storablePhoto = currentFoodPhotoBlob ? await toStorableBlob(currentFoodPhotoBlob) : null;
+    const items = cleanItems(mealItems);
+    const notes = document.getElementById("food-text").value;
     await saveFoodEntry({
-      text: document.getElementById("food-text").value,
+      text: items.length ? mealToText(items, notes) : notes,
+      items,
+      carbsTotal: items.length ? mealTotals(items).carbs : null,
       photoBlob: storablePhoto,
       timestamp: new Date(document.getElementById("food-time").value).toISOString(),
       aiResult: currentAiResult && currentAiResult.configured !== false ? currentAiResult : null,
     });
     foodForm.reset();
+    resetMealBuilder();
     foodPhotoPreview.hidden = true;
     currentFoodPhotoBlob = null;
     resetFoodAiState();

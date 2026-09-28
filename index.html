@@ -125,6 +125,17 @@
               <button type="button" id="barcode-cancel-btn">Cancel scan</button>
               <p class="field-hint" id="barcode-status"></p>
             </div>
+            <details id="meal-builder" class="meal-builder">
+              <summary>🧺 Build a meal from ingredients</summary>
+              <p class="field-hint">
+                Add each ingredient and how many grams you had (ml for drinks). "Per 100g" is the carbs figure on the label, or tap
+                Barcode while this is open to add a product. If you already know an item's carbs, put
+                them in "Carbs&nbsp;g" instead.
+              </p>
+              <div id="meal-items" class="meal-items"></div>
+              <button type="button" id="meal-add-item-btn" class="secondary-btn">+ Add ingredient</button>
+              <p id="meal-total" class="meal-total" aria-live="polite"></p>
+            </details>
             <img id="food-photo-preview" class="photo-preview" hidden />
 
             <label>
