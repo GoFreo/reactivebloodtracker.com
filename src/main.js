@@ -182,8 +182,14 @@ function setReadingsMode(mode, merged) {
 
 // List mode: filter chips (with counts) above the list. The last choice is
 // remembered on this device; "All" is the default, matching the old behaviour.
+// Only the newest entries are drawn at first: a year of Libre data is ~35,000
+// readings, and drawing them all took seconds and ~190,000 page elements
+// (measured 2026-09-28). "Show more" adds another page; changing filter resets.
+const LIST_PAGE = 200;
 let lastMerged = [];
+let listLimit = LIST_PAGE;
 function renderFilteredList(listEl, merged) {
+  if (merged !== lastMerged) listLimit = LIST_PAGE;
   lastMerged = merged;
   const active = normaliseFilter(localStorage.getItem(READINGS_FILTER_KEY));
   const counts = filterCounts(merged);
@@ -198,6 +204,7 @@ function renderFilteredList(listEl, merged) {
     btn.textContent = `${f.label} ${counts[f.key]}`;
     btn.addEventListener("click", () => {
       localStorage.setItem(READINGS_FILTER_KEY, f.key);
+      listLimit = LIST_PAGE;
       renderFilteredList(listEl, lastMerged);
     });
     chips.appendChild(btn);
@@ -206,7 +213,18 @@ function renderFilteredList(listEl, merged) {
   if (merged.length && !shown.length) {
     listEl.innerHTML = '<p class="timeline-empty">Nothing of this kind logged yet. Tap "All" to see everything.</p>';
   } else {
-    renderReadingsList(listEl, shown);
+    renderReadingsList(listEl, shown.slice(0, listLimit));
+    if (shown.length > listLimit) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "secondary-btn show-more";
+      more.textContent = `Show ${Math.min(LIST_PAGE, shown.length - listLimit)} more (${shown.length - listLimit} older)`;
+      more.addEventListener("click", () => {
+        listLimit += LIST_PAGE;
+        renderFilteredList(listEl, lastMerged);
+      });
+      listEl.appendChild(more);
+    }
   }
 }
 

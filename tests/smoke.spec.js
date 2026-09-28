@@ -705,3 +705,29 @@ test.describe("meal builder with saved foods and portions", () => {
     await expect(page.locator("#myfood-bank-status")).toContainText("Food bank: off");
   });
 });
+
+test.describe("readings list paging", () => {
+  test("a long history shows the newest 200 first, with Show more", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(async () => {
+      const db = await new Promise((res) => { const r = indexedDB.open("rht-db", 1); r.onsuccess = () => res(r.result); });
+      await new Promise((res) => {
+        const t = db.transaction("glucose", "readwrite");
+        const s = t.objectStore("glucose");
+        const now = Date.now();
+        for (let i = 0; i < 450; i++) s.add({ id: `c${i}`, type: "glucose", value: 5.5, unit: "mmol/L", sourceId: "librelinkup", timestamp: new Date(now - i * 900000).toISOString() });
+        t.oncomplete = res;
+      });
+    });
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await page.locator('#readings-view-toggle button[data-mode="list"]').click();
+    await expect(page.locator("#readings-filter [data-filter='all']")).toHaveText("All 450");
+    await expect(page.locator("#timeline-list .timeline-entry")).toHaveCount(200);
+    await page.locator("#timeline-list .show-more").click();
+    await expect(page.locator("#timeline-list .timeline-entry")).toHaveCount(400);
+    await expect(page.locator("#timeline-list .show-more")).toHaveText("Show 50 more (50 older)");
+    await page.locator("#timeline-list .show-more").click();
+    await expect(page.locator("#timeline-list .timeline-entry")).toHaveCount(450);
+    await expect(page.locator("#timeline-list .show-more")).toHaveCount(0);
+  });
+});
