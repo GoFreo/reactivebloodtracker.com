@@ -12,7 +12,8 @@
     <path d="M66 131H126"/>
     <path d="M62 180H130"/>
   </g>
-  <path d="M96 18C96 18 62 66 62 92a34 34 0 0 0 68 0C130 66 96 18 96 18z" fill="#FFFFFF"/>
-  <path d="M83 94a13 13 0 0 0 13 13" stroke="#1B6E6A" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.35"/>
+  <!-- Blood-red droplet (Scott, 2026-09-28) with a soft white highlight. -->
+  <path d="M96 18C96 18 62 66 62 92a34 34 0 0 0 68 0C130 66 96 18 96 18z" fill="#D63A3A"/>
+  <path d="M81 90a15 15 0 0 0 12 16" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.55"/>
   </g>
 </svg>
