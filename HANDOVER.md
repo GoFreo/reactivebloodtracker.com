@@ -60,7 +60,7 @@ Merged `saved-meals` (which contained `cleanup` and `help-and-welcome`) → `f58
 0 failed; deployed with `--skip-functions-cache`; live bundle `index-DjqrV9VQ.js`; welcome, Help and saved-meal
 markup confirmed on the live page; `food-bank` and `cgm-sync` answer 401 without a passcode. Branches deleted
 locally and on GitHub. Scott will see the welcome screen once. **Still open:** lawyer review of the Help and
-welcome wording before going public; keep or drop branch `claude/…-3cd4a9`.
+welcome wording before going public.
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
 go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
@@ -1523,3 +1523,8 @@ Scott: the top-left said "Home" — better for the app's name and the date/time;
 - The Home passcode box (shipped 21:58) now slides into view and focuses the field.
 - **Tell Scott / likely cause of "not asked":** a home-screen app stays in memory on iPhone — swipe it closed and
   reopen to get new versions (the service worker is network-first, so a reload online always gets the latest).
+
+**22:10 — branch `claude/reactive-hypoglycemia-tracker-3cd4a9` dropped (Scott: "drop the old device-sync branch").**
+Its one unmerged commit (`d6f7ce4`, an early manual device-to-device sync + threshold prototype) was saved first
+as `PROJECTS - START HERE/Scott Check Here/tracker-device-sync-prototype-3cd4a9 (dropped 2026-09-28).patch`
+(recover with `git am`), then deleted locally and on GitHub. The repo now has only `main`.
