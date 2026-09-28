@@ -30,10 +30,16 @@ test.describe("welcome (pure logic)", () => {
 test.describe("welcome screen (first run)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("shows on first open, needs the box ticked, then stays away", async ({ page }) => {
+  test("first open: the opening stays up with two choices; Get started leads to the agreement", async ({ page }) => {
     await page.goto("/");
+    await expect(page.locator("#splash .splash-title")).toContainText("Reactive Blood Tracker");
+    await page.waitForTimeout(2500); // past the normal splash fade
+    await expect(page.locator("#splash-start")).toBeVisible();
+    await expect(page.locator("#glucose-value")).not.toBeFocused(); // no keyboard on first open
+    await page.locator("#splash-start-btn").click();
     const welcome = page.locator("#welcome");
     await expect(welcome).toBeVisible();
+    await expect(page.locator("#welcome-form")).toBeVisible();
     await expect(page.locator("#welcome-continue")).toBeDisabled();
     await page.locator("#welcome-name").fill("Scott");
     await page.locator("#welcome-condition").selectOption("post-bariatric");
@@ -42,15 +48,28 @@ test.describe("welcome screen (first run)", () => {
     await expect(welcome).toBeHidden();
     await page.reload();
     await expect(page.locator("#welcome")).toBeHidden();
+    await expect(page.locator("#splash-start")).toBeHidden();
   });
 
-  test("Read Help first opens Help; the welcome returns next time until accepted", async ({ page }) => {
+  test("What does it do? shows the overview, then Next leads to the agreement", async ({ page }) => {
     await page.goto("/");
+    await page.locator("#splash-about-btn").click();
+    await expect(page.locator("#welcome-about")).toBeVisible();
+    await expect(page.locator("#welcome-form")).toBeHidden();
+    await expect(page.locator("#welcome-about")).toContainText("What the app does");
+    await page.locator("#welcome-about-next").click();
+    await expect(page.locator("#welcome-form")).toBeVisible();
+    await expect(page.locator("#welcome-about")).toBeHidden();
+  });
+
+  test("Read Help first opens Help; the opening returns next time until accepted", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#splash-start-btn").click();
     await page.locator("#welcome-read-help").click();
     await expect(page.locator("#view-help")).toBeVisible();
     await expect(page.locator("#view-help")).toContainText("what this app is, and isn't");
     await page.reload();
-    await expect(page.locator("#welcome")).toBeVisible();
+    await expect(page.locator("#splash-start")).toBeVisible();
   });
 });
 
@@ -66,5 +85,26 @@ test.describe("help page", () => {
     await help.locator("#help-show-welcome").click();
     await expect(page.locator("#welcome")).toBeVisible();
     await expect(page.locator("#welcome-accept")).toBeChecked();
+  });
+});
+
+test.describe("help: your setup", () => {
+  test("shows when the conditions were accepted and how the app is set up, and can be changed", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.setItem("rht-profile", JSON.stringify({ name: "Scott", condition: "post-bariatric", careTeam: "My GP" }));
+      localStorage.setItem("rht-accepted-terms", JSON.stringify({ version: "2026-09-28", acceptedAt: "2026-09-28T12:00:00.000Z" }));
+    });
+    await page.reload();
+    await page.locator('#view-home button[data-nav="help"]').click();
+    const setup = page.locator("#help-setup");
+    await expect(setup).toContainText("Conditions accepted");
+    await expect(setup).toContainText("Scott");
+    await expect(setup).toContainText("Lows after weight-loss surgery");
+    await expect(setup).toContainText("My GP");
+    await page.locator("#help-change-setup").click();
+    await page.locator("#welcome-condition").selectOption("type2");
+    await page.locator("#welcome-continue").click();
+    await expect(setup).toContainText("Type 2 diabetes");
   });
 });

@@ -30,7 +30,7 @@ import { shrinkForStorage } from "./imageForAI.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
-import { hasAccepted, getProfile, acceptWelcome } from "./welcome.js";
+import { hasAccepted, getProfile, acceptWelcome, acceptedAt, CONDITION_LABELS } from "./welcome.js";
 import { listSavedMeals, saveMeal, deleteSavedMeal, mealToBuilderItems } from "./savedMeals.js";
 import { lookupFood, STAGE_TEXT, syncFoodBank, pushToFoodBank, deleteFromFoodBank, foodBankAvailable } from "./foodBank.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
@@ -135,6 +135,8 @@ function showView(name) {
     refreshReadings();
   } else if (name === "settings") {
     loadThresholdSettings();
+  } else if (name === "help") {
+    renderHelpSetup();
   } else if (name === "my-foods") {
     renderMyFoods();
     refreshFoodBank();
@@ -1397,9 +1399,12 @@ showView("home");
 // Reduced-motion users get a static screen, so it can go sooner.
 const splashEl = document.getElementById("splash");
 const hideSplash = () => splashEl.classList.add("hidden");
+// Set by the first-run code at the end of this file; module code runs top to
+// bottom before any timer fires, so the timers below see the final value.
+let firstRun = false;
 const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-setTimeout(hideSplash, reducedMotion ? 700 : 2100);
-splashEl.addEventListener("click", hideSplash);
+setTimeout(() => { if (!firstRun) hideSplash(); }, reducedMotion ? 700 : 2100);
+splashEl.addEventListener("click", () => { if (!firstRun) hideSplash(); });
 
 // --- My foods (logic in myFoods.js; stored on this device only) ---
 const myFoodForm = document.getElementById("myfood-form");
@@ -1606,6 +1611,8 @@ function openWelcome() {
   document.getElementById("welcome-care").value = p.careTeam;
   welcomeAccept.checked = hasAccepted();
   welcomeContinue.disabled = !welcomeAccept.checked;
+  document.getElementById("welcome-about").hidden = true;
+  document.getElementById("welcome-form").hidden = false;
   welcomeEl.hidden = false;
 }
 
@@ -1630,9 +1637,26 @@ document.getElementById("welcome-read-help").addEventListener("click", () => {
 });
 document.getElementById("help-show-welcome").addEventListener("click", openWelcome);
 
-// Shown once per wording version. Reading Help first is allowed; the welcome
-// comes back next time the app opens until it's accepted.
-if (!hasAccepted()) openWelcome();
+// First run: the opening (droplet on the spring) stays up with two choices
+// instead of fading: "What does it do?" (a short overview) or "Get started"
+// (straight to the agreement). Scott's design, 2026-09-28. Reading Help first
+// is allowed; the whole sequence comes back next open until it's accepted.
+const welcomeForm = document.getElementById("welcome-form");
+const welcomeAbout = document.getElementById("welcome-about");
+function showWelcomeStep(step) {
+  welcomeAbout.hidden = step !== "about";
+  welcomeForm.hidden = step !== "accept";
+  if (step === "accept") openWelcome();
+  else welcomeEl.hidden = false;
+}
+document.getElementById("welcome-about-next").addEventListener("click", () => showWelcomeStep("accept"));
+if (!hasAccepted()) {
+  firstRun = true;
+  splashEl.setAttribute("aria-hidden", "false");
+  document.getElementById("splash-start").hidden = false;
+  document.getElementById("splash-about-btn").addEventListener("click", () => { hideSplash(); showWelcomeStep("about"); });
+  document.getElementById("splash-start-btn").addEventListener("click", () => { hideSplash(); showWelcomeStep("accept"); });
+}
 
 // --- "Add to Home Screen" tip ---
 // Opened from a home-screen icon, the app already runs full screen (manifest
@@ -1655,3 +1679,29 @@ if (!hasAccepted()) openWelcome();
     try { localStorage.setItem("rht-install-tip-dismissed", "1"); } catch {}
   });
 })();
+
+// Help → "Your setup": what was agreed and when, and how the app is set up,
+// with one button to change it (reopens the agreement screen, pre-filled).
+function renderHelpSetup() {
+  const list = document.getElementById("help-setup-list");
+  const p = getProfile();
+  const when = acceptedAt();
+  const rows = [
+    ["Conditions accepted", when ? formatDate(when) : "Not yet"],
+    ["Name", p.name || "Not given"],
+    ["Tracking", CONDITION_LABELS[p.condition] || CONDITION_LABELS.other],
+    ["Who helps you", p.careTeam || "Not given"],
+  ];
+  list.innerHTML = "";
+  for (const [k, v] of rows) {
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v;
+    list.append(dt, dd);
+  }
+}
+document.getElementById("help-change-setup").addEventListener("click", openWelcome);
+document.getElementById("welcome-form").addEventListener("submit", () => {
+  if (!document.getElementById("view-help").hidden) renderHelpSetup();
+});

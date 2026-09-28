@@ -43,3 +43,22 @@ export function acceptWelcome({ accepted, name, condition, careTeam }, storage) 
   store(storage).setItem(ACCEPT_KEY, JSON.stringify({ version: TERMS_VERSION, acceptedAt: new Date().toISOString() }));
   return { ok: true, profile };
 }
+
+// When the current wording was accepted (ISO string), or null.
+export function acceptedAt(storage) {
+  try {
+    const a = JSON.parse(store(storage).getItem(ACCEPT_KEY) || "null");
+    return a?.version === TERMS_VERSION ? a.acceptedAt || null : null;
+  } catch {
+    return null;
+  }
+}
+
+export const CONDITION_LABELS = {
+  reactive: "Reactive hypoglycaemia (lows after eating)",
+  "post-bariatric": "Lows after weight-loss surgery",
+  type1: "Type 1 diabetes",
+  type2: "Type 2 diabetes",
+  gestational: "Gestational diabetes",
+  other: "Something else, or not sure yet",
+};

@@ -30,8 +30,13 @@
         <path d="M81 90a15 15 0 0 0 12 16" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.55" />
       </g>
     </svg>
-    <h1 class="splash-title">Reactive</h1>
-    <p class="splash-tagline">Glucose, food and diary, all in one place</p>
+    <h1 class="splash-title">Reactive <span>Blood Tracker</span></h1>
+    <p class="splash-tagline">For reactive hypoglycaemia and diabetes: glucose, food and diary in one place</p>
+    <!-- First run only: the opening stays up with these two choices. -->
+    <div id="splash-start" class="splash-start" hidden>
+      <button type="button" id="splash-about-btn" class="splash-btn-secondary">What does it do?</button>
+      <button type="button" id="splash-start-btn" class="splash-btn">Get started</button>
+    </div>
   </div>
 
   <div id="app">
@@ -73,7 +78,7 @@
             <label>
               Reading
               <div class="reading-input-row">
-                <input type="number" step="0.1" inputmode="decimal" id="glucose-value" required autofocus />
+                <input type="number" step="0.1" inputmode="decimal" id="glucose-value" required />
                 <select id="glucose-unit">
                   <option value="mmol/L" selected>mmol/L</option>
                   <option value="mg/dL">mg/dL</option>
@@ -329,6 +334,12 @@
 
       <section id="view-help" class="view help" data-view="help" hidden>
         <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
+
+        <div class="help-setup" id="help-setup">
+          <h2>Your setup</h2>
+          <dl class="help-list" id="help-setup-list"></dl>
+          <button type="button" class="secondary-btn" id="help-change-setup">Change my setup</button>
+        </div>
 
         <div class="help-callout">
           <h2>Please read: what this app is, and isn't</h2>
@@ -642,6 +653,18 @@
     </main>
 
     <div id="welcome" class="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
+      <div id="welcome-about" class="welcome-card welcome-about" hidden>
+        <h2>What the app does</h2>
+        <ul class="welcome-points">
+          <li><strong>Glucose:</strong> type a reading, sync a Bluetooth meter, or pull in your Libre sensor.</li>
+          <li><strong>Food:</strong> describe it, snap it, scan a barcode, or build a meal from ingredients; carbs are added up for you.</li>
+          <li><strong>What happened after:</strong> each meal shown with what your glucose did over the next 5 hours, lows flagged.</li>
+          <li><strong>Why did that spike?</strong> The app asks when your sugar moves fast with nothing logged.</li>
+          <li><strong>For your doctor:</strong> a printable summary or spreadsheet whenever you choose.</li>
+        </ul>
+        <p class="field-hint">Your records stay on your phone unless you choose to share them.</p>
+        <button type="button" id="welcome-about-next">Next: before you start</button>
+      </div>
       <form id="welcome-form" class="welcome-card entry-form">
         <h2 id="welcome-title">Welcome</h2>
         <p>This app helps you record your glucose and food and see how they relate, and helps the people around you

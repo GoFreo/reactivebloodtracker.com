@@ -1297,3 +1297,81 @@ h2 {
   border: 0;
   color: inherit;
 }
+
+/* --- First-run opening: title and the two choices on the splash --- */
+.splash-title span {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+.splash-title {
+  text-align: center;
+  line-height: 1.05;
+}
+
+.splash-start {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(320px, calc(100% - 48px));
+  margin-top: 18px;
+  animation: splash-rise 0.6s ease-out 1.45s both;
+}
+
+.splash-start[hidden] {
+  display: none;
+}
+
+.splash-btn,
+.splash-btn-secondary {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.splash-btn {
+  background: #ffffff;
+  color: #0f4a47;
+  border: 0;
+}
+
+.splash-btn-secondary {
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+}
+
+.welcome-card[hidden] {
+  display: none;
+}
+
+.welcome-about {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.welcome-about h2 {
+  margin: 0;
+}
+
+.help-setup {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--surface);
+}
+
+.help-setup h2 {
+  margin-top: 0;
+}
+
+.help-setup .secondary-btn {
+  margin-top: 12px;
+}
