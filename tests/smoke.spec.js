@@ -576,3 +576,40 @@ test.describe("meal builder", () => {
     await expect(page.locator("#timeline-list")).not.toContainText("Total");
   });
 });
+
+test.describe("readings list filter", () => {
+  test("chips narrow the list to one kind, show counts, and remember the choice", async ({ page }) => {
+    await mockSpikySync(page);
+    await syncCgm(page); // 4 CGM readings
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator("#glucose-value").fill("4.6");
+    await page.locator('#glucose-form button[type="submit"]').click();
+    await page.locator("#food-text").fill("banana");
+    await page.locator('#food-form button[type="submit"]').click();
+
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await page.locator('#readings-view-toggle button[data-mode="list"]').click();
+    const chips = page.locator("#readings-filter");
+    await expect(chips).toBeVisible();
+    await expect(chips.locator('[data-filter="all"]')).toHaveText("All 6");
+    await expect(chips.locator('[data-filter="cgm"]')).toHaveText("CGM 4");
+    await expect(chips.locator('[data-filter="meter"]')).toHaveText("Finger-prick 1");
+
+    await chips.locator('[data-filter="meter"]').click();
+    await expect(chips.locator('[data-filter="meter"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#timeline-list .timeline-entry")).toHaveCount(1);
+    await expect(page.locator("#timeline-list")).toContainText("4.6");
+
+    await chips.locator('[data-filter="diary"]').click();
+    await expect(page.locator("#timeline-list")).toContainText("Nothing of this kind logged yet");
+
+    // Remembered after leaving and coming back; hidden outside List mode.
+    await chips.locator('[data-filter="food"]').click();
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator("#timeline-list .timeline-entry")).toHaveCount(1);
+    await expect(page.locator("#timeline-list")).toContainText("banana");
+    await page.locator('#readings-view-toggle button[data-mode="graph"]').click();
+    await expect(chips).toBeHidden();
+  });
+});

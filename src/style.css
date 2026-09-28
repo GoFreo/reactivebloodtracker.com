@@ -916,3 +916,36 @@ h2 {
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* --- Readings list filter chips --- */
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+}
+
+/* .filter-chips sets display:flex and is toggled with [hidden] (CLAUDE.md pattern). */
+.filter-chips[hidden] {
+  display: none;
+}
+
+.filter-chips .chip {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.filter-chips .chip.active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
