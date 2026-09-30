@@ -28,7 +28,7 @@ Facts; photo import; AI food parsing (Scott's key); thresholds with the ADA floo
 a printable report; Food Guidance; **animated opening** (red droplet lands on a spring); red-droplet
 icon with real PNGs (`scripts/render-icons.mjs`).
 
-**🟡 Built, NOT shipped — branch `landscape-split` (2026-09-30, Scott's request):** on a phone turned
+**✅ SHIPPED 2026-09-30 22:48 (Scott: "ship it") — live bundle `index-BC4Ox0Ns.js`, `main` @ `9b83056` pushed to GitHub, `cgm-sync` answers 401 without a passcode (correct):** on a phone turned
 sideways, Readings shows the **graph on the left and the list on the right** at once (list scrolls on
 its own; toggles compacted so both fit above the bottom menu at 844×390). Portrait, Meals, tablets and
 desktop are unchanged (media query `(orientation: landscape) and (min-width: 560px) and (max-height:
