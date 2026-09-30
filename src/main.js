@@ -176,21 +176,38 @@ async function refreshReadings() {
 
 const GRAPH_RANGE_KEY = "rht-graph-range-hours";
 
+// A phone turned sideways (landscape, wide but short): List and Graph show
+// side by side - graph on the left, list on the right - instead of one at a
+// time. Meals stays full width. Portrait, tablets and desktop are unchanged
+// (max-height keeps it to phones; whether bigger screens split too is Scott's call).
+const SPLIT_QUERY = window.matchMedia("(orientation: landscape) and (min-width: 560px) and (max-height: 600px)");
+let lastReadingsMode = "list";
+
 function setReadingsMode(mode, merged) {
+  lastReadingsMode = mode;
   const listEl = document.getElementById("timeline-list");
   const graphWrap = document.getElementById("readings-graph-wrap");
+  const split = SPLIT_QUERY.matches && mode !== "meals";
+  document.getElementById("view-readings").classList.toggle("split", split);
+  const showList = mode === "list" || split;
+  const showGraph = mode === "graph" || split;
   for (const btn of document.querySelectorAll("#readings-view-toggle button")) {
-    btn.classList.toggle("active", btn.dataset.mode === mode);
+    btn.classList.toggle("active", split ? btn.dataset.mode !== "meals" : btn.dataset.mode === mode);
   }
   const galleryEl = document.getElementById("meal-gallery");
-  listEl.hidden = mode !== "list";
-  document.getElementById("readings-filter").hidden = mode !== "list";
-  graphWrap.hidden = mode !== "graph";
+  listEl.hidden = !showList;
+  document.getElementById("readings-filter").hidden = !showList;
+  graphWrap.hidden = !showGraph;
   galleryEl.hidden = mode !== "meals";
-  if (mode === "graph") renderGraph();
-  else if (mode === "meals") renderMealGallery(galleryEl);
-  else renderFilteredList(listEl, merged);
+  if (showGraph) renderGraph();
+  if (showList) renderFilteredList(listEl, merged);
+  if (mode === "meals") renderMealGallery(galleryEl);
 }
+
+// Rotating the phone re-lays Readings straight away, without a reload.
+SPLIT_QUERY.addEventListener("change", () => {
+  if (!document.getElementById("view-readings").hidden) setReadingsMode(lastReadingsMode, lastMerged);
+});
 
 // List mode: filter chips (with counts) above the list. The last choice is
 // remembered on this device; "All" is the default, matching the old behaviour.

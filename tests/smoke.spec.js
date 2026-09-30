@@ -819,3 +819,42 @@ test.describe("header and install tip", () => {
     await expect(page.locator("#install-tip")).toBeHidden();
   });
 });
+
+test.describe("Readings on a phone turned sideways", () => {
+  test("landscape phone shows graph and list side by side; portrait and Meals are unchanged", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "phone-only layout");
+    await page.goto("/");
+    for (const v of ["5.4", "6.1"]) { // the graph needs at least 2 readings
+      await page.locator("#glucose-value").fill(v);
+      await page.locator('#glucose-form button[type="submit"]').click();
+      await expect(page.locator("#latest-reading-value")).toHaveText(v);
+    }
+
+    const vp = page.viewportSize();
+    const portrait = { width: Math.min(vp.width, vp.height), height: Math.max(vp.width, vp.height) };
+    const landscape = { width: portrait.height, height: portrait.width };
+
+    await page.setViewportSize(landscape);
+    await page.locator('button.nav-btn[data-nav="readings"]').click();
+    await expect(page.locator("#view-readings")).toHaveClass(/split/);
+    await expect(page.locator(".readings-graph")).toBeVisible();
+    await expect(page.locator("#timeline-list")).toContainText("6.1");
+    const g = await page.locator("#readings-graph-wrap").boundingBox();
+    const l = await page.locator("#timeline-list").boundingBox();
+    expect(g.x + g.width).toBeLessThanOrEqual(l.x + 1); // graph left of list
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    // Meals stays full width, one view.
+    await page.locator('#readings-view-toggle button[data-mode="meals"]').click();
+    await expect(page.locator("#view-readings")).not.toHaveClass(/split/);
+    await expect(page.locator("#timeline-list")).toBeHidden();
+
+    // Rotating back to portrait returns to one view at a time, no reload.
+    await page.locator('#readings-view-toggle button[data-mode="graph"]').click();
+    await expect(page.locator("#view-readings")).toHaveClass(/split/);
+    await page.setViewportSize(portrait);
+    await expect(page.locator("#view-readings")).not.toHaveClass(/split/);
+    await expect(page.locator(".readings-graph")).toBeVisible();
+    await expect(page.locator("#timeline-list")).toBeHidden();
+  });
+});

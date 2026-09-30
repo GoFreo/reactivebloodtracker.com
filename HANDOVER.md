@@ -28,6 +28,15 @@ Facts; photo import; AI food parsing (Scott's key); thresholds with the ADA floo
 a printable report; Food Guidance; **animated opening** (red droplet lands on a spring); red-droplet
 icon with real PNGs (`scripts/render-icons.mjs`).
 
+**🟡 Built, NOT shipped — branch `landscape-split` (2026-09-30, Scott's request):** on a phone turned
+sideways, Readings shows the **graph on the left and the list on the right** at once (list scrolls on
+its own; toggles compacted so both fit above the bottom menu at 844×390). Portrait, Meals, tablets and
+desktop are unchanged (media query `(orientation: landscape) and (min-width: 560px) and (max-height:
+600px)`); rotating re-lays it without a reload. `npm test` **512 passed / 12 skipped / 0 failed** (new
+test runs on iPhone + Android projects). `main` untouched. **Needs Scott:** "ship it" (merge →
+build → deploy with `--skip-functions-cache`, as above); and whether tablets/desktop should split too.
+The graph is small in this layout — the planned graph redesign is the natural follow-up.
+
 **CGM sync status:** all three Netlify values are set (live endpoint answers 401 "Wrong sync passcode"
 to a passcode-less probe, which is correct). **Scott has not yet made a sync attempt from his device**
 (no calls in the function logs). If it fails, his screen now shows the exact reason.

@@ -1375,3 +1375,37 @@ h2 {
 .help-setup .secondary-btn {
   margin-top: 12px;
 }
+
+/* Landscape split for Readings (see SPLIT_QUERY in main.js): graph left,
+   filter chips + list right. The graph stays put while the list scrolls on
+   its own, so a reading can be matched against the curve. */
+#view-readings.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "toggle toggle"
+    "graph  filter"
+    "graph  list";
+  grid-template-rows: auto auto 1fr;
+  column-gap: 14px;
+  align-items: start;
+}
+#view-readings.split[hidden] { display: none; }
+#view-readings.split #readings-view-toggle { grid-area: toggle; }
+#view-readings.split #readings-filter { grid-area: filter; }
+/* Sideways phones are short (~390px): compact the toggles so the graph and
+   list both fit between the header and the bottom menu (measured at 844x390). */
+#view-readings.split .view-toggle { margin-bottom: 8px; }
+#view-readings.split .view-toggle button { padding: 6px 10px; }
+#view-readings.split #readings-filter { margin-bottom: 8px; }
+#view-readings.split .readings-graph { max-height: calc(100dvh - 226px); }
+#view-readings.split #timeline-list {
+  grid-area: list;
+  max-height: calc(100dvh - 226px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+#view-readings.split #readings-graph-wrap { grid-area: graph; position: sticky; top: 0; }
+#view-readings.split #readings-graph-wrap[hidden],
+#view-readings.split #readings-filter[hidden] { display: none; }
