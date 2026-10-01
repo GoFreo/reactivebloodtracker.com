@@ -96,3 +96,61 @@ test.describe("Bluetooth Glucose Measurement parsing", () => {
     expect(parseGlucoseMeasurement(view)).toBeNull();
   });
 });
+
+// getRememberedDevice() — Chrome-only silent-reconnect lookup, added 2026-10-01.
+// This is pure logic over navigator.bluetooth.getDevices(), so unlike the GATT
+// connect/RACP flow in connectAndFetchReadings (which needs a real paired meter
+// and can't be exercised from an automated test), it can be verified here with
+// a stubbed navigator — no real Bluetooth hardware or browser involved.
+//
+// Node (v20+) defines a built-in global `navigator` as a getter-only property,
+// so a plain `globalThis.navigator = {...}` throws ("has only a getter") under
+// this project's Node version — Object.defineProperty can still redefine it
+// since the built-in descriptor is configurable. Restored after each test so a
+// stubbed navigator can't leak into another test file sharing this worker.
+const realNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+function stubNavigator(value) {
+  Object.defineProperty(globalThis, "navigator", { value, configurable: true, writable: true });
+}
+test.describe("getRememberedDevice (Chrome reconnect-without-picker)", () => {
+  test.afterEach(() => {
+    Object.defineProperty(globalThis, "navigator", realNavigatorDescriptor);
+  });
+
+  test("returns null when the browser has no Web Bluetooth support at all", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    stubNavigator({});
+    expect(await getRememberedDevice()).toBeNull();
+  });
+
+  test("returns null when getDevices() is unsupported (no bluetooth.getDevices)", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    stubNavigator({ bluetooth: {} });
+    expect(await getRememberedDevice()).toBeNull();
+  });
+
+  test("returns the device when exactly one is remembered", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    const fakeDevice = { name: "Accu-Chek Guide Me" };
+    stubNavigator({ bluetooth: { getDevices: async () => [fakeDevice] } });
+    expect(await getRememberedDevice()).toBe(fakeDevice);
+  });
+
+  test("returns null when zero devices are remembered (nothing to reconnect to)", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    stubNavigator({ bluetooth: { getDevices: async () => [] } });
+    expect(await getRememberedDevice()).toBeNull();
+  });
+
+  test("returns null when more than one device is remembered (ambiguous — use the picker)", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    stubNavigator({ bluetooth: { getDevices: async () => [{ name: "A" }, { name: "B" }] } });
+    expect(await getRememberedDevice()).toBeNull();
+  });
+
+  test("returns null rather than throwing when getDevices() rejects (permission-policy case)", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    stubNavigator({ bluetooth: { getDevices: async () => { throw new Error("disallowed"); } } });
+    expect(await getRememberedDevice()).toBeNull();
+  });
+});

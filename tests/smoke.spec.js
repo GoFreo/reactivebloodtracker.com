@@ -374,7 +374,12 @@ test.describe("settings", () => {
     await page.locator("#glucose-value").fill("5.5");
     await page.locator('#glucose-form button[type="submit"]').click();
 
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // Local date components, not toISOString() (UTC) — formatDate()'s "ymd"
+    // format uses getFullYear()/getMonth()/getDate() (src/dateformat.js), so a
+    // UTC-based "today" string mismatches for part of the day in any timezone
+    // ahead of UTC (this machine included: AEST, UTC+10) and made this flaky.
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     await page.locator('button.nav-btn[data-nav="readings"]').click();
     await expect(page.locator(".timeline-entry").first()).toContainText(today);
   });

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reactive Tracker Sit Rep</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>
+  :root{
+    --bg:#F7F5F1; --surface:#FFFFFF; --surface-2:#EFEAE0; --text:#1C1B18; --text-muted:#6B6558;
+    --accent:#1B6E6A; --accent-soft:#DEEBE9; --line:#E3DDD0;
+    --good:#3E8F5B; --good-soft:#E1EFE5; --warn:#B5761E; --warn-soft:#F5E9D6; --blocked:#B8443C; --blocked-soft:#F5E1DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme:dark;
+      --bg:#17181A; --surface:#1F2123; --surface-2:#26282A; --text:#EDE9E2; --text-muted:#A39A8C;
+      --accent:#5FC1BB; --accent-soft:#1E3634; --line:#303234;
+      --good:#67C48C; --good-soft:#1D3324; --warn:#E3A85B; --warn-soft:#3A2E18; --blocked:#E27A70; --blocked-soft:#3A211E;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#17181A; --surface:#1F2123; --surface-2:#26282A; --text:#EDE9E2; --text-muted:#A39A8C;
+    --accent:#5FC1BB; --accent-soft:#1E3634; --line:#303234;
+    --good:#67C48C; --good-soft:#1D3324; --warn:#E3A85B; --warn-soft:#3A2E18; --blocked:#E27A70; --blocked-soft:#3A211E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums;}
+  .wrap{max-width:740px;margin:0 auto;padding:44px 16px 90px;}
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif;text-wrap:balance;font-weight:600;color:var(--text);margin:0;}
+  .eyebrow{font-family:'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.09em;font-size:12px;font-weight:600;color:var(--accent);}
+  p{line-height:1.65;font-size:15.5px;color:var(--text);}
+  a{color:var(--accent);}
+  header{padding-bottom:26px;border-bottom:1px solid var(--line);margin-bottom:34px;}
+  header h1{font-size:clamp(28px,5vw,38px);line-height:1.08;margin:8px 0 10px;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:16px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:var(--text-muted);}
+  .meta-row .dot{opacity:.5;}
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);}
+  .pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .pill.good{background:var(--good-soft);border-color:transparent;} .pill.good .dot{background:var(--good);}
+  .pill.warn{background:var(--warn-soft);border-color:transparent;} .pill.warn .dot{background:var(--warn);}
+  section{margin-bottom:40px;}
+  section > .eyebrow{display:block;margin-bottom:8px;}
+  section > h2{font-size:22px;margin-bottom:14px;}
+  .lead{font-size:16.5px;color:var(--text-muted);max-width:62ch;}
+  .status-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:18px;}
+  .status-col h3{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .status-col h3 .dot{width:8px;height:8px;border-radius:50%;}
+  .status-col.done h3{color:var(--good);} .status-col.done h3 .dot{background:var(--good);}
+  .status-col.open h3{color:var(--blocked);} .status-col.open h3 .dot{background:var(--blocked);}
+  ul.status-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;}
+  ul.status-list li{font-size:14px;line-height:1.5;padding:9px 0;border-top:1px solid var(--line);}
+  ul.status-list li:first-child{border-top:none;}
+  @media (max-width:600px){.status-grid{grid-template-columns:1fr;}}
+  .report-item{border-left:3px solid var(--accent);padding-left:20px;margin-bottom:30px;}
+  .report-item.blocked{border-left-color:var(--blocked);} .report-item.good{border-left-color:var(--good);} .report-item.warn{border-left-color:var(--warn);}
+  .report-item h3{font-size:18px;margin-bottom:8px;}
+  .report-item p{margin:0 0 10px;} .report-item p:last-child{margin-bottom:0;}
+  .report-item ul, .report-item ol{margin:0 0 10px;padding-left:20px;line-height:1.6;font-size:14.5px;}
+  .report-item li{margin-bottom:4px;}
+  .callout{font-size:13.5px;color:var(--text-muted);background:var(--surface-2);border-radius:8px;padding:9px 12px;margin-top:10px;}
+  code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:0.92em;background:var(--surface-2);padding:1px 6px;border-radius:5px;overflow-wrap:anywhere;}
+  footer{margin-top:50px;padding-top:22px;border-top:1px solid var(--line);font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px 18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="eyebrow">Sit rep · Reactive Hypoglycemia Tracker · updated evening 28 Sept</span>
+    <h1>Everything from tonight is live; one passcode to check</h1>
+    <p class="lead">Tonight: a meal builder, a filter for the Readings list, and your fridge-and-pantry barcode photos turned into a test set, which caught a real bug on the live site. You said "ship it": all three are live on reactivebloodtracker.com. Tested on iPhone, Android, Mac Safari and Chrome first. Earlier today's work (Libre sync, spike prompt, Meals tab, graph, icon) is live too. Tomorrow's Coles scan list is below.</p>
+    <div class="meta-row">
+      <span>28 Sept 2026</span><span class="dot">·</span>
+      <span>live = main @ 1085eef, on GitHub</span><span class="dot">·</span>
+      <span>294 passed · 6 skipped · 0 failed</span>
+    </div>
+    <div class="pill-row">
+      <span class="pill good"><span class="dot"></span>Meal builder built &amp; tested</span>
+      <span class="pill good"><span class="dot"></span>Readings filter built</span>
+      <span class="pill good"><span class="dot"></span>Your pantry = 16 test products</span>
+      <span class="pill good"><span class="dot"></span>Live on the site</span>
+      <span class="pill good"><span class="dot"></span>CGM values set in Netlify</span>
+      <span class="pill warn"><span class="dot"></span>First CGM sync still to do</span>
+    </div>
+  </header>
+
+  <section>
+    <span class="eyebrow">Answer sheet</span>
+    <h2>Only you can do these</h2>
+    <div class="report-item good">
+      <h3>Done: Help page, welcome screen, list fix and saved meals are live</h3>
+      <p>Shipped at 9:02 pm (390 tests passing). Refresh the app: you'll see the welcome screen once, then Help on Home, faster Readings, and saved meals at the top of the meal builder.</p>
+    </div>
+    <div class="report-item blocked">
+      <h3>Libre passcode: still refused (your five tries reached the server)</h3>
+      <p>It now ignores stray spaces. If it still says wrong: it's the passcode you made up for <strong>CGM_SYNC_PASSCODE</strong> in Netlify, not your Libre password. Check or reset it in Netlify (Site configuration → Environment variables), then tell me "redeploy".</p>
+    </div>
+    <div class="report-item good">
+      <h3>Done: your opening screen, no keyboard on open, "Your setup" in Help</h3>
+      <p>The droplet opening now reads <strong>Reactive Blood Tracker</strong>. On first use it waits with "What does it do?" and "Get started"; those setup screens only ever appear once. The keyboard no longer pops up when the app opens. Help now starts with <strong>Your setup</strong>: when you accepted the conditions, how the app is set up, and a button to change it.</p>
+    </div>
+    <div class="report-item good">
+      <h3>Done: app name and date/time in the header, full-screen tip, passcode drop-down</h3>
+      <p>Top-left now reads <strong>Reactive Blood Tracker</strong> with the date and time underneath. For full screen with no address bar, open the app from its <strong>home-screen icon</strong>; the app now shows a one-time tip explaining how to add it. Tapping <strong>Sync CGM</strong> without a saved passcode drops a passcode box down right there.</p>
+      <p class="callout">If you don't see these, swipe the app fully closed and reopen it. iPhone keeps home-screen apps running in the background.</p>
+    </div>
+    <div class="report-item good">
+      <h3>Done: photos shrunk, and the Libre passcode fix is live</h3>
+      <p><strong>Photos:</strong> new meal photos are now saved at a few hundred KB instead of 2–5 MB, and the copy sent to the AI is shrunk too, so big photos no longer fail. Older photos are unchanged.</p>
+      <p><strong>Libre sync:</strong> the server log showed your taps never reached it: with no passcode saved, the button only pointed you to Settings. Now tapping <strong>Sync CGM</strong> on Home asks for the passcode right there, remembers it on your phone, and asks again if it's wrong. Refresh the app and try it; if it says "Wrong sync passcode", what you type doesn't match the one saved in Netlify.</p>
+    </div>
+    <div class="report-item good">
+      <h3>Done: old experiment dropped</h3>
+      <p>The unfinished device-sync branch is deleted. A copy is saved in your Scott Check Here folder in case it's ever wanted.</p>
+    </div>
+    <div class="report-item blocked">
+      <h3>2. A lawyer should read the wording before the app goes public</h3>
+      <p>The checkbox and help text are how other apps handle this (mySugr's wording is the typical example), and they help. But in Australia a disclaimer can't remove every responsibility. Consumer-law guarantees still apply, and health data has extra privacy rules. The strongest protection is what the app already does: it shows what happened and never advises doses or amounts. Not urgent while it's just your family.</p>
+    </div>
+    <div class="report-item good">
+      <h3>Done: My foods and the food bank are live</h3>
+      <p>Refresh the app. The food bank is locked with your Libre sync passcode, so save it in Settings on your phone first. Your first save at Coles is the real test of the storage.</p>
+    </div>
+    <div class="report-item good">
+      <h3>Done: meal builder, Readings filter and the barcode fix are live</h3>
+      <p>Refresh the app on your phone (your home-screen shortcut may hold the old copy). You'll see the 🧺 panel under Food, the filter buttons on Readings, and "describe it yourself" for products the database doesn't know.</p>
+    </div>
+    <div class="report-item warn">
+      <h3>2. First real Libre sync</h3>
+      <p>All three Netlify values are now in. On your phone, refresh the app, then Settings → type your passcode → Sync CGM. If it fails, the screen says why.</p>
+    </div>
+    <div class="report-item warn">
+      <h3>3. Set a monthly spend limit on your Anthropic key</h3>
+      <p>The AI food-parsing service is public. A monthly cap in the Anthropic console is the backstop.</p>
+    </div>
+    <div class="report-item warn">
+      <h3>4. Yes or no: the 20 Sept photo fix</h3>
+      <p>It shrinks big food photos before AI parsing (large ones probably fail today). Tested, still applies cleanly. Say "apply the photo patch".</p>
+    </div>
+    <div class="report-item">
+      <h3>5. Optional: auto-deploy from GitHub</h3>
+      <p>Link the Netlify site to the GitHub repo so every push publishes itself. Manual deploys work fine meanwhile.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Next session</span>
+    <h2>Your four ideas, planned</h2>
+    <div class="report-item">
+      <ol>
+        <li><strong>New graph (first):</strong> a smooth average line; peaks labelled above it and troughs below it; shaded bands and a list whenever you go below your low or above your high. I'll build it straight away. It also goes into the doctor report.</li>
+        <li><strong>Report a problem:</strong> a form in Help that saves what happened with the app version and phone type, for me to check. It doesn't need your email to start.</li>
+        <li><strong>People who monitor you:</strong> add and remove family, carers, your diabetes educator or endocrinologist, each seeing only what you choose.</li>
+        <li><strong>Letter to doctors:</strong> I've drafted it. It covers what the app does, why you're sharing, how to read the graph, that it's a record and not a diagnosis, and how the doctor can opt out. It's in the project's research folder: "DRAFT letter to doctors".</li>
+      </ol>
+    </div>
+    <div class="report-item good">
+      <h3>Your vision, written into the project's rules</h3>
+      <p>Every device has its own app that works alone. This one brings glucose (from whichever devices you choose), food, exercise and notes together, watches the sensor for <strong>peaks and troughs</strong>, and asks what happened, because people forget and sensors don't. Also added to the list:</p>
+      <ul>
+        <li><strong>Pick your devices from a list:</strong> Libre 2 Plus, Accu-Chek, Dexcom G7 when it arrives, others later.</li>
+        <li><strong>Sensor vs finger-prick check:</strong> when the Libre line is flat and a finger-prick disagrees, the app flags it and links to the maker's official placement instructions. That's exactly what caught your arm-muscle sensor.</li>
+        <li><strong>Frequent lows:</strong> when lows keep happening, the app says so and offers the doctor letter, pre-filled with those episodes.</li>
+        <li><strong>Invite your doctor</strong> to see glucose, food and exercise together.</li>
+      </ul>
+    </div>
+    <div class="report-item blocked">
+      <h3>Only you can answer these</h3>
+      <ol>
+        <li><strong>Email:</strong> should problem reports also be emailed to you, and from which address (your Business 365 one)? Sending email from the app needs a small email service set up with your account. Emailed doctor letters need the same.</li>
+        <li><strong>How should monitoring alerts reach people?</strong> A notification on their phone (free; they install the app), a text message (costs per text, most reliable), or email (free, slowest).</li>
+        <li><strong>What may they see?</strong> Alerts only, or the full graph and report?</li>
+        <li><strong>Read the draft doctor letter</strong> and tell me what to change.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Decisions I made tonight</span>
+    <h2>Revisit any you disagree with</h2>
+    <div class="report-item good">
+      <ul>
+        <li><strong>Welcome screen asks only for what the app uses:</strong> name (optional), what you're tracking, who helps you. Age and weight are left out until a feature needs them.</li>
+        <li><strong>Food bank lock:</strong> it reuses your Libre sync passcode, so there's nothing new to set up. A public version will need proper accounts.</li>
+        <li><strong>Only product facts go to the food bank</strong> (barcode, name, per 100 g figures, serving size). Never your meals or readings.</li>
+        <li><strong>A product deleted on one device stays on the others</strong> until you delete it there too, so nothing is silently lost.</li>
+        <li><strong>Tucked away by default.</strong> The builder is a fold-out panel, so the quick one-line food entry you use now is unchanged.</li>
+        <li><strong>Carbs are the headline total.</strong> Sugars show as a second figure when labels have them. No "net carbs"/fibre maths: labels vary and it edges toward dosing arithmetic.</li>
+        <li><strong>Missing figures are named, not zeroed.</strong> "Total: 24 g carbs · not counting whey powder" instead of a quietly low total.</li>
+        <li><strong>Barcode adds an ingredient</strong> when the builder is open; the weight is left for you to fill in. The app never guesses a portion.</li>
+        <li><strong>ml counts like grams</strong>, which is how Australian labels quote drinks.</li>
+        <li><strong>The breakdown is also saved as text</strong>, so the CSV export, printout and timeline show it with no format change.</li>
+        <li><strong>Not yet:</strong> saved favourite meals. Easy to add if you find yourself rebuilding the same breakfast.</li>
+        <li><strong>Readings filter defaults to "All"</strong>, so nothing changes until you tap a chip; your choice is remembered on each device. Older readings without a source count as finger-pricks.</li>
+        <li><strong>Pantry photos became test data</strong> (shop products only, no health data, so they're kept with the tests). When the database and the pack disagree, the pack wins: you type the pack figure.</li>
+        <li><strong>Not pushed to GitHub.</strong> Branch lives on this Mac (and iCloud) until you say ship.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">At a glance</span>
+    <h2>Done / Not done</h2>
+    <div class="status-grid">
+      <div class="status-col done">
+        <h3><span class="dot"></span>Done</h3>
+        <ul class="status-list">
+          <li>Meal builder: ingredients, barcodes, carbs totalled (live)</li>
+          <li>Meals tab shows each built meal's carb total</li>
+          <li>Readings list filter: All / Finger-prick / CGM / Food / Notes, with counts</li>
+          <li>Your 16 pantry barcodes as a test set; real bug found and fixed</li>
+          <li>32 new tests, all four browsers</li>
+          <li>My foods + household food bank + portions (live)</li>
+          <li>Help &amp; sources page + welcome screen (live)</li>
+          <li>Saved meals: reuse "my usual breakfast" in one tap (live)</li>
+          <li>Meal &amp; Carb App Study: 12 apps, paid and free</li>
+          <li>Libre CGM sync with passcode (live)</li>
+          <li>"Why did your sugar spike?" prompt (live)</li>
+          <li>Graph: Libre vs finger-prick, gaps shaded (live)</li>
+          <li>Meals tab: what each meal did over 5 hours (live)</li>
+          <li>Droplet-on-a-spring icon (live)</li>
+          <li>Ten-app research study</li>
+        </ul>
+      </div>
+      <div class="status-col open">
+        <h3><span class="dot"></span>Not done yet</h3>
+        <ul class="status-list">
+          
+          <li>First real CGM sync (your tap)</li>
+          <li>Sharing: owner / co-logger / viewer, encrypted, opt-in</li>
+          <li>"Tell my family if I go low"</li>
+          <li>Exercise via iPhone Shortcut</li>
+          <li>Dexcom G7 connection (when it arrives)</li>
+          <li>Going public: bring-your-own key, condition profile</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Follow-up report</span>
+    <h2>How the meal builder works</h2>
+    <div class="report-item">
+      <ol>
+        <li>Under the Food box, tap <strong>🧺 Build a meal from ingredients</strong>.</li>
+        <li>Type an ingredient, its <strong>grams</strong>, and the <strong>per 100 g</strong> carbs from the label. The item's carbs appear straight away. If you already know an item's carbs, type them in <strong>Carbs g</strong>.</li>
+        <li>Or tap <strong>Barcode</strong>: the product drops in as a new row with its label figure; add the weight.</li>
+        <li>Save as usual. Readings → Meals then shows "🧺 36 g carbs from 2 ingredients" alongside what your glucose did afterwards.</li>
+      </ol>
+      <p class="callout">Worked example from the tests: 40 g rolled oats at 60 g/100 g = 24 g, 250 ml milk at 4.8 g/100 ml = 12 g, total 36 g.</p>
+    </div>
+    <div class="report-item">
+      <ul>
+        <li><strong>Research:</strong> <a href="https://claude.ai/artifact/Ya7Fr1FHxAj1iVfrHwGNNc">Glucose App Field Study</a>.</li>
+        <li><strong>Live app:</strong> reactivebloodtracker.com</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">For tomorrow at Coles</span>
+    <h2>What to scan</h2>
+    <div class="report-item">
+      <p><strong>If the food bank is live:</strong> Home → 🗂 My foods → Scan a barcode. Check the name, type the pack's "per 100 g" carbs and sugars and the serving size, then Save. One product takes about 20 seconds. <strong>If it isn't live yet:</strong> photograph the barcode and the nutrition panel together, as tonight, and I'll add them.</p>
+    </div>
+    <div class="report-item good">
+      <p><strong>How:</strong> for each product, one photo showing the <strong>barcode and the nutrition panel's "per 100 g" column</strong> together, flat and in good light. Send them to me and I'll add them to the test set and note which ones the barcode database is missing. Loose fruit and veg have no barcodes, so skip those.</p>
+      <p>These are the kinds of product most worth having figures for. It's a coverage list, not advice on what to eat:</p>
+      <ol>
+        <li><strong>Breads and grains:</strong> white bread, a wholemeal or multigrain loaf, sourdough, wraps, crumpets, a microwave rice pouch (white and basmati), white and wholemeal pasta.</li>
+        <li><strong>Breakfast:</strong> rolled oats and quick oats, Weet-Bix, cornflakes, a muesli, a flavoured yoghurt and a plain Greek yoghurt.</li>
+        <li><strong>Fast sugars:</strong> a regular soft drink, lemonade, a sports drink, iced tea, a flavoured milk, juice boxes, jelly beans, a chocolate bar, plain and cream biscuits, a muffin or cake.</li>
+        <li><strong>Low treatments:</strong> glucose tablets (Glucodin, pharmacy aisle), jelly beans, juice poppers, so a treated low logs with exact grams.</li>
+        <li><strong>Pairings and snacks:</strong> nuts, peanut butter, hummus, baked beans, canned chickpeas, a protein bar, crackers (Jatz, Vita-Weat, rice cakes), chips, popcorn.</li>
+        <li><strong>Drinks and mixers:</strong> tonic, dry ginger ale, a cola mixer, a pre-mixed can, a beer, plus oat, almond and lactose-free milk.</li>
+        <li><strong>Hidden sugars:</strong> tomato sauce, sweet chilli, BBQ sauce, a pasta sauce jar.</li>
+        <li><strong>The two I couldn't read tonight:</strong> the Bega cream jar and the Vittoria coffee tin.</li>
+      </ol>
+      <p class="callout">Anything the database doesn't have, you can still use: type the pack's "per 100 g" figure into the meal builder. Optional: the free Open Food Facts app lets you add a missing product for everyone.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Size and health check</span>
+    <h2>How big the app is, and what I cleaned up</h2>
+    <div class="report-item good">
+      <ul>
+        <li><strong>Download:</strong> about 150 KB compressed. The app itself is about 24 KB; the barcode reader (about 123 KB) only loads when you tap Barcode.</li>
+        <li><strong>Memory:</strong> about 9 MB with a full year of Libre data. Storage about 12 MB a year, not counting photos.</li>
+        <li><strong>Found and fixed:</strong> the Readings list drew everything at once: 188,000 page elements after a year of Libre data. It now shows the newest 200 with a "Show more" button (1,451 elements).</li>
+        <li><strong>Removed:</strong> three pieces of code nothing used any more. <strong>Moved to your Scott Check Here folder:</strong> a stale 146 MB copy of the project (mostly a build cache), safe to delete whenever you like. Merged branches tidied away. Out-of-date notes corrected.</li>
+      </ul>
+      <p class="callout">Measured with a year of made-up data in a throwaway test browser, never your real data.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Research</span>
+    <h2>Meal &amp; Carb App Study</h2>
+    <div class="report-item">
+      <p><a href="https://claude.ai/artifact/RpHjgJfhMkwy5fKYyhfygd">Meal &amp; Carb App Study</a> covers 12 apps on both stores, free and paid, including MyFitnessPal (100M+ installs), Yazio, FatSecret, Carb Manager, Cronometer, MacroFactor and SNAQ. The closest rival is <strong>SNAQ</strong>, a paid diabetes app that puts meals on the CGM curve but counts carbs by photo AI. What people pay for: voice logging, photo logging, recipe import, repeat-a-meal, and food-versus-health charts.</p>
+      <p><strong>Suggested next builds:</strong> saved meals, recipes with servings, voice logging (it suits your dictation), showing where each figure came from, and "similar meals" from your own history.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Follow-up report</span>
+    <h2>Your pantry, checked against the barcode database</h2>
+    <div class="report-item">
+      <p><strong>12 of your 16 products are in Open Food Facts</strong> (the free database the scanner uses). Three of those have no carb figure yet (the Coles gouda, sparkling water, vinegar), so you'd type it from the pack.</p>
+      <ul>
+        <li><strong>Not in the database:</strong> Primo prosciutto, Primo salami, Hilltop orange juice, Hilltop apple juice. Type them from the pack. The orange juice is 9.2 g carbs per 100 ml.</li>
+        <li><strong>Database vs pack disagree:</strong> Coles Finest pepper cheddar. The database says 3.8 g carbs/100 g; your pack says less than 1 g. Trust the pack.</li>
+        <li><strong>Worth knowing:</strong> the vanilla coffee syrup is 80 g carbs per 100 ml (78 g sugar), and the lavosh bites are about 70 g/100 g.</li>
+        <li><strong>Couldn't read:</strong> the Bega cream jar and the Vittoria coffee tin barcodes. Rescan them if you want them in the set.</li>
+      </ul>
+      <p class="callout">A test breakfast from your fridge: 170 g blueberry yoghurt + 250 ml Pura milk + a gouda slice + 200 ml orange juice = 59.2 g carbs, with the gouda named as not counted.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Errors &amp; access limits</span>
+    <h2>Where tonight hit friction</h2>
+    <div class="report-item">
+      <ul>
+        <li><strong>The test runner's own web server timed out</strong>: building on iCloud takes about 80 seconds, over its 60-second limit. I started the same server by hand and the tests ran against it. Worth raising the limit; noted in the handover.</li>
+        <li><strong>The live database check first reported 6 products as missing.</strong> That was the database rate-limiting me, not real. The check now retries and reports "couldn't check" separately. The same run is what found the 404 bug.</li>
+        <li><strong>Column labels wrapped</strong> on a phone-width screen in my first version. Shortened to "Grams / Per 100g / Carbs g" and rechecked.</li>
+      </ul>
+    </div>
+    <div class="report-item blocked">
+      <h3>What I couldn't do</h3>
+      <ul>
+        
+        <li>HawkScan security scan: no scanner or key on this Mac.</li>
+        <li>Test a real barcode scan: needs a physical camera.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <span>Live: reactivebloodtracker.com</span>
+    <span>main @ live bundle index-Ct3LwouD, on GitHub · 510 tests passing</span>
+    <span>Handover: HANDOVER.md, 28 Sept evening entry</span>
+  </footer>
+
+</div>
+</body>
+</html>

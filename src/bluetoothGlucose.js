@@ -97,7 +97,28 @@ export function parseGlucoseMeasurement(dataView) {
   return { value: Math.round(mmolL * 10) / 10, unit: "mmol/L", timestamp: timestamp.toISOString() };
 }
 
-// Opens the browser's own Bluetooth device picker, connects, and requests
+// Chrome (desktop + Android) remembers devices the picker already granted
+// this origin, and getDevices() returns them with no prompt — Safari/iPhone
+// doesn't have Web Bluetooth at all (see isBluetoothAvailable), so this is a
+// Chrome-only convenience, feature-detected and never required for the flow
+// to work. Only used when it resolves to exactly one device: with none,
+// there's nothing to reconnect to; with more than one, we don't know which
+// meter Scott means, so the ordinary picker (which does) is the safer choice
+// rather than silently guessing.
+export async function getRememberedDevice() {
+  if (!navigator.bluetooth?.getDevices) return null;
+  try {
+    const devices = await navigator.bluetooth.getDevices();
+    return devices.length === 1 ? devices[0] : null;
+  } catch {
+    // Some Chrome builds throw here if the permission policy disallows it —
+    // fall back to the ordinary picker rather than fail the whole sync.
+    return null;
+  }
+}
+
+// Opens the browser's own Bluetooth device picker (or silently reconnects to
+// a remembered device, see getRememberedDevice above), connects, and requests
 // every stored record via the Record Access Control Point (op 1 "report
 // stored records", operator 1 "all records") — Scott asked for the device's
 // existing history, not just whatever it reads next. Returns the parsed,
@@ -107,18 +128,23 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
     throw new Error("Web Bluetooth isn't available in this browser — this only works in Chrome (Mac or Android), not Safari/iPhone.");
   }
 
-  onStatus("Choose your meter in the browser's device picker…");
-  // acceptAllDevices, not a service filter: Chrome's picker can only filter by
-  // services a device actively broadcasts in its advertisement packet, and
-  // plenty of BLE health devices (this meter included, going by Scott's
-  // "nothing shows up" report 2026-09-14) don't advertise the Glucose Service
-  // openly even though they support it once connected — a filter would hide
-  // the device entirely rather than fail loudly. optionalServices is what
-  // actually grants access to the service after connecting.
-  const device = await navigator.bluetooth.requestDevice({
-    acceptAllDevices: true,
-    optionalServices: [GLUCOSE_SERVICE],
-  });
+  let device = await getRememberedDevice();
+  if (device) {
+    onStatus(`Reconnecting to ${device.name || "your meter"}…`);
+  } else {
+    onStatus("Choose your meter in the browser's device picker…");
+    // acceptAllDevices, not a service filter: Chrome's picker can only filter by
+    // services a device actively broadcasts in its advertisement packet, and
+    // plenty of BLE health devices (this meter included, going by Scott's
+    // "nothing shows up" report 2026-09-14) don't advertise the Glucose Service
+    // openly even though they support it once connected — a filter would hide
+    // the device entirely rather than fail loudly. optionalServices is what
+    // actually grants access to the service after connecting.
+    device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [GLUCOSE_SERVICE],
+    });
+  }
 
   onStatus(`Connecting to ${device.name || "meter"}…`);
   const server = await device.gatt.connect();

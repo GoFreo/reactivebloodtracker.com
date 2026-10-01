@@ -42,8 +42,60 @@ to a passcode-less probe, which is correct). **Scott has not yet made a sync att
 (no calls in the function logs). If it fails, his screen now shows the exact reason.
 
 **Needs Scott:** first real Sync CGM tap (hard-refresh first; his home-screen shortcut may hold an old
-copy); Anthropic monthly spend limit; yes/no on `proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/`
-(still untracked, still applies cleanly); optional Netlify ↔ GitHub continuous deploy.
+copy); Anthropic monthly spend limit; optional Netlify ↔ GitHub continuous deploy.
+~~yes/no on proposed-patches/2026-09-20-photo-downscale-and-proxy-caps/~~ — **stale, corrected
+2026-10-02:** this was already applied 2026-09-28 (see that date's entry below); the patch folder's own
+status line just never got updated to say so. Fixed now; folder left in place as a record.
+
+## 2026-10-02 — Session restart after worktree deletion; bluetooth silent-reconnect applied; test-suite fixes
+
+Picked this up fresh (the old git worktree this project ran from was deleted; working directly in the
+origin repo now, at its new iCloud-consolidated path). Read `CLAUDE.md`, this file in full, and the new
+memory notes (`batch-questions-keep-working`, `holding-folders-and-sitreps`) — both say: answer logical
+questions yourself, log the decision here, don't stall waiting on Scott for things that aren't his to
+decide.
+
+**Found and fixed, while catching up:**
+- The stale photo-patch note above (already applied, docs just didn't say so).
+- **`proposed-patches/2026-10-01-bluetooth-reconnect/`** — a fully-written, reasoned patch (silent
+  Bluetooth reconnect via `navigator.bluetooth.getDevices()`, so "Sync meter" doesn't re-show Chrome's
+  device picker every time) sitting unapplied, written by a session running in a Linux VM that couldn't
+  run this project's real Playwright suite (needs native macOS `rolldown` bindings). Applied it
+  (`git apply` — clean), then actually ran the real suite, which the other session explicitly couldn't:
+  **the 6 new tests failed** — this Node version (v24) defines a built-in getter-only `navigator` global,
+  so `globalThis.navigator = {...}` throws here even though it apparently didn't wherever that session
+  verified it standalone. Fixed the test file to stub via `Object.defineProperty` instead (restored in
+  `afterEach`). All 24 (6 cases × 4 browser projects) pass now.
+- **Unrelated pre-existing test bug, found while verifying the above:** "locking a date format overrides
+  the automatic one in the Readings list" was failing on all 4 projects — not caused by the bluetooth
+  patch (confirmed: it failed identically before that patch was applied too). Root cause: the test
+  computed "today" via `new Date().toISOString().slice(0,10)` (UTC), but `formatDate()`'s locked "ymd"
+  format uses local date getters (`getFullYear()`/`getMonth()`/`getDate()`, `src/dateformat.js`) — on
+  this machine (Australia/Hobart, UTC+10) the two disagree for part of every day, which is exactly when
+  this ran. Fixed to compute "today" from local components, matching what the app itself does.
+- **Full suite now: 536 passed / 12 skipped / 0 failed** (up from 510/10/0 at the last "At a glance"
+  update — the extra 24 are this session's new bluetooth tests actually passing, with the test-bug fix
+  included). Committed and deployed (see below).
+
+**New research brief (v4) saved.** Another `glucose-food-tracker-research-brief.md` had been dropped at
+the project root (same pattern as before — not in `research/`). Diffed against the existing v3: new
+content this time — a note that Scott's own live Libre 24-hour graphs now show the real dip pattern the
+app is meant to catch, useful as real ground-truth to validate the food-correlation logic against,
+instead of only synthetic test personas. Saved as `research/2026-10-02-research-brief-glucose-food-tracker-v4.md`.
+
+**Found, not yet actioned — needs a decision, not urgent:** four uncommitted files at the project root
+from 2026-10-01, not mentioned anywhere in this file: `demo-data-README.md`, `demo-data-full-fidelity.json`,
+`demo-data.csv`, and `video-script-and-production-notes.md` — a well-built synthetic 3-day demo dataset
+(built against the real entry shapes in the app's own source, not guessed) plus a matching ~3.5–4 minute
+demo-video script, apparently for showing the app to a doctor/DVA/family. Looks like finished, genuinely
+useful work that just never got logged or committed. Left in place rather than guessed at — **Scott's
+call:** commit these into the repo (they're synthetic demo data, not his real `data/`/`food photos/`), or
+they were a one-off and can be swept aside. Flagging rather than deciding, since "is this still wanted"
+isn't a logical default I can make for him.
+
+**Not yet done — explicitly next, per the standing "NEXT SESSION STARTS HERE" plan above:** the graph
+redesign (smoothed line, peaks/troughs, threshold-crossing shading) and "Report a problem" — both marked
+"no Scott input needed," so that's where this session goes next.
 
 **✅ Shipped 2026-09-28 late evening (Scott: "ship it"):** meal builder, Readings filter chips, the pantry test
 starter and the barcode 404 fix — merged into `main` (`1085eef`), `npm test` 294 passed / 6 skipped / 0 failed,
