@@ -3,7 +3,9 @@
 // at a time. Pure functions so they're testable without a browser. Entries are
 // the merged timeline (each has `_kind`: glucose / food / diary).
 
-const isCgm = (e) => e._kind === "glucose" && e.sourceId === "librelinkup";
+import { isCgmSource } from "./cgmSources.js";
+
+const isCgm = (e) => e._kind === "glucose" && isCgmSource(e.sourceId);
 
 export const READING_FILTERS = [
   { key: "all", label: "All", test: () => true },

@@ -7,6 +7,7 @@
 // Pure functions, no DOM or storage — main.js owns the UI and persistence.
 
 import { convertUnit } from "./thresholds.js";
+import { isCgmSource } from "./cgmSources.js";
 
 const SETTINGS_KEY = "rht-spike-settings";
 
@@ -47,10 +48,15 @@ export function saveSpikeSettings(settings) {
 
 // Continuous-sensor readings only: finger-pricks are too sparse to show a
 // rise-over-an-hour shape, and mixing the two sources would compare blood
-// against interstitial values that genuinely differ.
+// against interstitial values that genuinely differ. With two sensors worn at
+// once (Libre + Dexcom), only the one with the most readings is used: mixing
+// them would turn the small gap between two sensors into fake rises and drops.
 export function cgmSeries(glucose) {
+  const counts = {};
+  for (const g of glucose) if (isCgmSource(g.sourceId)) counts[g.sourceId] = (counts[g.sourceId] || 0) + 1;
+  const primary = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
   return glucose
-    .filter((g) => g.sourceId === "librelinkup")
+    .filter((g) => g.sourceId === primary)
     .map((g) => ({ t: new Date(g.timestamp).getTime(), v: convertUnit(Number(g.value), g.unit, "mmol/L") }))
     .filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v))
     .sort((a, b) => a.t - b.t);

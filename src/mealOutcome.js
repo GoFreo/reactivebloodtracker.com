@@ -7,6 +7,7 @@
 // readings, never a verdict on whether the meal was "good".
 
 import { convertUnit } from "./thresholds.js";
+import { isCgmSource } from "./cgmSources.js";
 
 export const OUTCOME_HOURS = 5;
 const BEFORE_MINUTES = 60; // a reading this recent counts as "before the meal"
@@ -20,7 +21,7 @@ export function mealOutcome(mealTimestamp, glucose, { hours = OUTCOME_HOURS } = 
   if (!Number.isFinite(t0)) return null;
   const end = t0 + hours * 3600000;
   const pts = glucose
-    .map((g) => ({ t: new Date(g.timestamp).getTime(), v: convertUnit(Number(g.value), g.unit, "mmol/L"), cgm: g.sourceId === "librelinkup" }))
+    .map((g) => ({ t: new Date(g.timestamp).getTime(), v: convertUnit(Number(g.value), g.unit, "mmol/L"), cgm: isCgmSource(g.sourceId) }))
     .filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v));
 
   // Prefer the continuous sensor when it covers the window: a handful of

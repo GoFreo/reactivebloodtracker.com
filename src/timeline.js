@@ -1,4 +1,5 @@
 import { classifyReading, explainClassification, convertUnit, getThresholds } from "./thresholds.js";
+import { isCgmSource } from "./cgmSources.js";
 import { compareRecentFirst } from "./db.js";
 import { formatDate } from "./dateformat.js";
 import { smoothSeries, findPeaksAndTroughs, findThresholdCrossings } from "./graphAnalysis.js";
@@ -21,7 +22,7 @@ function entryLabel(entry) {
   if (entry._kind === "glucose") {
     // Tag where a reading came from so CGM and finger-prick values can be told
     // apart at a glance — they genuinely differ (interstitial vs blood, lag).
-    if (entry.sourceId === "librelinkup") return "🩸 Glucose · CGM";
+    if (isCgmSource(entry.sourceId)) return `🩸 Glucose · CGM${entry.sourceId === "dexcom" ? " (Dexcom)" : ""}`;
     if (entry.sourceId === "bluetooth-meter") return "🩸 Glucose · Meter";
     return "🩸 Glucose";
   }
@@ -124,7 +125,7 @@ function rangeLabel(hours) {
 // least two readings are genuinely missing (phone out of range, sensor warm-up).
 export const CGM_GAP_MS = 45 * 60000;
 
-const isCgm = (g) => g.sourceId === "librelinkup";
+const isCgm = (g) => isCgmSource(g.sourceId);
 
 // Splits a time-sorted series into runs wherever consecutive points are further
 // apart than `gapMs`. Returns { runs: [[p...]], gaps: [{from, to}] }.
@@ -192,7 +193,14 @@ export function buildGraphHTML(glucoseEntries, { unit = "mmol/L", hours = 24, fo
   const y = (v) => T + (1 - (v - minV) / (maxV - minV || 1)) * (H - T - B);
   const f1 = (n) => n.toFixed(1);
 
-  const { runs, gaps } = splitAtGaps(cgm);
+  // Each sensor gets its own runs: wearing a Libre and a Dexcom at once, one
+  // combined line would zigzag between the two sensors' slightly different
+  // values. Gaps are shaded only where *no* sensor had data.
+  const runs = [];
+  for (const source of new Set(cgm.map((p) => p.raw.sourceId))) {
+    runs.push(...splitAtGaps(cgm.filter((p) => p.raw.sourceId === source)).runs);
+  }
+  const { gaps } = splitAtGaps(cgm);
   const gapRects = gaps
     .map((g) => {
       const x1 = x(g.from);

@@ -141,3 +141,35 @@ test.describe("Dexcom ONE+ connection", () => {
     await expect(page.locator("#dexcom-connect-btn")).toBeVisible();
   });
 });
+
+test("Libre and Dexcom worn together draw as two separate sensor lines, not one zigzag", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    const now = Date.now();
+    const rows = [];
+    for (let i = 0; i < 12; i++) {
+      rows.push({ id: `l${i}`, type: "glucose", sourceId: "librelinkup", value: 5, unit: "mmol/L", note: "", timestamp: new Date(now - (12 - i) * 15 * 60000).toISOString() });
+      rows.push({ id: `d${i}`, type: "glucose", sourceId: "dexcom", value: 7, unit: "mmol/L", note: "", timestamp: new Date(now - (12 - i) * 15 * 60000 + 5 * 60000).toISOString() });
+    }
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.open("rht-db", 1);
+      // Same schema as src/db.js, in case the app hasn't opened the database yet.
+      req.onupgradeneeded = () => {
+        for (const store of ["glucose", "food", "diary"]) {
+          if (!req.result.objectStoreNames.contains(store)) req.result.createObjectStore(store, { keyPath: "id" }).createIndex("timestamp", "timestamp");
+        }
+      };
+      req.onsuccess = () => {
+        const tx = req.result.transaction("glucose", "readwrite");
+        for (const r of rows) tx.objectStore("glucose").put(r);
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+      };
+      req.onerror = reject;
+    });
+  });
+  await page.locator('button.nav-btn[data-nav="readings"]').click();
+  await page.locator('#readings-view-toggle button[data-mode="graph"]').click();
+  await expect(page.locator("#readings-graph-container polyline.graph-line")).toHaveCount(2);
+  await expect(page.locator("#readings-graph-container .graph-prick")).toHaveCount(0);
+});
