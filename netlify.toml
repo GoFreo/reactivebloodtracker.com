@@ -6,3 +6,10 @@
 [dev]
   command = "npm run dev"
   targetPort = 5173
+
+# Dexcom sends the user back here after sign-in; it's a screen of the app
+# itself (src/main.js reads the ?code=), not a separate page.
+[[redirects]]
+  from = "/dexcom-callback"
+  to = "/index.html"
+  status = 200

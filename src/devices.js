@@ -96,17 +96,22 @@ export function deviceLabel(type) {
 // isn't duplicated on every sync. Returns the device if one was newly added,
 // otherwise null.
 export function recordLibreSensorIfNew(sensor, storage) {
+  return recordSensorIfNew("librelinkup", sensor, storage);
+}
+
+// Same rule for any wear-one-at-a-time sensor type (Libre, Dexcom ONE+, whose
+// sensor carries its own transmitter id): idempotent by serial, and a newly
+// seen sensor retires the previous "in use" one of that type to "finished".
+export function recordSensorIfNew(type, sensor, storage) {
   if (!sensor?.serial) return null;
   const all = readAll(storage);
-  if (all.some((d) => d.type === "librelinkup" && d.serial === sensor.serial)) return null;
-  // A newly-seen sensor replaces the previous Libre as "in use" — the old one
-  // finished (or failed), not still active, since Scott wears one at a time.
+  if (all.some((d) => d.type === type && d.serial === sensor.serial)) return null;
   for (const d of all) {
-    if (d.type === "librelinkup" && d.status === "in use") d.status = "finished";
+    if (d.type === type && d.status === "in use") d.status = "finished";
   }
   const device = {
     id: makeId(),
-    type: "librelinkup",
+    type,
     serial: sensor.serial,
     nickname: "",
     status: "in use",

@@ -21,6 +21,8 @@ self.addEventListener("activate", (event) => {
 // need the shell to load offline — always prefer a fresh copy when online.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // Never cache the Dexcom return page: its URL carries a one-time sign-in code.
+  if (new URL(event.request.url).pathname === "/dexcom-callback") return;
   event.respondWith(
     fetch(event.request)
       .then((response) => {

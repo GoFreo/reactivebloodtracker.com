@@ -28,13 +28,17 @@ import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { shrinkForStorage } from "./imageForAI.js";
 import { fetchCgmReadings, getSavedPasscode, savePasscode, CGM_LAST_SYNC_KEY } from "./libreLinkUp.js";
+import {
+  getDexcomConnection, startDexcomConnect, completeDexcomConnect, fetchDexcomReadings, disconnectDexcom,
+  DEXCOM_LAST_SYNC_KEY, DEXCOM_CALLBACK_PATH,
+} from "./dexcom.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
 import { hasAccepted, getProfile, acceptWelcome, acceptedAt, CONDITION_LABELS } from "./welcome.js";
 import { listSavedMeals, saveMeal, deleteSavedMeal, mealToBuilderItems } from "./savedMeals.js";
 import { lookupFood, STAGE_TEXT, syncFoodBank, pushToFoodBank, deleteFromFoodBank, foodBankAvailable } from "./foodBank.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
-import { DEVICE_TYPES, DEVICE_STATUSES, listDevices, addDevice, updateDevice, retireDevice, deviceLabel, activeDeviceOfType, recordLibreSensorIfNew } from "./devices.js";
+import { DEVICE_TYPES, DEVICE_STATUSES, listDevices, addDevice, updateDevice, retireDevice, deviceLabel, activeDeviceOfType, recordLibreSensorIfNew, recordSensorIfNew } from "./devices.js";
 import {
   saveMyFood, deleteMyFood, listMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
 } from "./myFoods.js";
@@ -136,6 +140,7 @@ function showView(name) {
     refreshReadings();
   } else if (name === "settings") {
     loadThresholdSettings();
+    renderDexcomStatus();
   } else if (name === "help") {
     renderHelpSetup();
   } else if (name === "my-foods") {
@@ -970,7 +975,8 @@ const BLUETOOTH_LAST_SYNC_KEY = "rht-bluetooth-last-sync";
 function updateSyncBadge() {
   const badge = document.getElementById("sync-status-badge");
   const text = document.getElementById("sync-status-badge-text");
-  const lastSync = [localStorage.getItem(BLUETOOTH_LAST_SYNC_KEY), localStorage.getItem(CGM_LAST_SYNC_KEY)]
+  const lastSync = [BLUETOOTH_LAST_SYNC_KEY, CGM_LAST_SYNC_KEY, DEXCOM_LAST_SYNC_KEY]
+    .map((k) => localStorage.getItem(k))
     .filter(Boolean)
     .sort()
     .at(-1); // ISO timestamps sort correctly as strings
@@ -1388,6 +1394,79 @@ async function syncLibreStep(onStatus) {
   }
 }
 
+// --- Dexcom ONE+ via Dexcom's official API (OAuth; netlify/functions/dexcom.js) ---
+let dexcomMessage = "";
+
+function renderDexcomStatus() {
+  const connection = getDexcomConnection();
+  const statusEl = document.getElementById("dexcom-status");
+  document.getElementById("dexcom-connect-btn").hidden = Boolean(connection);
+  document.getElementById("dexcom-disconnect-btn").hidden = !connection;
+  let text = connection
+    ? `Connected ${formatDate(connection.connectedAt)}${connection.env === "sandbox" ? " — Dexcom test mode: simulated readings only, nothing is saved" : ""}.`
+    : "Not connected.";
+  if (dexcomMessage) text = `${dexcomMessage} ${text}`;
+  statusEl.textContent = text;
+}
+
+document.getElementById("dexcom-connect-btn").addEventListener("click", async (e) => {
+  e.target.disabled = true;
+  dexcomMessage = "Opening Dexcom sign-in…";
+  renderDexcomStatus();
+  try {
+    await startDexcomConnect(); // navigates away on success
+  } catch (err) {
+    dexcomMessage = err.message;
+    renderDexcomStatus();
+    e.target.disabled = false;
+  }
+});
+
+document.getElementById("dexcom-disconnect-btn").addEventListener("click", () => {
+  if (!confirm("Disconnect Dexcom on this device? Readings already saved stay. To fully withdraw access, also remove this app in your Dexcom account.")) return;
+  disconnectDexcom();
+  dexcomMessage = "Disconnected.";
+  renderDexcomStatus();
+});
+
+// One Sync step for Dexcom — nothing physical needed, so it runs alongside
+// Libre before the Bluetooth meter's manual prompt. Returns null when Dexcom
+// isn't connected (most users won't have one, so it stays out of the status
+// line entirely). Never throws.
+async function syncDexcomStep(onStatus) {
+  if (!getDexcomConnection()) return null;
+  onStatus("Syncing with Dexcom…");
+  try {
+    await refreshAllCaches();
+    const saved = cachedGlucose.filter((g) => g.sourceId === "dexcom");
+    const since = saved.map((g) => g.timestamp).sort().at(-1) || null;
+    const { readings, transmitterId, env } = await fetchDexcomReadings(since);
+    if (env === "sandbox") {
+      // Dexcom's sandbox only has made-up test users — never mix those into
+      // the real record. Reporting the count proves the connection works.
+      return `Dexcom (test mode): connection works, ${readings.length} simulated reading${readings.length === 1 ? "" : "s"} received, not saved.`;
+    }
+    const newDevice = recordSensorIfNew("dexcom-one-plus", transmitterId ? { serial: transmitterId } : null);
+    if (newDevice) renderDeviceList();
+    const savedTimes = new Set(saved.map((g) => new Date(g.timestamp).getTime()));
+    let imported = 0;
+    for (const r of readings) {
+      if (savedTimes.has(new Date(r.timestamp).getTime())) continue;
+      await saveGlucoseReading({ value: r.value, unit: r.unit, timestamp: r.timestamp, note: "", sourceId: "dexcom" });
+      imported++;
+    }
+    const skipped = readings.length - imported;
+    try {
+      localStorage.setItem(DEXCOM_LAST_SYNC_KEY, new Date().toISOString());
+    } catch {}
+    await refreshAllCaches();
+    return `Dexcom: ${imported} new reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.${newDevice ? ` New sensor recorded (${lastFour(newDevice.serial)}).` : ""}`;
+  } catch (err) {
+    renderDexcomStatus();
+    return `Dexcom: failed — ${err.message}`;
+  }
+}
+
 // --- Unified sync (Scott's spec, 2026-10-02): one button, not one per
 // device. Libre runs first (nothing physical needed); the Bluetooth meter
 // runs second, with its own manual-action prompt, so Scott isn't left
@@ -1406,6 +1485,11 @@ async function runUnifiedSync(btn, statusEl) {
     const onStatus = (msg) => (statusEl.textContent = done ? `${done} ${msg}` : msg);
     done = await syncLibreStep(onStatus);
     statusEl.textContent = done;
+    const dexcomResult = await syncDexcomStep(onStatus);
+    if (dexcomResult) {
+      done = `${done} ${dexcomResult}`;
+      statusEl.textContent = done;
+    }
     if (isBluetoothAvailable()) {
       const meterResult = await syncBluetoothStep(onStatus);
       done = `${done} ${meterResult}`;
@@ -1861,3 +1945,24 @@ document.getElementById("help-change-setup").addEventListener("click", openWelco
 document.getElementById("welcome-form").addEventListener("submit", () => {
   if (!document.getElementById("view-help").hidden) renderHelpSetup();
 });
+
+// Dexcom's sign-in sends the user back to /dexcom-callback?code=…&state=….
+// Swap the code for tokens, then show the result in Settings → Dexcom. The URL
+// is cleaned straight away so the one-time code isn't left in history.
+if (window.location.pathname === DEXCOM_CALLBACK_PATH) {
+  const params = new URLSearchParams(window.location.search);
+  history.replaceState(null, "", "/");
+  dexcomMessage = "Finishing Dexcom connection…";
+  showView("settings");
+  document.getElementById("dexcom-status").scrollIntoView({ block: "center" });
+  completeDexcomConnect(params)
+    .then((c) => {
+      dexcomMessage = c.env === "sandbox"
+        ? "Dexcom connected (test mode). Tap Sync devices on Home to check it."
+        : "Dexcom connected. Tap Sync devices on Home to pull your readings.";
+    })
+    .catch((err) => {
+      dexcomMessage = err.message;
+    })
+    .finally(renderDexcomStatus);
+}

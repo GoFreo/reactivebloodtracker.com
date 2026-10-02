@@ -29,7 +29,14 @@ export const glucoseSources = [
     // unlike Bluetooth. Whether it's actually set up is only known after a sync.
     isAvailable: () => true,
   },
-  // Future: Dexcom G7 — expected from ADACare (2026-09-28), not built yet.
+  {
+    id: "dexcom",
+    label: "Dexcom ONE+ CGM",
+    description: "Connect once with your Dexcom sign-in (Settings → My devices); Sync devices then pulls new readings. Dexcom holds readings back about 3 hours outside the US.",
+    // Server-side via Dexcom's official API (netlify/functions/dexcom.js), so
+    // any browser works. Connected or not is shown in Settings → My devices.
+    isAvailable: () => true,
+  },
 ];
 
 export async function saveGlucoseReading({ value, unit, timestamp, note, sourceId = "manual" }) {
