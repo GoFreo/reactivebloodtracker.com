@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reactive Blood Tracker explainer stage</title>
+<!-- The 1920×1080 "set" the explainer video is recorded on: the real app runs
+     in the phone frame (an iframe of a local build), and the narration's
+     headline and subtitles sit beside it. Driven by video/record.mjs. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root { --teal: #1b6e6a; --teal-deep: #0e3b39; --teal-light: #3fb6ae; --cream: #f7f5f1; --red: #d2453a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    color: var(--cream);
+    background: radial-gradient(1200px 900px at 20% 30%, #19534f 0%, var(--teal-deep) 60%, #082624 100%);
+  }
+  .phone {
+    position: absolute; left: 190px; top: 46px;
+    width: 470px; height: 988px; border-radius: 64px;
+    background: #0b0f0f; padding: 20px;
+    box-shadow: 0 40px 90px rgba(0,0,0,.45), inset 0 0 0 2px #2a3534;
+  }
+  .screen { width: 430px; height: 948px; border-radius: 46px; overflow: hidden; background: #fff; position: relative; }
+  /* Native size, no CSS scaling: a scaled iframe throws off where Playwright clicks. */
+  .screen iframe { border: 0; width: 430px; height: 948px; display: block; }
+  .copy { position: absolute; left: 790px; top: 150px; width: 1010px; }
+  .eyebrow {
+    font-size: 26px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--teal-light); margin-bottom: 22px; min-height: 34px;
+  }
+  .headline {
+    font-family: 'Fraunces', Georgia, serif; font-weight: 700;
+    font-size: 76px; line-height: 1.06; letter-spacing: -.01em; margin: 0;
+    text-wrap: balance;
+  }
+  .subtitle {
+    position: absolute; left: 790px; top: 640px; width: 1010px; min-height: 230px;
+    font-size: 38px; line-height: 1.38; font-weight: 500; color: #fff;
+    border-left: 6px solid var(--teal-light); padding: 6px 0 6px 30px;
+    transition: opacity .25s;
+  }
+  .footer {
+    position: absolute; left: 790px; bottom: 54px; width: 1010px;
+    display: flex; justify-content: space-between; font-size: 24px; color: #9fc9c5;
+  }
+  .footer .demo { color: #f3c98b; }
+  .fade { transition: opacity .45s ease; }
+  .hidden { opacity: 0; }
+
+  /* Full-screen title / end cards */
+  .card {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(1100px 800px at 50% 40%, #19534f 0%, var(--teal-deep) 65%, #082624 100%);
+    text-align: center; transition: opacity .6s ease; z-index: 10;
+  }
+  .card.off { opacity: 0; pointer-events: none; }
+  .card .drop { width: 120px; height: 150px; margin-bottom: 34px; }
+  .card h1 { font-family: 'Fraunces', Georgia, serif; font-size: 112px; margin: 0; line-height: 1; }
+  .card h1 span { color: var(--teal-light); }
+  .card p { font-size: 40px; color: #cfe6e3; margin: 28px 0 0; max-width: 1300px; line-height: 1.35; }
+  .card .url { margin-top: 52px; font-size: 44px; font-weight: 600; color: #fff; letter-spacing: .02em; }
+  .card .small { font-size: 26px; color: #f3c98b; margin-top: 40px; }
+</style>
+</head>
+<body>
+  <div class="phone"><div class="screen"><iframe id="app" title="Reactive Blood Tracker"></iframe></div></div>
+
+  <div class="copy fade" id="copy">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h2 class="headline" id="headline"></h2>
+  </div>
+  <div class="subtitle" id="subtitle"></div>
+  <div class="footer">
+    <span class="demo">Demonstration data, not a real patient</span>
+    <span>reactivebloodtracker.com</span>
+  </div>
+
+  <div class="card" id="card">
+    <svg class="drop" viewBox="0 0 120 150" aria-hidden="true">
+      <path d="M60 6 C60 6 14 64 14 96 a46 46 0 0 0 92 0 C106 64 60 6 60 6 Z" fill="#d2453a"/>
+      <ellipse cx="44" cy="92" rx="9" ry="15" fill="rgba(255,255,255,.35)"/>
+    </svg>
+    <h1 id="card-title">Reactive <span>Blood Tracker</span></h1>
+    <p id="card-text"></p>
+    <div class="url" id="card-url"></div>
+    <div class="small" id="card-small"></div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  window.stage = {
+    scene(eyebrow, headline) {
+      $("copy").classList.add("hidden");
+      setTimeout(() => {
+        $("eyebrow").textContent = eyebrow;
+        $("headline").textContent = headline;
+        $("copy").classList.remove("hidden");
+      }, 300);
+    },
+    subtitle(text) { $("subtitle").textContent = text; },
+    card({ text = "", url = "", small = "" } = {}) {
+      $("card-text").textContent = text;
+      $("card-url").textContent = url;
+      $("card-small").textContent = small;
+      $("card").classList.remove("off");
+    },
+    hideCard() { $("card").classList.add("off"); },
+  };
+</script>
+</body>
+</html>

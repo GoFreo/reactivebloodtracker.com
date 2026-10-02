@@ -22,3 +22,7 @@ food photos/
 
 # Scott's health-data screenshots (Libre/LibreLinkUp), never commit
 screenshots/
+
+# Explainer video build files and output (made by video/record.mjs)
+video/build/
+video/out/
