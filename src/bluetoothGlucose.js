@@ -17,6 +17,14 @@ const MEASUREMENT_CHAR = "glucose_measurement";
 const RACP_CHAR = "record_access_control_point";
 const MMOL_TO_MGDL = 18.0182;
 
+// Device Information Service (Bluetooth SIG 0x180A) / Serial Number String
+// (0x2A25) — a standard, widely-implemented service (unlike the Guide Me's
+// own protocol, this one is generic BLE, not device-specific guesswork).
+// Optional per spec: plenty of devices skip it, so every call site here
+// treats its absence as "unknown serial," never an error.
+const DEVICE_INFO_SERVICE = "device_information";
+const SERIAL_CHAR = "serial_number_string";
+
 // Byte 3 of a Record Access Control Point "Response Code" notification (spec
 // GLS_v1.0.1) — what the meter actually said, not just "it responded." Without
 // this, a meter reply of e.g. "no records" or "not supported" looked identical
@@ -117,12 +125,34 @@ export async function getRememberedDevice() {
   }
 }
 
+// Reads the Device Information Service's serial, if the device exposes it and
+// this connection was granted access to it. Never throws: a device that
+// doesn't implement this (optional per spec) is common, and so is a device
+// paired *before* device_information was added to optionalServices below — a
+// silent reconnect (getRememberedDevice) replays the original grant, which
+// for an already-paired meter won't include it until the next full re-pair
+// through the picker. Either way, "serial unknown" is the correct, honest
+// result — never block the actual readings sync over this.
+async function readDeviceSerial(server) {
+  try {
+    const service = await server.getPrimaryService(DEVICE_INFO_SERVICE);
+    const char = await service.getCharacteristic(SERIAL_CHAR);
+    const value = await char.readValue();
+    const text = new TextDecoder().decode(value).trim();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
 // Opens the browser's own Bluetooth device picker (or silently reconnects to
 // a remembered device, see getRememberedDevice above), connects, and requests
 // every stored record via the Record Access Control Point (op 1 "report
 // stored records", operator 1 "all records") — Scott asked for the device's
-// existing history, not just whatever it reads next. Returns the parsed,
-// range-checked readings; caller decides how to save/de-duplicate them.
+// existing history, not just whatever it reads next. Returns
+// { readings, serial, deviceName } — serial is null when the device doesn't
+// expose it (see readDeviceSerial); caller decides how to save/de-duplicate
+// readings and whether to check serial against a registered device.
 export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
   if (!isBluetoothAvailable()) {
     throw new Error("Web Bluetooth isn't available in this browser — this only works in Chrome (Mac or Android), not Safari/iPhone.");
@@ -142,12 +172,13 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
     // actually grants access to the service after connecting.
     device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
-      optionalServices: [GLUCOSE_SERVICE],
+      optionalServices: [GLUCOSE_SERVICE, DEVICE_INFO_SERVICE],
     });
   }
 
   onStatus(`Connecting to ${device.name || "meter"}…`);
   const server = await device.gatt.connect();
+  const serial = await readDeviceSerial(server);
   const service = await server.getPrimaryService(GLUCOSE_SERVICE);
   const measurementChar = await service.getCharacteristic(MEASUREMENT_CHAR);
   const racpChar = await service.getCharacteristic(RACP_CHAR);
@@ -191,5 +222,5 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
     device.gatt.disconnect();
   }
 
-  return readings;
+  return { readings, serial, deviceName: device.name || null };
 }

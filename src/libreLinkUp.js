@@ -24,8 +24,9 @@ export function savePasscode(passcode) {
   }
 }
 
-// Resolves to { readings: [{value, unit, timestamp}] } or throws an Error whose
-// message is safe to show directly to Scott.
+// Resolves to { readings: [{value, unit, timestamp}], sensor } or throws an
+// Error whose message is safe to show directly to Scott. `sensor` (see
+// extractSensorInfo in cgm-sync.js) is null when the server didn't report one.
 export async function fetchCgmReadings(passcode) {
   let res;
   try {
@@ -42,5 +43,5 @@ export async function fetchCgmReadings(passcode) {
   if (body.configured === false) throw new Error(body.error);
   if (!res.ok) throw new Error(body.error || `Sync failed (${res.status}).`);
   if (body.error && !body.readings?.length) throw new Error(body.error);
-  return { readings: body.readings || [] };
+  return { readings: body.readings || [], sensor: body.sensor || null };
 }

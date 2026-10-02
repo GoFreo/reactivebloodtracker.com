@@ -432,6 +432,9 @@ button:active {
   margin-bottom: 8px;
 }
 
+.device-item .device-info { display: flex; flex-direction: column; gap: 2px; }
+.device-item .device-status { width: auto; flex-shrink: 0; margin-left: 10px; }
+
 /* Warning thresholds — blank/neutral until Settings has real numbers in it */
 .timeline-entry.warn-low { border-left: 4px solid var(--low); }
 .timeline-entry.warn-high { border-left: 4px solid var(--high); }

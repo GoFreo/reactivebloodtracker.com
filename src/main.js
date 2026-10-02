@@ -34,6 +34,7 @@ import { hasAccepted, getProfile, acceptWelcome, acceptedAt, CONDITION_LABELS } 
 import { listSavedMeals, saveMeal, deleteSavedMeal, mealToBuilderItems } from "./savedMeals.js";
 import { lookupFood, STAGE_TEXT, syncFoodBank, pushToFoodBank, deleteFromFoodBank, foodBankAvailable } from "./foodBank.js";
 import { READING_FILTERS, filterEntries, filterCounts, normaliseFilter } from "./readingsFilter.js";
+import { DEVICE_TYPES, DEVICE_STATUSES, listDevices, addDevice, updateDevice, retireDevice, deviceLabel, activeDeviceOfType, recordLibreSensorIfNew } from "./devices.js";
 import {
   saveMyFood, deleteMyFood, listMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
 } from "./myFoods.js";
@@ -981,6 +982,58 @@ function updateBluetoothBadge() {
   text.textContent = `Synced ${formatRelativeTime(lastSync)}`;
 }
 
+// --- My devices (Scott's spec, 2026-09-28 22:43) ---
+const lastFour = (serial) => (serial ? `…${serial.slice(-4)}` : "unknown serial");
+
+function renderDeviceList() {
+  const container = document.getElementById("device-list");
+  const list = listDevices();
+  if (!list.length) {
+    container.innerHTML = '<p class="field-hint">No devices recorded yet — add one below, or connect/sync once and this app will offer to record it for you.</p>';
+    return;
+  }
+  container.innerHTML = "";
+  for (const d of list) {
+    const row = document.createElement("div");
+    row.className = "source-item device-item";
+    const dateAdded = formatDate(d.dateAdded, { withTime: false });
+    row.innerHTML = `
+      <div class="device-info">
+        <strong>${deviceLabel(d.type)}</strong>${d.nickname ? ` — ${d.nickname}` : ""}
+        <span class="field-hint">${lastFour(d.serial)} · added ${dateAdded}</span>
+      </div>
+      <select class="device-status" data-id="${d.id}">
+        ${DEVICE_STATUSES.map((s) => `<option value="${s}">${s}</option>`).join("")}
+      </select>
+    `;
+    row.querySelector(".device-status").value = d.status;
+    row.querySelector(".device-status").addEventListener("change", (e) => {
+      retireDevice(d.id, e.target.value);
+      renderDeviceList();
+    });
+    container.appendChild(row);
+  }
+}
+
+const deviceTypeSelect = document.getElementById("device-type");
+for (const t of DEVICE_TYPES) {
+  const opt = document.createElement("option");
+  opt.value = t.id;
+  opt.textContent = t.label;
+  deviceTypeSelect.appendChild(opt);
+}
+
+document.getElementById("device-add-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  addDevice({
+    type: deviceTypeSelect.value,
+    serial: document.getElementById("device-serial").value,
+    nickname: document.getElementById("device-nickname").value,
+  });
+  e.target.reset();
+  renderDeviceList();
+});
+
 // --- Settings ---
 function renderGlucoseSources() {
   const container = document.getElementById("glucose-source-list");
@@ -1014,7 +1067,32 @@ function renderGlucoseSources() {
 async function runBluetoothSync(btn, statusEl) {
   btn.disabled = true;
   try {
-    const readings = await connectAndFetchReadings({ onStatus: (msg) => (statusEl.textContent = msg) });
+    const { readings, serial, deviceName } = await connectAndFetchReadings({ onStatus: (msg) => (statusEl.textContent = msg) });
+
+    // Right-device check (Scott's spec, 2026-09-28 22:43): only meaningful
+    // when both sides actually have a serial to compare — an unknown serial
+    // (device doesn't expose it, or this connection wasn't granted access to
+    // it) can't be checked, so don't block the sync over something unknowable.
+    const registered = activeDeviceOfType("bluetooth-meter");
+    if (serial && registered?.serial && serial !== registered.serial) {
+      const proceed = confirm(
+        `This is meter ${lastFour(serial)}, not your saved meter ${lastFour(registered.serial)} (${registered.nickname || "Accu-Chek Guide Me"}). Use it anyway?`
+      );
+      if (!proceed) {
+        statusEl.textContent = "Cancelled — a different meter than your saved one.";
+        return;
+      }
+    } else if (serial && !registered) {
+      // First connection with a readable serial: offer to record it, rather
+      // than silently saving it unasked (unlike Libre sensors, which Scott's
+      // spec says to auto-record — a meter can be shared/borrowed, so asking
+      // first is the safer default here).
+      if (confirm(`Save this as your registered ${deviceName || "Accu-Chek Guide Me"} (serial ${lastFour(serial)})?`)) {
+        addDevice({ type: "bluetooth-meter", serial });
+        renderDeviceList();
+      }
+    }
+
     await refreshAllCaches();
     let imported = 0;
     let skipped = 0;
@@ -1242,7 +1320,13 @@ async function runCgmSync(btn, statusEl) {
   btn.disabled = true;
   statusEl.textContent = "Syncing with LibreLinkUp…";
   try {
-    const { readings } = await fetchCgmReadings(passcode);
+    const { readings, sensor } = await fetchCgmReadings(passcode);
+    // Auto-record a new Libre sensor into the device register (Scott's spec:
+    // "record each new sensor automatically" — unlike the Bluetooth meter,
+    // this doesn't ask first, since a sensor change is routine, not a
+    // borrowed/different-device situation to catch).
+    const newDevice = recordLibreSensorIfNew(sensor);
+    if (newDevice) renderDeviceList();
     await refreshAllCaches();
     let imported = 0;
     let skipped = 0;
@@ -1257,7 +1341,7 @@ async function runCgmSync(btn, statusEl) {
       await saveGlucoseReading({ value: r.value, unit: r.unit, timestamp: r.timestamp, note: "", sourceId: "librelinkup" });
       imported++;
     }
-    statusEl.textContent = `Done — ${imported} new CGM reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.`;
+    statusEl.textContent = `Done — ${imported} new CGM reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.${newDevice ? ` New sensor recorded in My devices (${lastFour(newDevice.serial)}).` : ""}`;
     try {
       localStorage.setItem(CGM_LAST_SYNC_KEY, new Date().toISOString());
     } catch {}
@@ -1400,6 +1484,7 @@ for (const radio of document.querySelectorAll('input[name="date-format"]')) {
 }
 
 // --- Init ---
+renderDeviceList();
 renderGlucoseSources();
 loadReminderSettings();
 updateBluetoothBadge();

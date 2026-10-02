@@ -236,6 +236,31 @@ test.describe("food entry + AI clarify loop", () => {
   });
 });
 
+test.describe("My devices", () => {
+  test("adding a device manually lists it, and its status can be changed", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await expect(page.locator("#device-list")).toContainText("No devices recorded yet");
+
+    await page.locator("#device-type").selectOption("other");
+    await page.locator("#device-serial").fill("XYZ-999");
+    await page.locator("#device-nickname").fill("Spare meter");
+    await page.locator("#device-add-form button[type=submit]").click();
+
+    const row = page.locator("#device-list .device-item");
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText("Spare meter");
+    await expect(row).toContainText("-999"); // last 4 characters of "XYZ-999"
+
+    await row.locator(".device-status").selectOption("finished");
+    await expect(row.locator(".device-status")).toHaveValue("finished");
+    // Still listed (retiring isn't deleting), and survives a reload.
+    await page.reload();
+    await expect(page.locator("#device-list .device-item")).toHaveCount(1);
+    await expect(page.locator("#device-list .device-status")).toHaveValue("finished");
+  });
+});
+
 test.describe("settings", () => {
   test("CGM sync saves Libre readings once, tagged as CGM, and asks for a passcode first", async ({ page }) => {
     let calls = 0;
@@ -272,6 +297,32 @@ test.describe("settings", () => {
 
     await page.locator('button.nav-btn[data-nav="readings"]').click();
     await expect(page.locator(".timeline-entry", { hasText: "CGM" })).toHaveCount(2);
+  });
+
+  test("a synced Libre sensor is recorded automatically in My devices", async ({ page }) => {
+    await page.route("**/.netlify/functions/cgm-sync", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          configured: true,
+          readings: [{ value: 5.5, unit: "mmol/L", timestamp: "2026-09-28T01:15:00.000Z" }],
+          sensor: { serial: "3L0012A4BF", activatedAt: "2026-09-25T00:00:00.000Z" },
+        }),
+      })
+    );
+    await page.goto("/");
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await page.locator("#cgm-passcode").fill("test-passcode-123");
+    await page.locator("#cgm-sync-btn").click();
+
+    await expect(page.locator("#cgm-status")).toContainText("New sensor recorded");
+    const deviceRow = page.locator("#device-list .device-item", { hasText: "Libre 2 Plus sensor" });
+    await expect(deviceRow).toContainText("A4BF"); // last 4 of the serial
+
+    // Syncing again with the same sensor doesn't add a second row.
+    await page.locator("#cgm-sync-btn").click();
+    await expect(page.locator("#device-list .device-item")).toHaveCount(1);
   });
 
   test("a wrong CGM passcode shows a clear message and saves nothing", async ({ page }) => {

@@ -1828,3 +1828,65 @@ other unit without digging into Settings — small, ready whenever it's next up)
 **✅ SHIPPED 2026-10-02** — committed (`726b760`), pushed to GitHub, deployed with
 `--skip-functions-cache`. Live bundle `index-CCaZ0fTT.js` confirmed on reactivebloodtracker.com;
 `cgm-sync`/`food-bank` both still answer 401 without a passcode (correct).
+
+## 2026-10-02 — My devices built (Scott: "yes, go ahead"): device register, right-device safety check, Libre sensor auto-record
+
+Built most of the spec from the 2026-09-28 22:43 entry above, against the device Scott confirmed
+today (Dexcom **ONE+**, not G7). Scoped deliberately: the device register, the safety checks, and
+Settings UI are built and shipped below; the **single unified Sync button replacing the two existing
+ones is not built yet** — see "Not built this pass" below for why.
+
+**New `src/devices.js`** (pure logic, 8 unit tests): a device-only (not food-bank — personal, not
+shared) register — type (Accu-Chek Guide Me / Libre 2 Plus sensor / Dexcom ONE+ / other), serial,
+nickname, status (in use / finished / failed), date added. No hard delete — retiring a device keeps
+its row, since readings already attributed to it stay meaningful. `recordLibreSensorIfNew()` is
+idempotent by serial, and retires the previous Libre sensor to "finished" when a new one appears.
+
+**`src/bluetoothGlucose.js`:** `connectAndFetchReadings()` now also reads the standard Device
+Information Service's serial (Bluetooth SIG 0x180A/0x2A25 — a generic BLE service, not Accu-Chek-
+specific guesswork, so confidence here is higher than the rest of this file's own "unverified against
+real hardware" caveat, though it's still genuinely untested against the physical Guide Me). Returns
+`{readings, serial, deviceName}` now, not just `readings` — the one call site (`main.js`) was updated.
+**Known limitation, documented in the code:** a device paired *before* this change won't expose the
+new service until its next full re-pair through the picker — `getDevices()`'s silent reconnect replays
+the original grant, which for an already-paired meter won't include `device_information` yet. Fails
+soft either way (serial just comes back `null`, readings sync proceeds normally) — never blocks on this.
+
+**`netlify/functions/cgm-sync.js` / `src/libreLinkUp.js`:** `extractSensorInfo()` pulls the active
+sensor's serial + activation time straight out of the `/llu/connections` response's own `sensor` field
+(`sn`, `a` as Unix *seconds*) — field names confirmed against a real captured LibreLinkUp HTTP exchange
+before writing any parsing code, not assumed (Abbott publishes nothing official for this). Nothing new
+stored server-side; the client auto-records it, same privacy rule as readings.
+
+**`src/main.js` — the two existing sync flows now use this:**
+- Bluetooth: if a registered meter's serial differs from the one just connected, stops and asks
+  ("This is meter …1234, not your saved meter …5678 — use it anyway?", `confirm()`, matching the
+  existing pattern already used for deletions elsewhere) before saving any readings. First connection
+  with no registered meter yet *offers* to save the serial (asks — a meter can be shared/borrowed,
+  so this isn't the same "just record it" case as a Libre sensor).
+- Libre: a new sensor is recorded **automatically**, no asking (Scott's own spec: a sensor change is
+  routine). Home's status line names it so Scott notices without a trip to Settings.
+
+**Settings → My devices:** list with each device's last-4-of-serial, nickname, add date, and a status
+dropdown (retiring doesn't delete); an "Add device" form for noting one by hand (before a first sync,
+or for types with no sync yet). Reuses the existing `.source-item` layout.
+
+**Not built this pass — the single unified Sync button:** Scott's 2026-10-02 idea (one button, walks
+through every registered device in sequence, with a "turn on your Accu-Chek, then tap Continue" prompt
+for the one device that needs manual action first) means *replacing* the two existing, currently-
+working `runBluetoothSync`/`runCgmSync` buttons Scott actually uses for his real health tracking — a
+materially different risk profile from everything above, which only *adds* checks around those same
+flows without changing their shape. Deliberately sequenced as its own next step rather than rushed
+into the same pass as the device register underneath it.
+
+**Verified:** 10 new unit tests (`tests/devices.spec.js`, `tests/cgmSync.spec.js`) + 3 new smoke tests
+(manual add + status-change-survives-reload; Libre sensor auto-record visible in Settings, idempotent
+on a second sync) — **656 passed / 12 skipped / 0 failed**, all 4 browser projects. Checked by eye in
+the Browser pane: added a device through the real form, confirmed it listed correctly (and confirmed
+*why* an accidental double-click produced a duplicate-looking row — my own test mistake, not a bug —
+by reading the actual stored records back out, not just trusting a screenshot).
+
+**Not verified (can't be, from here):** the Bluetooth serial read against Scott's real Guide Me meter
+— same standing caveat as the rest of this file's Bluetooth code. The right-device-check and
+first-connection-offer prompts are therefore also unverified against a real device, though the logic
+either side of the `confirm()` calls is covered by the Bluetooth sync's existing tested paths.

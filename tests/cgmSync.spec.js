@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { parseFactoryTimestamp, toReadings, passcodeMatches, handler } from "../netlify/functions/cgm-sync.js";
+import { parseFactoryTimestamp, toReadings, extractSensorInfo, passcodeMatches, handler } from "../netlify/functions/cgm-sync.js";
 
 // Pure server-side logic, no network — the real LibreLinkUp account can't be
 // exercised from a test run, so the parts that decide *what number and what
@@ -36,6 +36,20 @@ test.describe("LibreLinkUp CGM sync (server logic)", () => {
       ],
     });
     expect(readings).toEqual([]);
+  });
+
+  test("extractSensorInfo reads the sensor's serial and converts its Unix-seconds activation time", () => {
+    // Field names and the Unix-*seconds* unit confirmed against a real captured
+    // LibreLinkUp response (see the comment on extractSensorInfo itself) — not
+    // assumed, since Abbott publishes no official docs for this endpoint.
+    const info = extractSensorInfo({ sensor: { deviceId: "", sn: "3L0012A4BF", a: 1759276800, w: 60, pt: 4 } });
+    expect(info).toEqual({ serial: "3L0012A4BF", activatedAt: "2025-10-01T00:00:00.000Z" });
+  });
+
+  test("extractSensorInfo is null when there's no sensor (e.g. finger-prick-only connection)", () => {
+    expect(extractSensorInfo({})).toBeNull();
+    expect(extractSensorInfo({ sensor: {} })).toBeNull();
+    expect(extractSensorInfo(null)).toBeNull();
   });
 
   test("passcode comparison only accepts an exact match", () => {

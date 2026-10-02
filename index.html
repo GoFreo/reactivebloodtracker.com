@@ -551,6 +551,29 @@
           </p>
         </div>
 
+        <h2>My devices</h2>
+        <div id="device-list"></div>
+        <p class="field-hint">
+          Each physical meter or sensor you've used, with its serial number — so a sync can tell
+          "this is your saved meter" from "this is a different one nearby," and so a new Libre
+          sensor's start date is on record automatically when you sync, for Abbott replacement claims.
+        </p>
+        <form id="device-add-form" class="entry-form">
+          <label>
+            Type
+            <select id="device-type"></select>
+          </label>
+          <label>
+            Serial number (optional — a Bluetooth connection or Libre sync can fill this in for you)
+            <input type="text" id="device-serial" autocomplete="off" placeholder="e.g. the number on the device or box" />
+          </label>
+          <label>
+            Nickname (optional)
+            <input type="text" id="device-nickname" autocomplete="off" placeholder="e.g. spare meter" />
+          </label>
+          <button type="submit">Add device</button>
+        </form>
+
         <h2>Glucose source</h2>
         <div id="glucose-source-list"></div>
         <p class="field-hint" id="glucose-source-hint"></p>

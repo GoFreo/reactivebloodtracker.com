@@ -55,6 +55,21 @@ export function parseFactoryTimestamp(str) {
   return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), hour, Number(minute), Number(second)));
 }
 
+// The active sensor's serial + activation time, from the /llu/connections
+// response's own `sensor` field — not a separate request. Field names (`sn`,
+// `a` as Unix *seconds*) confirmed against a real captured LibreLinkUp HTTP
+// exchange (gist.github.com/khskekec/6c13ba01b10d3018d816706a32ae8ab2), not
+// assumed — Abbott has no official docs for this endpoint. Used to
+// auto-record the sensor into the device register (src/devices.js) client-side;
+// this function only extracts it, nothing is stored server-side (same rule as
+// readings — see the file header).
+export function extractSensorInfo(patient) {
+  const sensor = patient?.sensor;
+  if (!sensor?.sn) return null;
+  const activatedAt = Number.isFinite(sensor.a) ? new Date(sensor.a * 1000).toISOString() : null;
+  return { serial: String(sensor.sn), activatedAt };
+}
+
 // Turns a /graph response's data into app-ready readings (mmol/L, ISO time,
 // oldest first, de-duplicated — the "current" measurement often repeats the
 // newest graph point). Readings outside a plausible range are dropped rather
@@ -163,7 +178,7 @@ export const handler = async (event) => {
       return json(200, { configured: true, readings: [], error: "No shared sensor found — check the LibreLinkUp invite was accepted." });
     }
     const graph = await authedGet(session, `/llu/connections/${patient.patientId}/graph`, version);
-    return json(200, { configured: true, readings: toReadings(graph) });
+    return json(200, { configured: true, readings: toReadings(graph), sensor: extractSensorInfo(patient) });
   } catch (err) {
     return json(502, { error: err.message || "LibreLinkUp request failed" });
   }
