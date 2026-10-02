@@ -963,18 +963,21 @@ const BLUETOOTH_LAST_SYNC_KEY = "rht-bluetooth-last-sync";
 // the link, pulls stored records, then disconnects (see bluetoothGlucose.js); there
 // is no persistent connection to reflect. "Last synced" is the honest version of
 // the same at-a-glance reassurance: is my data current, not is a link held open.
-function updateBluetoothBadge() {
-  const badge = document.getElementById("bluetooth-status-badge");
-  const text = document.getElementById("bluetooth-status-badge-text");
-  if (!isBluetoothAvailable()) {
-    badge.hidden = true;
-    return;
-  }
+// Covers *either* source now (2026-10-02, unified sync): previously this hid
+// itself entirely without Bluetooth, which meant it never showed at all on
+// Safari/iPhone even though Libre sync works there — generalized so an
+// iPhone-only user still gets the same at-a-glance reassurance.
+function updateSyncBadge() {
+  const badge = document.getElementById("sync-status-badge");
+  const text = document.getElementById("sync-status-badge-text");
+  const lastSync = [localStorage.getItem(BLUETOOTH_LAST_SYNC_KEY), localStorage.getItem(CGM_LAST_SYNC_KEY)]
+    .filter(Boolean)
+    .sort()
+    .at(-1); // ISO timestamps sort correctly as strings
   badge.hidden = false;
   badge.classList.remove("synced", "stale");
-  const lastSync = localStorage.getItem(BLUETOOTH_LAST_SYNC_KEY);
   if (!lastSync) {
-    text.textContent = "Meter not synced yet";
+    text.textContent = "Not synced yet";
     return;
   }
   const diffHr = (Date.now() - new Date(lastSync).getTime()) / 3600000;
@@ -1045,29 +1048,27 @@ function renderGlucoseSources() {
     container.appendChild(el);
   }
   const hint = document.getElementById("glucose-source-hint");
-  const btn = document.getElementById("bluetooth-connect-btn");
   const connectHint = document.getElementById("bluetooth-connect-hint");
-  const homeBtn = document.getElementById("home-bluetooth-connect-btn");
   if (isBluetoothAvailable()) {
-    btn.hidden = false;
     connectHint.hidden = false;
     hint.textContent = "";
-    homeBtn.hidden = false;
   } else {
-    btn.hidden = true;
     connectHint.hidden = true;
     hint.textContent =
       "Bluetooth needs Chrome (on your Mac or an Android phone) — Safari/iPhone doesn't support Web Bluetooth at all, an Apple platform limit, not something this app can work around.";
-    homeBtn.hidden = true;
   }
 }
 
-// Shared by the Settings button and the Home-screen shortcut — same flow,
-// just reporting into whichever status line is next to the button pressed.
-async function runBluetoothSync(btn, statusEl) {
-  btn.disabled = true;
+// One Sync step for the Bluetooth meter (Scott's spec, 2026-10-02: "turn on
+// your Accu-Chek... then it scans all devices" — a manual-action prompt
+// first, since the meter isn't advertising until woken, then the same
+// connect/right-device-check/save flow as before unification). Returns a
+// one-line summary for the unified status message; never throws.
+async function syncBluetoothStep(onStatus) {
+  const proceed = await waitForManualStep("Turn on your Bluetooth meter (e.g. Accu-Chek Guide Me), then tap Continue.");
+  if (!proceed) return "Meter: skipped.";
   try {
-    const { readings, serial, deviceName } = await connectAndFetchReadings({ onStatus: (msg) => (statusEl.textContent = msg) });
+    const { readings, serial, deviceName } = await connectAndFetchReadings({ onStatus });
 
     // Right-device check (Scott's spec, 2026-09-28 22:43): only meaningful
     // when both sides actually have a serial to compare — an unknown serial
@@ -1075,13 +1076,10 @@ async function runBluetoothSync(btn, statusEl) {
     // it) can't be checked, so don't block the sync over something unknowable.
     const registered = activeDeviceOfType("bluetooth-meter");
     if (serial && registered?.serial && serial !== registered.serial) {
-      const proceed = confirm(
+      const proceedAnyway = confirm(
         `This is meter ${lastFour(serial)}, not your saved meter ${lastFour(registered.serial)} (${registered.nickname || "Accu-Chek Guide Me"}). Use it anyway?`
       );
-      if (!proceed) {
-        statusEl.textContent = "Cancelled — a different meter than your saved one.";
-        return;
-      }
+      if (!proceedAnyway) return "Meter: cancelled — a different meter than your saved one.";
     } else if (serial && !registered) {
       // First connection with a readable serial: offer to record it, rather
       // than silently saving it unasked (unlike Libre sensors, which Scott's
@@ -1105,24 +1103,40 @@ async function runBluetoothSync(btn, statusEl) {
       await saveGlucoseReading({ value: r.value, unit: r.unit, timestamp: r.timestamp, note: "", sourceId: "bluetooth-meter" });
       imported++;
     }
-    statusEl.textContent = `Done — ${imported} new reading${imported === 1 ? "" : "s"} imported${skipped ? `, ${skipped} already saved` : ""}.`;
     localStorage.setItem(BLUETOOTH_LAST_SYNC_KEY, new Date().toISOString());
-    updateBluetoothBadge();
-    await refreshHome();
+    return `Meter: ${imported} new reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.`;
   } catch (err) {
-    statusEl.textContent = `Bluetooth connection failed: ${err.message}`;
-  } finally {
-    btn.disabled = false;
+    return `Meter: failed — ${err.message}`;
   }
 }
 
-document.getElementById("bluetooth-connect-btn").addEventListener("click", () =>
-  runBluetoothSync(document.getElementById("bluetooth-connect-btn"), document.getElementById("bluetooth-status"))
-);
-
-document.getElementById("home-bluetooth-connect-btn").addEventListener("click", () =>
-  runBluetoothSync(document.getElementById("home-bluetooth-connect-btn"), document.getElementById("home-bluetooth-status"))
-);
+// Pauses the unified sync for a manual physical step (only the Bluetooth
+// meter needs this today), resolving true on Continue, false on Skip.
+function waitForManualStep(message) {
+  return new Promise((resolve) => {
+    const el = document.getElementById("home-sync-manual-step");
+    document.getElementById("home-sync-manual-prompt").textContent = message;
+    el.hidden = false;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const continueBtn = document.getElementById("home-sync-continue-btn");
+    const skipBtn = document.getElementById("home-sync-skip-btn");
+    function onContinue() {
+      cleanup();
+      resolve(true);
+    }
+    function onSkip() {
+      cleanup();
+      resolve(false);
+    }
+    function cleanup() {
+      continueBtn.removeEventListener("click", onContinue);
+      skipBtn.removeEventListener("click", onSkip);
+      el.hidden = true;
+    }
+    continueBtn.addEventListener("click", onContinue);
+    skipBtn.addEventListener("click", onSkip);
+  });
+}
 
 // --- "Why did your sugar spike?" prompts ---
 // Dismissals are a UI convenience, not medical data, so they live in
@@ -1281,91 +1295,131 @@ function persistCgmPasscodeChoice() {
 cgmRememberEl.addEventListener("change", persistCgmPasscodeChoice);
 cgmPasscodeEl.addEventListener("change", persistCgmPasscodeChoice);
 
-// Shared by the Settings button and the Home shortcut, like runBluetoothSync.
-// Home asks for the passcode itself when none is saved (or the saved one is
-// wrong), instead of sending the user off to Settings. Fixed 2026-09-28: Scott
-// tapped Sync CGM and was never asked, so nothing reached the server.
+// Pauses the unified sync to ask for the Libre passcode — Home asks right
+// there itself when none is saved (or the saved one is wrong), instead of
+// sending the user off to Settings (fixed 2026-09-28: Scott tapped Sync CGM
+// and was never asked, so nothing reached the server). Resolves to the typed
+// passcode, or null if skipped — the sequence moves on to the next device
+// either way, it just doesn't stall waiting forever.
 const homeCgmPass = document.getElementById("home-cgm-pass");
-function askForCgmPasscode(message) {
-  homeCgmPass.hidden = false;
-  document.getElementById("home-cgm-status").textContent = message;
-  document.getElementById("home-cgm-passcode").value = "";
-  homeCgmPass.scrollIntoView({ behavior: "smooth", block: "center" });
-  document.getElementById("home-cgm-passcode").focus();
+function waitForCgmPasscode(message, onStatus) {
+  return new Promise((resolve) => {
+    homeCgmPass.hidden = false;
+    onStatus(message);
+    const passEl = document.getElementById("home-cgm-passcode");
+    passEl.value = "";
+    homeCgmPass.scrollIntoView({ behavior: "smooth", block: "center" });
+    passEl.focus();
+    function onSubmit(e) {
+      e.preventDefault();
+      const typed = passEl.value.trim();
+      if (!typed) return;
+      cgmPasscodeEl.value = typed;
+      cgmRememberEl.checked = document.getElementById("home-cgm-remember").checked;
+      persistCgmPasscodeChoice();
+      cleanup();
+      resolve(typed);
+    }
+    function onCancel() {
+      cleanup();
+      resolve(null);
+    }
+    function cleanup() {
+      homeCgmPass.removeEventListener("submit", onSubmit);
+      document.getElementById("home-cgm-pass-cancel").removeEventListener("click", onCancel);
+      homeCgmPass.hidden = true;
+    }
+    homeCgmPass.addEventListener("submit", onSubmit);
+    document.getElementById("home-cgm-pass-cancel").addEventListener("click", onCancel);
+  });
 }
-homeCgmPass.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const typed = document.getElementById("home-cgm-passcode").value.trim();
-  if (!typed) return;
-  const remember = document.getElementById("home-cgm-remember").checked;
-  cgmPasscodeEl.value = typed;
-  cgmRememberEl.checked = remember;
-  persistCgmPasscodeChoice();
-  homeCgmPass.hidden = true;
-  runCgmSync(document.getElementById("home-cgm-sync-btn"), document.getElementById("home-cgm-status"));
-});
-document.getElementById("home-cgm-pass-cancel").addEventListener("click", () => {
-  homeCgmPass.hidden = true;
-  document.getElementById("home-cgm-status").textContent = "";
-});
 
-async function runCgmSync(btn, statusEl) {
-  const passcode = cgmPasscodeEl.value.trim() || getSavedPasscode();
-  const onHome = statusEl.id === "home-cgm-status";
+// One Sync step for Libre/LibreLinkUp — no manual action needed (just the
+// passcode, if not already saved), so this runs first in the unified
+// sequence. Retries once with a freshly-typed passcode if the saved one was
+// wrong, same behaviour as before unification. Returns a one-line summary;
+// never throws.
+async function syncLibreStep(onStatus) {
+  let passcode = cgmPasscodeEl.value.trim() || getSavedPasscode();
   if (!passcode) {
-    if (onHome) askForCgmPasscode("Enter your Libre sync passcode to sync.");
-    else statusEl.textContent = "Type your sync passcode above first.";
-    return;
+    passcode = await waitForCgmPasscode("Enter your Libre sync passcode to sync.", onStatus);
+    if (!passcode) return "Libre: skipped.";
   }
-  btn.disabled = true;
-  statusEl.textContent = "Syncing with LibreLinkUp…";
-  try {
-    const { readings, sensor } = await fetchCgmReadings(passcode);
-    // Auto-record a new Libre sensor into the device register (Scott's spec:
-    // "record each new sensor automatically" — unlike the Bluetooth meter,
-    // this doesn't ask first, since a sensor change is routine, not a
-    // borrowed/different-device situation to catch).
-    const newDevice = recordLibreSensorIfNew(sensor);
-    if (newDevice) renderDeviceList();
-    await refreshAllCaches();
-    let imported = 0;
-    let skipped = 0;
-    for (const r of readings) {
-      const isDup = cachedGlucose.some(
-        (g) => g.sourceId === "librelinkup" && new Date(g.timestamp).getTime() === new Date(r.timestamp).getTime()
-      );
-      if (isDup) {
-        skipped++;
+  while (true) {
+    onStatus("Syncing with LibreLinkUp…");
+    try {
+      const { readings, sensor } = await fetchCgmReadings(passcode);
+      // Auto-record a new Libre sensor into the device register (Scott's
+      // spec: "record each new sensor automatically" — unlike the Bluetooth
+      // meter, this doesn't ask first, since a sensor change is routine, not
+      // a borrowed/different-device situation to catch).
+      const newDevice = recordLibreSensorIfNew(sensor);
+      if (newDevice) renderDeviceList();
+      await refreshAllCaches();
+      let imported = 0;
+      let skipped = 0;
+      for (const r of readings) {
+        const isDup = cachedGlucose.some(
+          (g) => g.sourceId === "librelinkup" && new Date(g.timestamp).getTime() === new Date(r.timestamp).getTime()
+        );
+        if (isDup) {
+          skipped++;
+          continue;
+        }
+        await saveGlucoseReading({ value: r.value, unit: r.unit, timestamp: r.timestamp, note: "", sourceId: "librelinkup" });
+        imported++;
+      }
+      try {
+        localStorage.setItem(CGM_LAST_SYNC_KEY, new Date().toISOString());
+      } catch {}
+      await refreshAllCaches();
+      return `Libre: ${imported} new reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.${newDevice ? ` New sensor recorded (${lastFour(newDevice.serial)}).` : ""}`;
+    } catch (err) {
+      if (/passcode/i.test(err.message)) {
+        // A wrong saved passcode would otherwise fail the same way every time.
+        cgmPasscodeEl.value = "";
+        savePasscode("");
+        passcode = await waitForCgmPasscode(`${err.message.replace(/ — check it in Settings\.?/, "")} Please type it again.`, onStatus);
+        if (!passcode) return "Libre: skipped.";
         continue;
       }
-      await saveGlucoseReading({ value: r.value, unit: r.unit, timestamp: r.timestamp, note: "", sourceId: "librelinkup" });
-      imported++;
+      return `Libre: failed — ${err.message}`;
     }
-    statusEl.textContent = `Done — ${imported} new CGM reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.${newDevice ? ` New sensor recorded in My devices (${lastFour(newDevice.serial)}).` : ""}`;
-    try {
-      localStorage.setItem(CGM_LAST_SYNC_KEY, new Date().toISOString());
-    } catch {}
-    await refreshAllCaches();
+  }
+}
+
+// --- Unified sync (Scott's spec, 2026-10-02): one button, not one per
+// device. Libre runs first (nothing physical needed); the Bluetooth meter
+// runs second, with its own manual-action prompt, so Scott isn't left
+// holding an already-woken meter while Libre's network round-trip finishes.
+// Replaces the separate "Sync CGM"/"Sync meter" buttons entirely, not an
+// addition alongside them.
+async function runUnifiedSync(btn, statusEl) {
+  btn.disabled = true;
+  statusEl.textContent = "";
+  try {
+    // Each step's own result is shown the moment it finishes, not held back
+    // until the whole sequence ends — the Bluetooth step that may follow can
+    // pause for minutes waiting on a manual action, and Scott shouldn't lose
+    // the Libre result (or a passcode-prompt skip) off-screen until then.
+    let done = "";
+    const onStatus = (msg) => (statusEl.textContent = done ? `${done} ${msg}` : msg);
+    done = await syncLibreStep(onStatus);
+    statusEl.textContent = done;
+    if (isBluetoothAvailable()) {
+      const meterResult = await syncBluetoothStep(onStatus);
+      done = `${done} ${meterResult}`;
+      statusEl.textContent = done;
+    }
+    updateSyncBadge();
     await refreshHome();
-  } catch (err) {
-    if (onHome && /passcode/i.test(err.message)) {
-      // A wrong saved passcode would otherwise fail the same way every time.
-      cgmPasscodeEl.value = "";
-      savePasscode("");
-      askForCgmPasscode(`${err.message.replace(/ — check it in Settings\.?/, "")} Please type it again.`);
-    } else {
-      statusEl.textContent = `CGM sync failed: ${err.message}`;
-    }
   } finally {
     btn.disabled = false;
   }
 }
 
-document.getElementById("cgm-sync-btn").addEventListener("click", () =>
-  runCgmSync(document.getElementById("cgm-sync-btn"), document.getElementById("cgm-status"))
-);
-document.getElementById("home-cgm-sync-btn").addEventListener("click", () =>
-  runCgmSync(document.getElementById("home-cgm-sync-btn"), document.getElementById("home-cgm-status"))
+document.getElementById("home-sync-btn").addEventListener("click", () =>
+  runUnifiedSync(document.getElementById("home-sync-btn"), document.getElementById("home-sync-status"))
 );
 
 const reminderEnabled = document.getElementById("reminder-enabled");
@@ -1487,7 +1541,7 @@ for (const radio of document.querySelectorAll('input[name="date-format"]')) {
 renderDeviceList();
 renderGlucoseSources();
 loadReminderSettings();
-updateBluetoothBadge();
+updateSyncBadge();
 // showView (not a bare refreshHome) because Home is the landing view and needs
 // its datetime-local fields defaulted to "now" before anyone can submit either
 // form — those fields are `required`, so leaving them blank silently blocks

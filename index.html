@@ -45,8 +45,8 @@
         <h1 id="view-title">Reactive Blood Tracker</h1>
         <p id="header-now" class="header-now"></p>
       </div>
-      <div id="bluetooth-status-badge" class="bt-badge" hidden>
-        <span class="bt-dot"></span><span id="bluetooth-status-badge-text"></span>
+      <div id="sync-status-badge" class="bt-badge" hidden>
+        <span class="bt-dot"></span><span id="sync-status-badge-text"></span>
       </div>
     </header>
 
@@ -96,11 +96,9 @@
             <button type="submit">Save reading</button>
           </form>
           <div class="button-row sync-row">
-            <button type="button" id="home-bluetooth-connect-btn" class="secondary-btn" hidden>🔵 Sync meter</button>
-            <button type="button" id="home-cgm-sync-btn" class="secondary-btn">📈 Sync CGM</button>
+            <button type="button" id="home-sync-btn" class="secondary-btn">🔄 Sync devices</button>
           </div>
-          <p class="field-hint" id="home-bluetooth-status"></p>
-          <p class="field-hint" id="home-cgm-status"></p>
+          <p class="field-hint" id="home-sync-status"></p>
           <form id="home-cgm-pass" class="cgm-pass" hidden>
             <label>
               Libre sync passcode
@@ -112,9 +110,16 @@
             </label>
             <div class="button-row">
               <button type="submit">Sync now</button>
-              <button type="button" id="home-cgm-pass-cancel" class="secondary-btn">Cancel</button>
+              <button type="button" id="home-cgm-pass-cancel" class="secondary-btn">Skip this device</button>
             </div>
           </form>
+          <div id="home-sync-manual-step" class="cgm-pass" hidden>
+            <p id="home-sync-manual-prompt"></p>
+            <div class="button-row">
+              <button type="button" id="home-sync-continue-btn">Continue</button>
+              <button type="button" id="home-sync-skip-btn" class="secondary-btn">Skip this device</button>
+            </div>
+          </div>
         </div>
 
         <div class="home-section">
@@ -577,16 +582,14 @@
         <h2>Glucose source</h2>
         <div id="glucose-source-list"></div>
         <p class="field-hint" id="glucose-source-hint"></p>
-        <button type="button" id="bluetooth-connect-btn" hidden>Connect via Bluetooth &amp; pull readings</button>
         <p class="field-hint" id="bluetooth-connect-hint" hidden>
-          The list that opens shows every nearby Bluetooth device, not just meters — look for one
-          named something like "Accu-Chek" or "Guide Me" and pick that one. If nothing shows up at
-          all, make sure Bluetooth is turned on for this browser in your Mac's System Settings →
-          Privacy &amp; Security → Bluetooth, and that the meter is actually still in its pairing/
-          searching mode when you click Connect (some meters only stay discoverable for a short
-          window after you trigger it).
+          Use the <strong>Sync devices</strong> button on Home to connect — the list that opens shows
+          every nearby Bluetooth device, not just meters, so look for one named something like
+          "Accu-Chek" or "Guide Me" and pick that one. If nothing shows up at all, make sure Bluetooth
+          is turned on for this browser in your Mac's System Settings → Privacy &amp; Security →
+          Bluetooth, and that the meter is actually still in its pairing/searching mode (some meters
+          only stay discoverable for a short window after you trigger it).
         </p>
-        <p class="field-hint" id="bluetooth-status"></p>
 
         <h2>Libre 2 Plus (CGM) sync</h2>
         <label>
@@ -597,13 +600,12 @@
           <input type="checkbox" id="cgm-remember" />
           Remember on this device
         </label>
-        <button type="button" id="cgm-sync-btn">Sync CGM readings</button>
         <p class="field-hint">
-          Pulls roughly the last 12 hours of Libre readings through LibreLinkUp. Readings already
-          saved are skipped, so syncing often is fine. The passcode stops anyone else who finds
-          this site from reading your glucose.
+          Saving your passcode here means <strong>Sync devices</strong> on Home can pull your Libre
+          readings without asking for it each time. Pulls roughly the last 12 hours; readings already
+          saved are skipped, so syncing often is fine. The passcode stops anyone else who finds this
+          site from reading your glucose.
         </p>
-        <p class="field-hint" id="cgm-status"></p>
 
         <h2>Unexplained rise &amp; drop questions</h2>
         <div class="entry-form">

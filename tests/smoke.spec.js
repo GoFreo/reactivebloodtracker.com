@@ -3,6 +3,35 @@ import { writeFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// Unlike real Safari/iPhone (which never implements Web Bluetooth at all),
+// this test browser's `navigator.bluetooth` exists as an API surface even
+// with no real adapter — isBluetoothAvailable() sees it as present, so the
+// unified Sync button's sequence would otherwise always continue into the
+// Bluetooth manual-action prompt after Libre. Tests that are only exercising
+// the Libre/LibreLinkUp side call this first to behave like a Bluetooth-less
+// browser, same as the original (pre-unification) assumption these tests
+// were written against. Tests that specifically cover the two-device
+// sequence deliberately don't call this.
+async function stubNoBluetooth(page) {
+  await page.addInitScript(() => {
+    // isBluetoothAvailable() checks `"bluetooth" in navigator` — Chrome
+    // defines `bluetooth` on Navigator.prototype even with no real adapter,
+    // so just overwriting its *value* (e.g. to undefined) leaves the *key*
+    // present and the `in` check still true. A Proxy intercepting `has`
+    // directly is what's actually needed to make the key disappear.
+    const real = navigator;
+    const fake = new Proxy(real, {
+      has: (target, prop) => (prop === "bluetooth" ? false : prop in target),
+      get: (target, prop) => {
+        if (prop === "bluetooth") return undefined;
+        const value = target[prop];
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    Object.defineProperty(window, "navigator", { value: fake, configurable: true });
+  });
+}
+
 // Hand-built minimal JPEG/EXIF bytes carrying one DateTimeOriginal tag — same
 // construction as tests/photoImport.spec.js's unit test, reused here so the
 // UI-level import flow is exercised against a real (if tiny) file, not a mock.
@@ -63,11 +92,16 @@ async function mockSpikySync(page) {
 }
 
 async function syncCgm(page) {
+  await stubNoBluetooth(page);
   await page.goto("/");
+  // Save the passcode via Settings ahead of time so the unified Sync button
+  // (Home) doesn't need to pause for the inline passcode prompt — that pause
+  // itself is covered by its own "CGM sync from Home" tests below.
   await page.locator('button.nav-btn[data-nav="settings"]').click();
   await page.locator("#cgm-passcode").fill("test-passcode-123");
-  await page.locator("#cgm-sync-btn").click();
-  await expect(page.locator("#cgm-status")).toContainText("new CGM reading");
+  await page.locator('button.nav-btn[data-nav="home"]').click();
+  await page.locator("#home-sync-btn").click();
+  await expect(page.locator("#home-sync-status")).toContainText("new reading", { timeout: 10000 });
 }
 
 test.describe("app shell", () => {
@@ -263,6 +297,7 @@ test.describe("My devices", () => {
 
 test.describe("settings", () => {
   test("CGM sync saves Libre readings once, tagged as CGM, and asks for a passcode first", async ({ page }) => {
+    await stubNoBluetooth(page);
     let calls = 0;
     let sentPasscode = null;
     await page.route("**/.netlify/functions/cgm-sync", async (route) => {
@@ -282,24 +317,31 @@ test.describe("settings", () => {
     });
     await page.goto("/");
 
-    await page.locator("#home-cgm-sync-btn").click();
-    await expect(page.locator("#home-cgm-status")).toContainText("passcode");
+    await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("passcode");
     expect(calls).toBe(0);
+    // The button stays disabled for the whole sequence, including while this
+    // prompt waits (prevents double-triggering a sync already in progress) —
+    // so a real user resolves or cancels it before anything else, same as here.
+    await page.locator("#home-cgm-pass-cancel").click();
+    await expect(page.locator("#home-sync-btn")).toBeEnabled();
 
     await page.locator('button.nav-btn[data-nav="settings"]').click();
     await page.locator("#cgm-passcode").fill("test-passcode-123");
-    await page.locator("#cgm-sync-btn").click();
-    await expect(page.locator("#cgm-status")).toContainText("2 new CGM readings");
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("Libre: 2 new readings.");
     expect(sentPasscode).toBe("test-passcode-123");
 
-    await page.locator("#cgm-sync-btn").click();
-    await expect(page.locator("#cgm-status")).toContainText("0 new CGM readings, 2 already saved");
+    await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("Libre: 0 new readings, 2 already saved.");
 
     await page.locator('button.nav-btn[data-nav="readings"]').click();
     await expect(page.locator(".timeline-entry", { hasText: "CGM" })).toHaveCount(2);
   });
 
   test("a synced Libre sensor is recorded automatically in My devices", async ({ page }) => {
+    await stubNoBluetooth(page);
     await page.route("**/.netlify/functions/cgm-sync", (route) =>
       route.fulfill({
         status: 200,
@@ -314,26 +356,34 @@ test.describe("settings", () => {
     await page.goto("/");
     await page.locator('button.nav-btn[data-nav="settings"]').click();
     await page.locator("#cgm-passcode").fill("test-passcode-123");
-    await page.locator("#cgm-sync-btn").click();
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator("#home-sync-btn").click();
 
-    await expect(page.locator("#cgm-status")).toContainText("New sensor recorded");
+    await expect(page.locator("#home-sync-status")).toContainText("New sensor recorded");
     const deviceRow = page.locator("#device-list .device-item", { hasText: "Libre 2 Plus sensor" });
     await expect(deviceRow).toContainText("A4BF"); // last 4 of the serial
 
     // Syncing again with the same sensor doesn't add a second row.
-    await page.locator("#cgm-sync-btn").click();
+    await page.locator("#home-sync-btn").click();
     await expect(page.locator("#device-list .device-item")).toHaveCount(1);
   });
 
-  test("a wrong CGM passcode shows a clear message and saves nothing", async ({ page }) => {
+  test("a wrong saved passcode re-prompts inline on Home, rather than just failing silently", async ({ page }) => {
+    await stubNoBluetooth(page);
     await page.route("**/.netlify/functions/cgm-sync", (route) =>
       route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "Wrong sync passcode." }) })
     );
     await page.goto("/");
     await page.locator('button.nav-btn[data-nav="settings"]').click();
     await page.locator("#cgm-passcode").fill("wrong-passcode");
-    await page.locator("#cgm-sync-btn").click();
-    await expect(page.locator("#cgm-status")).toContainText("Wrong sync passcode");
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator("#home-sync-btn").click();
+
+    // The whole point of this re-prompting (2026-09-28 fix): a wrong saved
+    // passcode doesn't just fail quietly — Home shows the reason and asks
+    // again right there, same place the fix was originally made.
+    await expect(page.locator("#home-sync-status")).toContainText("Wrong sync passcode");
+    await expect(page.locator("#home-cgm-pass")).toBeVisible();
   });
 
   test("an unexplained CGM rise asks why; 'not sure' records it and clears the card", async ({ page }) => {
@@ -369,6 +419,7 @@ test.describe("settings", () => {
   });
 
   test("Meals tab shows each meal with what glucose did afterwards, flagging a drop below the user's low", async ({ page }) => {
+    await stubNoBluetooth(page);
     const now = Date.now();
     const mealTime = new Date(now - 4 * 3600000);
     const readings = [0, 30, 60, 120, 180].map((min, i) => ({
@@ -384,10 +435,10 @@ test.describe("settings", () => {
     await page.locator("#threshold-low").fill("4.0");
     await page.locator("#threshold-low").press("Tab");
     await page.locator("#cgm-passcode").fill("test-passcode-123");
-    await page.locator("#cgm-sync-btn").click();
-    await expect(page.locator("#cgm-status")).toContainText("5 new CGM readings");
-
     await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("Libre: 5 new readings.");
+
     const local = new Date(mealTime.getTime() - mealTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     await page.locator("#food-text").fill("toast and jam");
     await page.locator("#food-time").fill(local);
@@ -849,6 +900,7 @@ test.describe("saved meals", () => {
 
 test.describe("CGM sync from Home", () => {
   test("with no saved passcode, Home asks for it, remembers it, and syncs", async ({ page }) => {
+    await stubNoBluetooth(page);
     let sentPasscode = null;
     const readingTime = new Date(Date.now() - 600000).toISOString(); // same reading on both syncs
     await page.route("**/.netlify/functions/cgm-sync", (route) => {
@@ -856,31 +908,60 @@ test.describe("CGM sync from Home", () => {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ configured: true, readings: [{ value: 5.4, unit: "mmol/L", timestamp: readingTime }] }) });
     });
     await page.goto("/");
-    await page.locator("#home-cgm-sync-btn").click();
+    await page.locator("#home-sync-btn").click();
     await expect(page.locator("#home-cgm-pass")).toBeVisible();
     await expect(page.locator("#home-cgm-remember")).toBeChecked();
     await page.locator("#home-cgm-passcode").fill("test-passcode-123");
     await page.locator('#home-cgm-pass button[type="submit"]').click();
-    await expect(page.locator("#home-cgm-status")).toContainText("1 new CGM reading");
+    await expect(page.locator("#home-sync-status")).toContainText("Libre: 1 new reading.");
     expect(sentPasscode).toBe("test-passcode-123");
     await expect(page.locator("#home-cgm-pass")).toBeHidden();
     // Remembered: next time it syncs straight away.
     await page.reload();
-    await page.locator("#home-cgm-sync-btn").click();
-    await expect(page.locator("#home-cgm-status")).toContainText("already saved");
+    await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("already saved");
   });
 
   test("a wrong saved passcode is forgotten and Home asks again", async ({ page }) => {
+    await stubNoBluetooth(page);
     await page.route("**/.netlify/functions/cgm-sync", (route) =>
       route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "Wrong sync passcode." }) })
     );
     await page.goto("/");
     await page.evaluate(() => localStorage.setItem("rht-cgm-passcode", "old-wrong-passcode"));
     await page.reload();
-    await page.locator("#home-cgm-sync-btn").click();
+    await page.locator("#home-sync-btn").click();
     await expect(page.locator("#home-cgm-pass")).toBeVisible();
-    await expect(page.locator("#home-cgm-status")).toContainText("Please type it again");
+    await expect(page.locator("#home-sync-status")).toContainText("Please type it again");
     expect(await page.evaluate(() => localStorage.getItem("rht-cgm-passcode"))).toBeNull();
+  });
+
+  test("skipping a device doesn't block the rest of the sync sequence (Libre, then the Bluetooth meter)", async ({ page, browserName }) => {
+    // Deliberately NOT stubNoBluetooth here — this is the one test covering
+    // the real two-device sequence Scott asked for: Libre first, then the
+    // meter, each independently skippable, without the whole thing hanging.
+    // WebKit never implements Web Bluetooth at all (real platform limit, not
+    // a bug — see isBluetoothAvailable()), so there's no meter step to skip
+    // there; Chrome is where this sequence actually matters.
+    test.skip(browserName === "webkit", "WebKit has no Web Bluetooth — isBluetoothAvailable() is false, so there's no meter step in the sequence to test here");
+    await page.goto("/");
+    await page.locator("#home-sync-btn").click();
+
+    await expect(page.locator("#home-cgm-pass")).toBeVisible();
+    await page.locator("#home-cgm-pass-cancel").click();
+    await expect(page.locator("#home-cgm-pass")).toBeHidden();
+    await expect(page.locator("#home-sync-status")).toContainText("Libre: skipped.");
+
+    // Skipping the meter's manual-action prompt happens before any real
+    // Bluetooth API call is made (see syncBluetoothStep), so this is safe to
+    // exercise even though there's no real meter in this environment.
+    await expect(page.locator("#home-sync-manual-step")).toBeVisible();
+    await expect(page.locator("#home-sync-manual-prompt")).toContainText("Turn on your Bluetooth meter");
+    await page.locator("#home-sync-skip-btn").click();
+    await expect(page.locator("#home-sync-manual-step")).toBeHidden();
+
+    await expect(page.locator("#home-sync-status")).toContainText("Libre: skipped. Meter: skipped.");
+    await expect(page.locator("#home-sync-btn")).toBeEnabled();
   });
 });
 

@@ -1895,3 +1895,60 @@ either side of the `confirm()` calls is covered by the Bluetooth sync's existing
 `--skip-functions-cache`. Live bundle `index-CKeIr4Q8.js` confirmed on reactivebloodtracker.com;
 `cgm-sync`/`food-bank` both still answer 401 without a passcode (correct). **Needs Scott:** his first
 real Bluetooth sync is also the first real test of the serial read and the right-device check.
+
+## 2026-10-02 — Unified Sync button built (Scott: "yes, build the unified sync button")
+
+Replaces the two separate "Sync CGM"/"Sync meter" buttons on Home with one: tap **🔄 Sync devices**,
+it runs Libre first (nothing physical needed), then the Bluetooth meter (if this browser supports
+Web Bluetooth) with a "Turn on your meter, then tap Continue" prompt first, since it isn't advertising
+until woken. Either device can be skipped independently without blocking the other.
+
+**The real architecture problem this solved:** the two old flows were separate button-click handlers,
+each free to return early (e.g. "no passcode saved, show the prompt, stop"). A *sequence* needs each
+step to actually finish — including pausing for a human to type a passcode or physically turn on a
+meter — then **resume the same flow** afterward rather than starting a new, disconnected one.
+Converted both into step functions that `await` a `Promise` for whichever human input they need
+(`waitForCgmPasscode`, and the new `waitForManualStep` for the meter), resolved by the same inline
+form/button clicks as before — so from Scott's side almost nothing changes, but the one orchestrating
+function can now genuinely wait, then continue to the next device.
+
+**Settings simplified to configuration only:** the Libre passcode field and Bluetooth troubleshooting
+hints stay (still useful to set up ahead of time), but their action buttons are gone — both point to
+the Sync devices button on Home instead. Per Scott's own spec, this *replaces* the old buttons, not
+an addition alongside them.
+
+**The "last synced" badge now covers either source**, not just Bluetooth — it used to hide itself
+entirely without Web Bluetooth, which meant it never appeared at all on Safari/iPhone even though
+Libre sync works fine there. Generalized rather than left as a Bluetooth-only indicator now that one
+button covers both.
+
+**Three real bugs found and fixed while building this** (none were guesses — each was reproduced
+and confirmed before being called a bug):
+1. The status line only showed a *combined* result at the very end of the whole sequence — so while
+   the Bluetooth step's manual-action prompt was waiting (which can sit for minutes), Libre's own
+   result was invisible even though it had already finished. Fixed to show each step's result the
+   moment it completes.
+2. A test helper tried to simulate "no Bluetooth" (to test Safari-like behavior in Chrome) by setting
+   `navigator.bluetooth` to `undefined` — but `isBluetoothAvailable()` checks `"bluetooth" in
+   navigator`, and overwriting a property's *value* doesn't remove its *key*. Confirmed live in the
+   Browser pane: Chrome's real `navigator.bluetooth` exists as an API surface even with no hardware,
+   so the check still passed. Fixed with a `Proxy` whose `has` trap actually makes the key disappear.
+3. This same gap meant **every existing CGM-sync test was implicitly assuming Bluetooth was
+   unavailable** in the test browser, which turned out to be false for the Chrome projects — so after
+   Libre finished, every one of those tests' pages would silently move on to the Bluetooth
+   manual-step prompt and hang there, since nothing in those tests clicked Continue or Skip. Not a
+   product bug (a real user would see and act on the prompt), but it would have made ~10 tests
+   flaky/hanging in exactly the scenario they were meant to guard. Fixed by applying the Proxy stub
+   to the tests that are genuinely only about Libre, and adding one dedicated test for the real
+   two-device sequence (skip Libre, then skip the meter prompt too) on the Chrome projects specifically
+   (skipped on WebKit, which has no Web Bluetooth at all — a real platform difference, not a gap).
+
+**Verified:** 658 passed / 14 skipped / 0 failed, all 4 browser projects (12 previously-documented
+skips + 2 new, intentional WebKit skips for the Bluetooth-sequence test). Checked by eye in the
+Browser pane end-to-end on real Chrome: tapped Sync devices, watched the Libre passcode prompt, then
+(since this Mac's Chrome genuinely reports Web Bluetooth support) watched the flow correctly move on
+to "Turn on your Bluetooth meter… then tap Continue" — confirmed the real sequencing, not just the
+mocked test path.
+
+**Not verified (can't be, from here):** an actual two-device run against Scott's real Accu-Chek Guide
+Me and a real Libre sensor together — same standing caveat as the rest of this file's Bluetooth code.
