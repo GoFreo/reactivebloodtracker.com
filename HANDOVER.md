@@ -11,9 +11,11 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **608 passed / 12 skipped / 0 failed** on `main` as of 2026-10-02 (skips: WebKit
-photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2)
-across 4 browser projects.
+**Health:** `npm test` **734 passed / 14 skipped / 0 failed** on `main` as of 2026-10-03 (skips: WebKit
+photo-save gaps, the opt-in live food check ×4, the phone-only install-tip test on desktop ×2, and the
+Bluetooth-sequence test on WebKit ×2) across 4 browser projects.
+**➡️ Dexcom (2026-10-03):** Connect Dexcom is built and live; waiting on Scott to put `DEXCOM_CLIENT_ID` /
+`DEXCOM_CLIENT_SECRET` into Netlify, then on Dexcom's Limited Access approval. See the 2026-10-03 entry at the bottom.
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
 **`--skip-functions-cache` is required.** Without it Netlify has silently shipped a stale function
@@ -1962,3 +1964,47 @@ test of the full sequence against his actual Libre sensor and Accu-Chek meter to
 **My devices is now feature-complete against the original 2026-09-28 22:43 spec** (device register,
 right-device check, sensor auto-record, one unified Sync button) — no further build planned here
 unless Scott asks for something new.
+
+## 2026-10-03 — Connect Dexcom built and shipped (Scott: "Applied, go ahead and build the Connect Dexcom flow")
+
+**Scott's side, done this morning:** registered a Dexcom developer app ("ReactiveBloodTracker.com", developer
+account `gofreo`), redirect URI `https://reactivebloodtracker.com/dexcom-callback` saved, and **applied for
+Limited Access** (status until approved: Sandbox Data: Access / Production Data: Sandbox Access). Client ID (not
+secret): `N7mmBhl4yXM0BktMNVXeEXuLvyGngrvq`. The Client Secret was never shown or copied in-session. Note for
+Scott: the app's Dexcom description still says "endocardiologist" (meant endocrinologist) — cosmetic.
+
+**Built (official Dexcom API v3, OAuth 2.0 — endpoints checked against developer.dexcom.com today):**
+- `netlify/functions/dexcom.js` — holds the client secret; builds the sign-in link, swaps the one-time code for
+  tokens, and syncs (dataRange → egvs, mg/dL → mmol/L). **Stores nothing**: tokens go back to the device and are
+  sent with each sync. No passcode needed (unlike Libre) — Dexcom's own sign-in is the gate and a token only reads
+  its owner's data. Refresh tokens are **single-use** (Dexcom docs), so it only refreshes once the 2-hour access
+  token has expired, and the client saves rotated tokens immediately.
+- Query window anchors on Dexcom's own newest data (dataRange), not "now", because Dexcom holds app-uploaded
+  readings back **1 h in the US, 3 h elsewhere (so 3 h for Scott)** — documented in Settings so it's not a surprise.
+  First sync: 7 days; later: from an hour before the last saved Dexcom reading, capped at Dexcom's 30-day limit.
+- `src/dexcom.js` + Settings → "Dexcom ONE+ (CGM)": Connect / Disconnect, status line. A random `state` guards the
+  return trip (a sign-in that didn't start in this app is refused). The `/dexcom-callback` URL is cleaned
+  immediately so the code isn't left in history; `public/sw.js` never caches that path; `netlify.toml` serves the
+  app there.
+- **Sync devices** now runs Libre → Dexcom (only if connected; silent otherwise) → Bluetooth meter. New ONE+
+  sensors are auto-recorded in My devices by transmitter id (new generic `recordSensorIfNew` in `devices.js`).
+- **Sandbox safety:** while `DEXCOM_ENV` is `sandbox` (the default), sync reports "connection works, N simulated
+  readings received, not saved" — Dexcom's fake test users never get mixed into Scott's real readings.
+
+**Verified:** 13 server unit tests (`tests/dexcom.spec.js`) + 6 UI flows × 4 browsers (`tests/dexcomUi.spec.js`);
+full suite **734 passed / 14 skipped / 0 failed**. Committed `10b7f12`, pushed, deployed with
+`--skip-functions-cache`; live bundle `index-BX-GtdhK.js` confirmed; `/dexcom-callback` serves the app; the
+`dexcom` function answers "missing DEXCOM_CLIENT_ID, DEXCOM_CLIENT_SECRET" (correct until Scott sets them);
+`cgm-sync` still 401 without a passcode.
+
+**Not verified (can't be yet):** a real round trip with Dexcom — needs the two Netlify values. Field names for
+dataRange/egvs come from Dexcom's docs, not a captured real response. Readings Dexcom reports with no number (e.g.
+below its measurable range) are dropped, as with Libre — worth revisiting for a lows-first app.
+
+**Needs Scott, in order:**
+1. Netlify → Site configuration → Environment variables: add `DEXCOM_CLIENT_ID` (the ID above) and
+   `DEXCOM_CLIENT_SECRET` (copy from Dexcom's "Show" himself — never via Claude). Then a redeploy (env changes only
+   reach functions after one).
+2. Settings → Connect Dexcom → sign in at Dexcom with a **sandbox** user → Sync devices should say "test mode".
+3. When Limited Access is approved: set `DEXCOM_ENV` to `eu` (Dexcom's outside-US server — check the approval
+   email names the region), redeploy, Disconnect + Connect again with his real Dexcom login.
