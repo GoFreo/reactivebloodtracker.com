@@ -2009,7 +2009,7 @@ below its measurable range) are dropped, as with Libre — worth revisiting for 
 3. When Limited Access is approved: set `DEXCOM_ENV` to `eu` — **confirmed 2026-10-03:** Scott's personal Dexcom
    account lives at myaccount.dexcom.eu (country: Australia), so `eu` is right, redeploy, Disconnect + Connect again with his real Dexcom login.
 
-## 2026-10-04 — Explainer video made (Scott, before resting: "creating a small video explaining our app… work on that while I'm asleep"); two bugs found and fixed on the way
+## 2026-10-03 (later, ~6–9:30 am) — Explainer video made (Scott, before resting: "creating a small video explaining our app… work on that while I'm asleep"); two bugs found and fixed on the way
 
 **The video:** `video/out/reactive-blood-tracker-explainer.mp4` — 2 min 42 s, 1080p, 23 MB, narrated (macOS "Karen",
 Australian), subtitles burned in, "Demonstration data, not a real patient" on screen throughout. Not in git (too big;
@@ -2047,8 +2047,13 @@ am)" under the graph — reads oddly; "under 15 min" or "one reading" would be c
 **Still needs Scott:** watch the video; say if he wants a different voice (macOS has others, e.g. "Lee" AU male if
 downloaded), wording, or length; the two Dexcom Netlify values (unchanged from 2026-10-03).
 
-**2026-10-04 — Dexcom Netlify values set by Scott.** `DEXCOM_CLIENT_ID` and `DEXCOM_CLIENT_SECRET` are in Production;
+**2026-10-03 (~9:50 am) — Dexcom Netlify values set by Scott.** `DEXCOM_CLIENT_ID` and `DEXCOM_CLIENT_SECRET` are in Production;
 the live `dexcom` function now answers `configured: true, env: "sandbox"` and Dexcom's sandbox accepts the client ID
 + redirect (302 to its sandbox login page). No redeploy was needed — the function picked them up straight away. (Client
 ID corrected above: the 5th–8th characters are `BhI4`, capital i, not `Bhl4` — misread from the screenshot.) Next:
 Scott's first test-mode Connect + Sync on his phone.
+
+**2026-10-03 ~9:58 am — first confirmed real Libre sync.** Scott's screenshot (Mac Chrome): "Libre: 1 new reading, 47
+already saved", then the unified sequence moved on to "Connecting to meter+40956850…" — first real Bluetooth run of the
+Accu-Chek step; result not yet seen. Dexcom not in the line because this browser hasn't done Connect Dexcom yet.
+(Also: earlier entries/commits this session said 2026-10-04 — wrong; it was still Saturday 3 Oct. Fixed in docs.)

@@ -1022,7 +1022,7 @@ test.describe("Readings on a phone turned sideways", () => {
   });
 });
 
-// Found 2026-10-04 while recording the explainer video: a line break inside the
+// Found 2026-10-03 while recording the explainer video: a line break inside the
 // <textarea> markup made the Food box start with blank space, which hid its
 // example placeholder and indented whatever was typed.
 test("text boxes start empty, so their example placeholders show", async ({ page }) => {

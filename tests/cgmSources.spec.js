@@ -5,7 +5,7 @@ import { filterEntries } from "../src/readingsFilter.js";
 import { mealOutcome } from "../src/mealOutcome.js";
 
 // Dexcom readings (sourceId "dexcom") must count as sensor data everywhere
-// Libre's do — found 2026-10-04: every one of these places checked for
+// Libre's do — found 2026-10-03: every one of these places checked for
 // "librelinkup" alone, so Dexcom would have been treated as finger-pricks.
 const T0 = Date.UTC(2026, 9, 3, 0, 0);
 const at = (min) => new Date(T0 + min * 60000).toISOString();
