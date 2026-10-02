@@ -134,10 +134,21 @@ diabetes educator, endocrinologist); (4) a letter to doctors, drafted in
 `research/2026-09-28 DRAFT letter to doctors.md`. Build in that order; (1) and (2) need nothing from Scott. **22:40 — Scott asked again for Settings → "My devices" (add/change a device: Accu-Chek, Libre, Dexcom ONE+, others): promoted to build right after the graph** (backlog item 5 below). *(Device corrected 2026-10-02: Scott confirmed ONE+, not G7, on arrival — see that date's entry.)*
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
-go low" → exercise (iPhone Shortcut route) → Dexcom ONE+ source (arrived 2026-10-02, not yet built — see that
+go low" → exercise (iPhone Shortcut route — **confirmed worth building, 2026-10-02:** Scott notes Dexcom's
+own app has an Apple Fitness/steps option that "works well" — expected, since it's a native app with
+HealthKit access this web app structurally can't have; doesn't change the Shortcut-import route, just
+confirms the correlation itself is genuinely useful) → Dexcom ONE+ source (arrived 2026-10-02, not yet built — see that
 entry for what it needs from Scott first) → going public
 (BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
 calculator**).
+
+**Polish idea, captured not built (Scott, 2026-10-02):** on the opening/splash screen, a dark-to-light
+wave sweeping left-to-right across the whole screen (not just the droplet/spring), staying within the
+existing teal palette — no new colours. Not a literal water wave; an artistic "blood flowing / blood
+bouncing" brightness effect tying into the app's subject matter and the existing spring-bounce
+animation. His own words: "just artistic thought" — exploratory, not a tight spec; whoever builds it
+has latitude on the exact motion (an animated linear-gradient sweep across the splash background, in
+shades of `--accent`, is the obvious technical route). No urgency attached.
 
 **Deliberately not built — don't add without asking:** portion/"safe amount" advice or any dosing
 suggestion; a low threshold below the ADA floor; anything that syncs to a cloud by default; scores
@@ -1699,6 +1710,15 @@ re-entering the passwords… if they fail to register."
 - **Check / re-enter credentials per device:** a "Test connection" button on each device; on failure the exact reason
   and a re-enter box (the Home passcode prompt already does this for the Libre sync passcode; extend it per device).
 - Readings keep the device they came from, so the graph can compare devices.
+- **One "Sync" button, not one per device (Scott, 2026-10-02).** Once devices are paired/registered,
+  a single Sync button walks through all of them in sequence rather than Home having a separate
+  button per device type. For a device needing manual action first (the Accu-Chek Guide Me: wake it,
+  it's not advertising until you do), the flow shows a prompt step ("Turn on your Accu-Chek Guide Me,
+  then tap Continue") before attempting that device's connection, then moves to the next registered
+  device automatically. Libre (LibreLinkUp, needs only the saved passcode) and Dexcom ONE+ (needs
+  nothing physical once OAuth'd) can run without a manual-action prompt. Build this as part of My
+  devices, replacing the separate "Sync CGM"/"Sync meter" buttons that exist today — not an addition
+  alongside them.
 
 **22:45 — redeployed at Scott's request** (same code, live `index-Ct3LwouD.js`), so the sync functions pick up any Netlify setting he just changed. `cgm-sync` confirms a passcode is set (answers "Wrong sync passcode" to a blank one, not "not configured"). His next Sync CGM tap is the test.
 
@@ -1744,3 +1764,61 @@ his signature):** register a Dexcom developer account and apply for Limited Acce
 list "Dexcom ONE+" as a selectable type and let Scott record its serial/nickname now — same pattern as
 Libre/Accu-Chek already in the registry before their real connections existed — manual entry stays the
 fallback either way.
+
+## 2026-10-02 — Graph redesign built (Scott: "start the graph"): smoothed line, peaks/troughs, threshold bands, in the printable report too
+
+Built the item Scott asked to start first, to the exact spec in the 2026-09-28 22:23 entry above (a
+rolling-average line; peaks labelled above it, troughs below; shaded bands and a list wherever a
+reading crosses low/high) — nothing further needed from him, as that entry itself said.
+
+**New: `src/graphAnalysis.js`** (pure logic, 17 unit tests in `tests/graphAnalysis.spec.js`):
+- `smoothSeries(points, windowMinutes=30)` — centred rolling average, run per gap-split run (same
+  `splitAtGaps` the raw line already used) so smoothing never bridges a sensor data gap.
+- `findPeaksAndTroughs(smoothed, {prominence=1.5})` — a simplified topographic-prominence filter:
+  finds alternating local extrema, then repeatedly drops the single least-prominent one (how far it
+  stands above/below the higher/lower of its two neighbours) until everything remaining clears the
+  threshold. A flat run collapses to one extremum; a small wobble next to a real peak gets merged away.
+- `findThresholdCrossings(points, thresholds, pointsUnit)` — continuous spans of RAW readings (not
+  smoothed — "a short low matters," so nothing shorter is filtered out) below low / above high.
+  Finger-pricks are deliberately excluded from crossings: they're sparse, already flagged individually
+  on their own diamond marker, and claiming a "duration" between two isolated moments would overstate
+  what was actually measured. Takes the points' own unit explicitly (mirrors how the rest of the graph
+  already converts thresholds for the low-rule line) — caught by a test before it shipped: it's easy to
+  assume mmol/L and quietly compare the wrong scale when the display unit is mg/dL.
+
+**`src/timeline.js`:** `renderReadingsGraph` now draws, per CGM run: faint raw dots behind a bold
+smoothed line; a labelled dot at each kept peak/trough (collision-avoided — a label within 26px of the
+last one of its kind is skipped, Scott's own "keep labels from colliding" ask); a `highRule` dashed line
+to match the existing `lowRule` (was missing entirely before); shaded `graph-crossing` bands for every
+low/high span; a crossings list underneath (most recent first, e.g. "Low — 3.0 mmol/L lowest, 45 min
+(12:05–12:50)"), still listing anything under 15 minutes in full rather than rounding it away. Legend
+updated to match. The axis now always extends to include the high threshold, mirroring how the low
+threshold already worked (previously only low self-extended the axis).
+
+Refactored the SVG-building into a DOM-free `buildGraphHTML()`, with `renderReadingsGraph()` now a
+one-line wrapper that assigns it into a container — needed so the printable report (next) can reuse the
+exact same renderer without a live DOM container.
+
+**Printable report now includes a graph** (Scott's spec: "also used in the printable report").
+Deliberately always "the last 7 days ending now," independent of whatever historical from/to range was
+picked for the table below it — matching that range would have meant reworking the chart's own "now"
+axis label and title for a feature whose main content is already the full table; the 7-day snapshot adds
+real value without that complexity. `src/style.css` forces print-friendly light colours for the graph
+under `#print-summary` (a dark-mode surface/background would otherwise print as a wasted dark rectangle).
+
+**Verified:** 17 new unit tests + a new smoke test (CGM synced via the existing `mockSpikySync` mock,
+then printed, checking the graph section's heading/SVG/legend appear) — **608 passed / 12 skipped / 0
+failed**, all 4 browser projects. Also checked by eye in the Browser pane with a seeded 6-hour spike-
+and-crash series: smoothed line, both peak (11.5) and trough (3.3) labels, both threshold rules, both
+shaded bands, and the crossings list all rendered correctly and matched the underlying data.
+
+**Mid-build, Scott sent three unrelated updates — captured against the right backlog items, not
+acted on yet (noted further up this file, near each item):** the single-sync-button idea for My
+devices; Dexcom's own Apple Fitness/steps option (confirms the exercise-correlation feature is worth
+building, doesn't change the Shortcut-import plan); a splash-screen colour-wave polish idea; and a
+question about a quick mmol/mg toggle on the graph itself (answered: yes, trivial linear conversion,
+already supported app-wide via Settings — **new, not yet built:** a local toggle right on the graph,
+reusing the same `convertUnit`/`unit` parameter that already exists, for a viewer who thinks in the
+other unit without digging into Settings — small, ready whenever it's next up).
+
+**Not committed/deployed yet as of writing this entry** — see the next entry for that.

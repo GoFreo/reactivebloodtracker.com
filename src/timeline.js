@@ -1,6 +1,7 @@
 import { classifyReading, explainClassification, convertUnit, getThresholds } from "./thresholds.js";
 import { compareRecentFirst } from "./db.js";
 import { formatDate } from "./dateformat.js";
+import { smoothSeries, findPeaksAndTroughs, findThresholdCrossings } from "./graphAnalysis.js";
 
 export function mergeTimeline({ glucose = [], food = [], diary = [] }) {
   const merged = [
@@ -150,7 +151,10 @@ export function splitAtGaps(points, gapMs = CGM_GAP_MS) {
 // so any difference between the two devices is visible, not hidden. Meals sit
 // as small markers along the bottom so a spike or crash can be read against
 // what was eaten. Descriptive only: no judgement beyond the user's own thresholds.
-export function renderReadingsGraph(container, glucoseEntries, { unit = "mmol/L", hours = 24, food = [] } = {}) {
+// DOM-free: returns the graph's HTML as a string, so it can go into a live
+// container (renderReadingsGraph, below) or the printable report (export.js)
+// without needing a real document to render into.
+export function buildGraphHTML(glucoseEntries, { unit = "mmol/L", hours = 24, food = [] } = {}) {
   const now = Date.now();
   const cutoff = now - hours * 3600000;
   const toPoint = (g) => ({ t: new Date(g.timestamp).getTime(), v: convertUnit(g.value, g.unit, unit), raw: g });
@@ -160,8 +164,7 @@ export function renderReadingsGraph(container, glucoseEntries, { unit = "mmol/L"
   const meals = food.map((f) => new Date(f.timestamp).getTime()).filter((t) => t >= cutoff && t <= now);
 
   if (cgm.length + pricks.length < 2) {
-    container.innerHTML = `<p class="timeline-empty">Need at least 2 readings in the last ${rangeLabel(hours)} to draw a graph. Add more readings, or try a wider range above.</p>`;
-    return;
+    return `<p class="timeline-empty">Need at least 2 readings in the last ${rangeLabel(hours)} to draw a graph. Add more readings, or try a wider range above.</p>`;
   }
 
   const W = 340;
@@ -178,8 +181,9 @@ export function renderReadingsGraph(container, glucoseEntries, { unit = "mmol/L"
   const values = all.map((p) => p.v);
   const thresholds = getThresholds();
   const lowLine = thresholds.low != null ? convertUnit(thresholds.low, thresholds.unit, unit) : null;
+  const highLine = thresholds.high != null ? convertUnit(thresholds.high, thresholds.unit, unit) : null;
   let minV = Math.min(...values, ...(lowLine != null ? [lowLine] : []));
-  let maxV = Math.max(...values);
+  let maxV = Math.max(...values, ...(highLine != null ? [highLine] : []));
   const padV = Math.max((maxV - minV) * 0.1, unit === "mmol/L" ? 0.5 : 9);
   minV = Math.max(0, minV - padV);
   maxV += padV;
@@ -197,13 +201,46 @@ export function renderReadingsGraph(container, glucoseEntries, { unit = "mmol/L"
       return `<rect x="${f1(x1)}" y="${T}" width="${f1(w)}" height="${H - T - B}" class="graph-gap" />${label}`;
     })
     .join("");
-  const cgmLines = runs
-    .map((run) =>
-      run.length === 1
-        ? `<circle cx="${f1(x(run[0].t))}" cy="${f1(y(run[0].v))}" r="1.8" class="graph-cgm-dot" />`
-        : `<polyline points="${run.map((p) => `${f1(x(p.t))},${f1(y(p.v))}`).join(" ")}" class="graph-line" fill="none" />`
-    )
-    .join("");
+
+  // Each run is smoothed on its own so the rolling average never bridges a
+  // sensor gap (Scott's graph-redesign spec, 2026-09-28): a flowing average
+  // line, raw points faint behind it, peaks labelled above / troughs below.
+  const MIN_LABEL_GAP_PX = 26; // keep labels from colliding — skip one too close to the last of its kind
+  let lastPeakLabelX = -Infinity;
+  let lastTroughLabelX = -Infinity;
+  const rawDots = [];
+  const smoothLines = [];
+  const extremaMarks = [];
+  const allCrossings = [];
+  for (const run of runs) {
+    for (const p of run) rawDots.push(`<circle cx="${f1(x(p.t))}" cy="${f1(y(p.v))}" r="1.3" class="graph-raw-dot" />`);
+
+    if (run.length === 1) {
+      smoothLines.push(`<circle cx="${f1(x(run[0].t))}" cy="${f1(y(run[0].v))}" r="1.8" class="graph-cgm-dot" />`);
+    } else {
+      const smoothed = smoothSeries(run, 30);
+      smoothLines.push(`<polyline points="${smoothed.map((p) => `${f1(x(p.t))},${f1(y(p.v))}`).join(" ")}" class="graph-line" fill="none" />`);
+
+      for (const e of findPeaksAndTroughs(smoothed, { prominence: 1.5 })) {
+        const ex = x(e.t);
+        if (e.type === "peak" && ex - lastPeakLabelX < MIN_LABEL_GAP_PX) continue;
+        if (e.type === "trough" && ex - lastTroughLabelX < MIN_LABEL_GAP_PX) continue;
+        if (e.type === "peak") lastPeakLabelX = ex;
+        else lastTroughLabelX = ex;
+        const ey = y(e.v);
+        const labelY = e.type === "peak" ? ey - 6 : ey + 11;
+        extremaMarks.push(
+          `<circle cx="${f1(ex)}" cy="${f1(ey)}" r="2.2" class="graph-extremum graph-extremum-${e.type}" />` +
+            `<text x="${f1(ex)}" y="${f1(labelY)}" text-anchor="middle" class="graph-extremum-label">${f1(e.v)}</text>`
+        );
+      }
+    }
+
+    allCrossings.push(...findThresholdCrossings(run, getThresholds(), unit));
+  }
+  const cgmLines = smoothLines.join("");
+  const rawCgmDots = rawDots.join("");
+  const extremaMarkup = extremaMarks.join("");
 
   // Without any CGM data, join finger-pricks with a thin line as before, so a
   // meter-only user still sees a trend.
@@ -224,6 +261,21 @@ export function renderReadingsGraph(container, glucoseEntries, { unit = "mmol/L"
     lowLine != null
       ? `<line x1="${L}" y1="${f1(y(lowLine))}" x2="${W - R}" y2="${f1(y(lowLine))}" class="graph-low-rule" /><text x="${W - R}" y="${f1(y(lowLine) - 3)}" text-anchor="end" class="graph-axis-label">your low ${f1(lowLine)}</text>`
       : "";
+  const highRule =
+    highLine != null
+      ? `<line x1="${L}" y1="${f1(y(highLine))}" x2="${W - R}" y2="${f1(y(highLine))}" class="graph-high-rule" /><text x="${W - R}" y="${f1(y(highLine) - 3)}" text-anchor="end" class="graph-axis-label">your high ${f1(highLine)}</text>`
+      : "";
+
+  // Shaded bands wherever the CGM line actually crossed low or high — drawn
+  // under everything else, like the no-data gaps. A short crossing still
+  // gets at least a sliver so it isn't invisible (Scott: "a short low matters").
+  const crossingRects = allCrossings
+    .map((c) => {
+      const x1 = x(c.startT);
+      const w = Math.max(x(c.endT) - x1, 2);
+      return `<rect x="${f1(x1)}" y="${T}" width="${f1(w)}" height="${H - T - B}" class="graph-crossing graph-crossing-${c.type}" />`;
+    })
+    .join("");
 
   const mealY = H - B + 8;
   const mealMarks = meals
@@ -240,28 +292,72 @@ export function renderReadingsGraph(container, glucoseEntries, { unit = "mmol/L"
   const tTicks = `<text x="${L}" y="${H - 6}" class="graph-axis-label">${timeLabel(minT)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end" class="graph-axis-label">now</text>`;
 
   const legend = [
-    cgm.length ? '<span class="lg lg-cgm"></span>Libre (CGM)' : "",
+    cgm.length ? '<span class="lg lg-cgm"></span>Smoothed average (Libre)' : "",
+    cgm.length ? '<span class="lg lg-raw"></span>Raw reading' : "",
     pricks.length ? '<span class="lg lg-prick"></span>Finger-prick' : "",
     gaps.length ? '<span class="lg lg-gap"></span>No data' : "",
     meals.length ? '<span class="lg lg-meal"></span>Meal' : "",
+    allCrossings.some((c) => c.type === "low") ? '<span class="lg lg-low"></span>Below your low' : "",
+    allCrossings.some((c) => c.type === "high") ? '<span class="lg lg-high"></span>Above your high' : "",
   ]
     .filter(Boolean)
     .map((item) => `<span class="graph-legend-item">${item}</span>`)
     .join("");
 
-  container.innerHTML = `
+  const crossingsList = buildCrossingsList(allCrossings, unit);
+
+  return `
     <svg viewBox="0 0 ${W} ${H}" class="readings-graph" role="img" aria-label="Glucose readings over the last ${rangeLabel(hours)}">
       ${gapRects}
+      ${crossingRects}
       <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" class="graph-axis" />
       ${vTicks}
       ${lowRule}
+      ${highRule}
+      ${rawCgmDots}
       ${cgmLines}
       ${prickLine}
       ${prickMarks}
+      ${extremaMarkup}
       ${mealMarks}
       ${tTicks}
     </svg>
     <div class="graph-legend">${legend}</div>
     <p class="field-hint">Last ${rangeLabel(hours)}, in ${unit}. The Libre reads fluid under the skin and runs a few minutes behind a finger-prick, so the two won't always match, especially during a fast rise or drop.</p>
+    ${crossingsList}
   `;
+}
+
+// Live UI entry point: renders buildGraphHTML() into a real container.
+export function renderReadingsGraph(container, glucoseEntries, options) {
+  container.innerHTML = buildGraphHTML(glucoseEntries, options);
+}
+
+function formatDuration(ms) {
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function timeOnly(t) {
+  return new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+// The list under the graph Scott's spec asks for: every low/high crossing in
+// the current range, most recent first, with its extreme value and duration —
+// a crossing shorter than 15 minutes is still listed in full, not rounded away.
+export function buildCrossingsList(crossings, unit) {
+  if (!crossings.length) return "";
+  const sorted = [...crossings].sort((a, b) => b.startT - a.startT);
+  const items = sorted
+    .map((c) => {
+      const label = c.type === "low" ? "Low" : "High";
+      const extremeLabel = c.type === "low" ? "lowest" : "highest";
+      const value = unit === "mmol/L" ? c.extreme.toFixed(1) : Math.round(c.extreme);
+      return `<li class="graph-crossing-item graph-crossing-item-${c.type}"><strong>${label}</strong> — ${value} ${unit} ${extremeLabel}, ${formatDuration(c.endT - c.startT)} (${timeOnly(c.startT)}–${timeOnly(c.endT)})</li>`;
+    })
+    .join("");
+  return `<ul class="graph-crossings-list">${items}</ul>`;
 }

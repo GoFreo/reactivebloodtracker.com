@@ -933,7 +933,7 @@ exportForm.addEventListener("submit", async (e) => {
   if (e.submitter?.id === "export-csv-btn") {
     downloadCSV(merged, `glucose-food-export-${from}-to-${to}.csv`);
   } else {
-    printSummary(merged, { from, to });
+    printSummary(merged, { from, to }, glucose, food);
   }
 });
 

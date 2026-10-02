@@ -505,6 +505,32 @@ test.describe("export", () => {
     expect(await page.evaluate(() => window.__printed)).toBe(true);
   });
 
+  test("printable summary includes a 7-day graph snapshot, independent of the chosen date range", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.print = () => {
+        window.__printed = true;
+      };
+    });
+    await mockSpikySync(page);
+    await syncCgm(page);
+
+    await page.locator('button.nav-btn[data-nav="home"]').click();
+    await page.locator('#view-home button[data-nav="export"]').click();
+    // A from/to range that excludes today — the graph snapshot should still
+    // show, since it's deliberately always "the last 7 days ending now".
+    await page.locator("#export-from").fill("2020-01-01");
+    await page.locator("#export-to").fill("2020-01-02");
+    await page.locator("#export-print-btn").click();
+
+    // #print-summary is display:none outside @media print (same reason the
+    // existing printable-summary test above checks text content, not
+    // visibility) — assert presence/content, not toBeVisible().
+    await expect(page.locator("#print-summary h2")).toHaveText("Last 7 days");
+    await expect(page.locator("#print-summary .readings-graph")).toHaveCount(1);
+    await expect(page.locator("#print-summary .graph-legend")).toContainText("Smoothed average");
+    expect(await page.evaluate(() => window.__printed)).toBe(true);
+  });
+
   test("importing a previously-exported CSV adds its entries", async ({ page }) => {
     const dir = await mkdtemp(path.join(tmpdir(), "rht-import-"));
     const filePath = path.join(dir, "export.csv");

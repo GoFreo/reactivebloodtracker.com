@@ -644,6 +644,27 @@ button:active {
 .graph-dot.warn-high { fill: var(--high); }
 .graph-dot.warn-in-range { fill: var(--inrange); }
 
+/* Graph redesign (2026-10-02): raw CGM points sit faint behind the smoothed
+   .graph-line; peaks/troughs are labelled dots on that smoothed line; crossing
+   bands shade any span of raw readings below low / above high. */
+.graph-raw-dot { fill: var(--text-muted); opacity: 0.45; }
+.graph-high-rule { stroke: var(--high); stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.8; }
+.graph-crossing { opacity: 0.12; }
+.graph-crossing-low { fill: var(--low); }
+.graph-crossing-high { fill: var(--high); }
+.graph-extremum { stroke: var(--surface); stroke-width: 1; }
+.graph-extremum-peak { fill: var(--high); }
+.graph-extremum-trough { fill: var(--low); }
+.graph-extremum-label { fill: var(--text); font-size: 8px; font-weight: 600; font-family: inherit; }
+.lg-raw { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); opacity: 0.45; }
+.lg-low { background: var(--low); opacity: 0.4; border-radius: 2px; }
+.lg-high { background: var(--high); opacity: 0.4; border-radius: 2px; }
+
+.graph-crossings-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.graph-crossing-item { font-size: 0.82rem; padding: 7px 10px; border-radius: 8px; background: var(--surface-2); }
+.graph-crossing-item-low strong { color: var(--low); }
+.graph-crossing-item-high strong { color: var(--high); }
+
 h2 {
   font-size: 1rem;
   margin: 24px 0 10px;
@@ -698,6 +719,17 @@ h2 {
   #print-summary {
     display: block !important;
     color: #000;
+    /* Force print-friendly light colours for the embedded graph regardless of
+       the screen's own light/dark theme — a dark-mode surface/background would
+       print as a wasteful, odd-looking dark rectangle on paper. */
+    --surface: #fff;
+    --surface-2: #f0f0f0;
+    --border: #999;
+    --text: #000;
+    --text-muted: #555;
+    --accent: #1b6e6a;
+    --low: #b8443c;
+    --high: #b5761e;
   }
   #print-summary table {
     border-collapse: collapse;
@@ -709,6 +741,13 @@ h2 {
     padding: 6px 10px;
     text-align: left;
     font-size: 12px;
+  }
+  #print-summary .print-graph {
+    max-width: 500px;
+    margin-bottom: 16px;
+  }
+  #print-summary .graph-crossing {
+    opacity: 0.25;
   }
 }
 

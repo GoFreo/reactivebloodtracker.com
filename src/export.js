@@ -1,4 +1,4 @@
-import { entryBody } from "./timeline.js";
+import { entryBody, buildGraphHTML } from "./timeline.js";
 import { saveGlucoseReading } from "./glucose.js";
 import { saveFoodEntry } from "./food.js";
 import { saveDiaryNote } from "./diary.js";
@@ -151,7 +151,15 @@ function escapeHtml(str) {
 // iPhone home screen has no normal browser chrome to put a new window in, and
 // popup blockers can catch window.open() even in a regular browser tab. Printing
 // the current document with a `@media print` rule works everywhere.
-export function printSummary(entries, { from, to }) {
+//
+// `allGlucose`/`allFood` are the FULL, unfiltered logs (not just `entries`,
+// which is already cut down to the chosen from/to range) — the graph snapshot
+// is deliberately always "the last 7 days ending now", same as the app's own
+// default view, regardless of what historical range was picked for the table
+// below it. Showing a graph for an arbitrary past date range raised more
+// complexity (the chart's own "now" axis label, title, etc.) than it was
+// worth for a report whose main content is already the full table.
+export function printSummary(entries, { from, to }, allGlucose = [], allFood = []) {
   const container = document.getElementById("print-summary");
   const rows = entries
     .map(
@@ -159,9 +167,13 @@ export function printSummary(entries, { from, to }) {
         `<tr><td>${escapeHtml(e._kind)}</td><td>${escapeHtml(formatDate(e.timestamp))}</td><td>${escapeHtml(entryBody(e))}</td></tr>`
     )
     .join("");
+  const unit = localStorage.getItem("rht-default-unit") || "mmol/L";
+  const graphHtml = buildGraphHTML(allGlucose, { unit, hours: 24 * 7, food: allFood });
   container.innerHTML = `
     <h1>Glucose &amp; Food Summary</h1>
     <p>${escapeHtml(from)} to ${escapeHtml(to)}</p>
+    <h2>Last 7 days</h2>
+    <div class="print-graph">${graphHtml}</div>
     <table><thead><tr><th>Type</th><th>When</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table>
   `;
   window.print();
