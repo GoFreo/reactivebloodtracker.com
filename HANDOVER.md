@@ -1890,3 +1890,8 @@ by reading the actual stored records back out, not just trusting a screenshot).
 — same standing caveat as the rest of this file's Bluetooth code. The right-device-check and
 first-connection-offer prompts are therefore also unverified against a real device, though the logic
 either side of the `confirm()` calls is covered by the Bluetooth sync's existing tested paths.
+
+**✅ SHIPPED 2026-10-02** — committed (`95d46a2`), pushed to GitHub, deployed with
+`--skip-functions-cache`. Live bundle `index-CKeIr4Q8.js` confirmed on reactivebloodtracker.com;
+`cgm-sync`/`food-bank` both still answer 401 without a passcode (correct). **Needs Scott:** his first
+real Bluetooth sync is also the first real test of the serial read and the right-device check.
