@@ -2008,3 +2008,41 @@ below its measurable range) are dropped, as with Libre — worth revisiting for 
 2. Settings → Connect Dexcom → sign in at Dexcom with a **sandbox** user → Sync devices should say "test mode".
 3. When Limited Access is approved: set `DEXCOM_ENV` to `eu` — **confirmed 2026-10-03:** Scott's personal Dexcom
    account lives at myaccount.dexcom.eu (country: Australia), so `eu` is right, redeploy, Disconnect + Connect again with his real Dexcom login.
+
+## 2026-10-04 — Explainer video made (Scott, before resting: "creating a small video explaining our app… work on that while I'm asleep"); two bugs found and fixed on the way
+
+**The video:** `video/out/reactive-blood-tracker-explainer.mp4` — 2 min 42 s, 1080p, 23 MB, narrated (macOS "Karen",
+Australian), subtitles burned in, "Demonstration data, not a real patient" on screen throughout. Not in git (too big;
+`video/out/` is gitignored) — rebuild any time with `node video/record.mjs` while `npm run preview -- --port 4173` runs
+(`--shots` = screenshots only). Ten scenes: title → Home (no account, data stays on the phone) → "why did your sugar
+spike?" prompt answered on camera → 24 h graph (spike then crash) → 7 d graph (two crashes, one calm day) → Meals
+outcomes → food logging (typing, saved meal, ½-portion button) → My devices + one Sync button + Dexcom "being switched
+on now" → printable report → end card ("shows what happened, never what to eat or how much insulin to take").
+
+**How it's made:** the real production build runs in an iframe inside `video/stage.html` (1920×1080 set with the
+phone frame, headline and subtitle). `video/record.mjs` loads `demo-data-full-fidelity.json` straight into the app's
+IndexedDB (days reordered so the worst day is "today"; one unexplained evening rise added so the prompt appears),
+fakes the browser clock to 30 Sep 23:20 (+11:00) so times of day read as recorded, narrates one clip per sentence and
+places each clip exactly when its subtitle appeared. Everything shown is a real, working feature; the report scene
+shows the printable report on screen the way a print preview would (normally it only goes to the printer).
+**Depends on the uncommitted `demo-data-full-fidelity.json`** — one more reason to commit the demo files (still
+Scott's call; see 2026-10-02).
+
+**Bug 1, fixed and shipped (`097c3e5`) — Dexcom readings would have been treated as finger-pricks.** The graph,
+Readings CGM filter, spike prompts and meal outcomes each checked for `"librelinkup"` alone. New `src/cgmSources.js`
+is the single list (Libre + Dexcom). With both sensors worn at once (Scott has both), the graph now draws one line per
+sensor instead of one zigzag, and spike detection uses the sensor with the most readings so the two sensors' offset
+can't look like a rise or drop. No real Dexcom data had arrived yet, so nothing was ever stored wrongly.
+**Bug 2, fixed and shipped (`cd99d46`) — the Food box started with hidden blank space** (a line break inside the
+`<textarea>` markup), which hid its example placeholder and indented typed text. Regression test checks every textarea.
+
+**Verified:** `npm test` **758 passed / 14 skipped / 0 failed**; deployed with `--skip-functions-cache`; live bundle
+`index-C4Nsgb-u.js`; fixed textarea confirmed in the live HTML; `cgm-sync` 401 without a passcode. Video checked by
+sampled frames (sharp at 1080p, subtitles in step with the picture) and audio levels (no silent gaps over 3 s).
+
+**Noticed, not changed (small, worth a look):** a low that's a single sensor reading lists as "0 min (10:10 am–10:10
+am)" under the graph — reads oddly; "under 15 min" or "one reading" would be clearer. The old
+`video-script-and-production-notes.md` (1 Oct) is superseded by the scenes in `video/record.mjs`.
+
+**Still needs Scott:** watch the video; say if he wants a different voice (macOS has others, e.g. "Lee" AU male if
+downloaded), wording, or length; the two Dexcom Netlify values (unchanged from 2026-10-03).
