@@ -1952,3 +1952,13 @@ mocked test path.
 
 **Not verified (can't be, from here):** an actual two-device run against Scott's real Accu-Chek Guide
 Me and a real Libre sensor together — same standing caveat as the rest of this file's Bluetooth code.
+
+**✅ SHIPPED 2026-10-02** — committed (`ef29a41`), pushed to GitHub, deployed with
+`--skip-functions-cache`. Live bundle `index-YBHOg2tH.js` confirmed on reactivebloodtracker.com, with
+"Sync devices" present on both Home and the Settings pointer text; `cgm-sync`/`food-bank` both still
+answer 401 without a passcode (correct). **Needs Scott:** his first real sync is also the first real
+test of the full sequence against his actual Libre sensor and Accu-Chek meter together.
+
+**My devices is now feature-complete against the original 2026-09-28 22:43 spec** (device register,
+right-device check, sensor auto-record, one unified Sync button) — no further build planned here
+unless Scott asks for something new.
