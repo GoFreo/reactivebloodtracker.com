@@ -2006,5 +2006,5 @@ below its measurable range) are dropped, as with Libre — worth revisiting for 
    `DEXCOM_CLIENT_SECRET` (copy from Dexcom's "Show" himself — never via Claude). Then a redeploy (env changes only
    reach functions after one).
 2. Settings → Connect Dexcom → sign in at Dexcom with a **sandbox** user → Sync devices should say "test mode".
-3. When Limited Access is approved: set `DEXCOM_ENV` to `eu` (Dexcom's outside-US server — check the approval
-   email names the region), redeploy, Disconnect + Connect again with his real Dexcom login.
+3. When Limited Access is approved: set `DEXCOM_ENV` to `eu` — **confirmed 2026-10-03:** Scott's personal Dexcom
+   account lives at myaccount.dexcom.eu (country: Australia), so `eu` is right, redeploy, Disconnect + Connect again with his real Dexcom login.
