@@ -11,8 +11,9 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **510 passed / 10 skipped / 0 failed** on `main` (skips: WebKit photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2) (4 skips = opt-in live food-database check) across 4 browser projects (the 2 skips are
-the documented WebKit photo-save automation gap).
+**Health:** `npm test` **608 passed / 12 skipped / 0 failed** on `main` as of 2026-10-02 (skips: WebKit
+photo-save gaps, the opt-in live food check ×4, and the phone-only install-tip test on desktop ×2)
+across 4 browser projects.
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
 `npx netlify-cli deploy --prod --dir=dist --functions=netlify/functions --skip-functions-cache --site=0b9a9624-13b7-4441-8056-0807f9cbbf7c`.
 **`--skip-functions-cache` is required.** Without it Netlify has silently shipped a stale function
@@ -22,11 +23,14 @@ bundle. Env-var changes only reach functions after a redeploy. Check function lo
 **What the app does now:** Home quick entry (glucose / food / diary); Accu-Chek Guide Me over Web
 Bluetooth (Chrome only); **Libre 2 Plus CGM sync via LibreLinkUp** (`netlify/functions/cgm-sync.js`,
 passcode-gated, stores nothing server-side); **"why did your sugar spike?" prompts**
-(`src/spikeDetection.js`); Readings → List / **Graph** (CGM line with gaps shaded, finger-pricks as
-diamonds, meal markers) / **Meals** (5-hour outcome per meal, `src/mealOutcome.js`); barcode + Open Food
-Facts; photo import; AI food parsing (Scott's key); thresholds with the ADA floor; CSV import/export and
-a printable report; Food Guidance; **animated opening** (red droplet lands on a spring); red-droplet
-icon with real PNGs (`scripts/render-icons.mjs`).
+(`src/spikeDetection.js`); Readings → List / **Graph** (redesigned 2026-10-02: smoothed average line,
+peaks/troughs labelled, shaded low/high threshold-crossing bands + a list, gaps shaded, finger-pricks as
+diamonds, meal markers — same graph embedded in the printable report) / **Meals** (5-hour outcome per
+meal, `src/mealOutcome.js`); barcode + Open Food Facts; photo import; AI food parsing (Scott's key);
+thresholds with the ADA floor; CSV import/export and a printable report; Food Guidance; **animated
+opening** (red droplet lands on a spring); red-droplet icon with real PNGs (`scripts/render-icons.mjs`);
+device confirmed Dexcom **ONE+** (not G7 as earlier assumed — arrived 2026-10-02, real sync blocked on
+Scott's own Dexcom developer registration, see that date's entry).
 
 **✅ SHIPPED 2026-09-30 22:48 (Scott: "ship it") — live bundle `index-BC4Ox0Ns.js`, `main` @ `9b83056` pushed to GitHub, `cgm-sync` answers 401 without a passcode (correct):** on a phone turned
 sideways, Readings shows the **graph on the left and the list on the right** at once (list scrolls on
@@ -1821,4 +1825,6 @@ already supported app-wide via Settings — **new, not yet built:** a local togg
 reusing the same `convertUnit`/`unit` parameter that already exists, for a viewer who thinks in the
 other unit without digging into Settings — small, ready whenever it's next up).
 
-**Not committed/deployed yet as of writing this entry** — see the next entry for that.
+**✅ SHIPPED 2026-10-02** — committed (`726b760`), pushed to GitHub, deployed with
+`--skip-functions-cache`. Live bundle `index-CCaZ0fTT.js` confirmed on reactivebloodtracker.com;
+`cgm-sync`/`food-bank` both still answer 401 without a passcode (correct).
