@@ -1970,7 +1970,7 @@ unless Scott asks for something new.
 **Scott's side, done this morning:** registered a Dexcom developer app ("ReactiveBloodTracker.com", developer
 account `gofreo`), redirect URI `https://reactivebloodtracker.com/dexcom-callback` saved, and **applied for
 Limited Access** (status until approved: Sandbox Data: Access / Production Data: Sandbox Access). Client ID (not
-secret): `N7mmBhl4yXM0BktMNVXeEXuLvyGngrvq`. The Client Secret was never shown or copied in-session. Note for
+secret): `N7mmBhI4yXM0BktMNVXeEXuLvyGngrvq`. The Client Secret was never shown or copied in-session. Note for
 Scott: the app's Dexcom description still says "endocardiologist" (meant endocrinologist) — cosmetic.
 
 **Built (official Dexcom API v3, OAuth 2.0 — endpoints checked against developer.dexcom.com today):**
@@ -2046,3 +2046,9 @@ am)" under the graph — reads oddly; "under 15 min" or "one reading" would be c
 
 **Still needs Scott:** watch the video; say if he wants a different voice (macOS has others, e.g. "Lee" AU male if
 downloaded), wording, or length; the two Dexcom Netlify values (unchanged from 2026-10-03).
+
+**2026-10-04 — Dexcom Netlify values set by Scott.** `DEXCOM_CLIENT_ID` and `DEXCOM_CLIENT_SECRET` are in Production;
+the live `dexcom` function now answers `configured: true, env: "sandbox"` and Dexcom's sandbox accepts the client ID
++ redirect (302 to its sandbox login page). No redeploy was needed — the function picked them up straight away. (Client
+ID corrected above: the 5th–8th characters are `BhI4`, capital i, not `Bhl4` — misread from the screenshot.) Next:
+Scott's first test-mode Connect + Sync on his phone.
