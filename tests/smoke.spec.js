@@ -1021,3 +1021,12 @@ test.describe("Readings on a phone turned sideways", () => {
     await expect(page.locator("#timeline-list")).toBeHidden();
   });
 });
+
+// Found 2026-10-04 while recording the explainer video: a line break inside the
+// <textarea> markup made the Food box start with blank space, which hid its
+// example placeholder and indented whatever was typed.
+test("text boxes start empty, so their example placeholders show", async ({ page }) => {
+  await page.goto("/");
+  const values = await page.locator("textarea").evaluateAll((els) => els.map((el) => ({ id: el.id, value: el.value })));
+  expect(values.filter((v) => v.value !== "")).toEqual([]);
+});
