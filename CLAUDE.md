@@ -65,7 +65,9 @@ went high or low.
   sensor line for peaks, troughs and flat stretches and asks what happened ("someone nicked a donut", "a single
   malt, straight, because the footy team lost"). The "why did your sugar spike?" prompt is the start of this.
 - **Devices are a selectable list**, not hard-wired: now Libre 2 Plus (LibreLinkUp) and Accu-Chek Guide Me
-  (Bluetooth); next Dexcom G7; others later (the `glucoseSources` registry in `src/glucose.js` is built for this).
+  (Bluetooth); next **Dexcom ONE+** (arrived 2026-10-02 — corrected from "G7," assumed everywhere before that;
+  see `HANDOVER.md`'s 2026-10-02 entry for what actually differs); others later (the `glucoseSources` registry in
+  `src/glucose.js` is built for this).
 - **Sensor vs finger-prick sanity check.** When the sensor line is *flat* (steady), a finger-prick should land
   close to it. If it doesn't, the likeliest cause is sensor placement (Scott's own case: a Libre in the inside of
   the arm went into muscle and read dramatically low; moved to the back of the upper arm over the fat layer, it

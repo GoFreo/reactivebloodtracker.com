@@ -131,10 +131,11 @@ welcome wording before going public.
 entry at the bottom of this file): (1) graph redesign — smoothed line, peaks above / troughs below, low and high
 threshold crossings highlighted; (2) "Report a problem" in the app; (3) people who monitor (family, carers,
 diabetes educator, endocrinologist); (4) a letter to doctors, drafted in
-`research/2026-09-28 DRAFT letter to doctors.md`. Build in that order; (1) and (2) need nothing from Scott. **22:40 — Scott asked again for Settings → "My devices" (add/change a device: Accu-Chek, Libre, Dexcom G7, others): promoted to build right after the graph** (backlog item 5 below).
+`research/2026-09-28 DRAFT letter to doctors.md`. Build in that order; (1) and (2) need nothing from Scott. **22:40 — Scott asked again for Settings → "My devices" (add/change a device: Accu-Chek, Libre, Dexcom ONE+, others): promoted to build right after the graph** (backlog item 5 below). *(Device corrected 2026-10-02: Scott confirmed ONE+, not G7, on arrival — see that date's entry.)*
 
 **Agreed build order (next first):** ~~meal builder~~ (built, on its branch) → sharing with roles (owner / co-logger / viewer, encrypted, opt-in) → "tell my family if I
-go low" → exercise (iPhone Shortcut route) → Dexcom G7 source (when it arrives) → going public
+go low" → exercise (iPhone Shortcut route) → Dexcom ONE+ source (arrived 2026-10-02, not yet built — see that
+entry for what it needs from Scott first) → going public
 (BYO key + condition profile: reactive / type 1 / type 2 / insulin; insulin **logged only, never a dose
 calculator**).
 
@@ -1317,9 +1318,9 @@ Abbott changes this unofficial API without notice. The first real sync is the te
 Abbott feature, not needed for this. It's his call whether it was intended; "Manage Code" ends it.
 
 **New requests, captured, not built:**
-- **Dexcom G7** coming from ADACare for a trial. Add it as another `glucoseSources` entry when it
-  arrives. Options: Dexcom Share (unofficial, same pattern as LibreLinkUp, has an outside-US server)
-  or Dexcom's official developer API (OAuth, but data is delayed). Decide once the device is here.
+- ~~**Dexcom G7** coming from ADACare for a trial...~~ — **see the 2026-10-02 entry near the bottom of
+  this file: it arrived, and it's a Dexcom ONE+, not a G7. That entry has the actual API research
+  ("decide once the device is here" — done) and what Scott needs to do before it can be built.**
 - **Fitness section (steps/activity), plus separate Carbs / Fitness / History sections.** Hard
   platform limit: a web app **cannot read Apple Health/HealthKit**. Realistic routes: an iOS Shortcut
   that exports daily steps to a file the app imports; Health's own "Export All Health Data" XML
@@ -1700,3 +1701,46 @@ re-entering the passwords… if they fail to register."
 - Readings keep the device they came from, so the graph can compare devices.
 
 **22:45 — redeployed at Scott's request** (same code, live `index-Ct3LwouD.js`), so the sync functions pick up any Netlify setting he just changed. `cgm-sync` confirms a passcode is set (answers "Wrong sync passcode" to a blank one, not "not configured"). His next Sync CGM tap is the test.
+
+## 2026-10-02 — third CGM device arrived: Dexcom ONE+, not G7 (corrected everywhere above)
+
+Scott: "dexcon one +" has arrived from ADACare. Every prior mention in this project (CLAUDE.md, this
+file) assumed **Dexcom G7** — asked him directly rather than guess, since the two models may not
+integrate the same way. Confirmed: **Dexcom ONE+**. Fixed the forward-looking references above; left
+the dated historical entries as the record of what was said at the time, with pointers to this entry.
+
+**Researched what this means for the build** (the 2026-09-28 entry above had flagged "Dexcom Share
+vs official developer API — decide once the device is here"; it's here now):
+
+- **Good news: ONE+ uses the same "Dexcom Share" mechanism as G6/G7** — this isn't a different
+  integration path, just a different device name. The *original* Dexcom ONE (no "+") does **not**
+  support Share; ONE+ does. (Sources: [Dexcom G7 vs One+ in xDrip — NightscoutFoundation/xDrip
+  discussion #3677](https://github.com/NightscoutFoundation/xDrip/discussions/3677),
+  [Nightscout's supported-uploaders docs](https://nightscout.readthedocs.io/en/latest/uploader/uploaders.html).)
+- **Dexcom's official path is a real developer API** (OAuth 2.0, REST — `developer.dexcom.com`), with
+  the exact two-tier split that resolves the "decide" from 2026-09-28:
+  - **Sandbox** returns **only simulated test accounts — never real glucose data**, confirmed directly
+    from Dexcom's own docs: "a small set of simulated user accounts that do not correspond to real
+    users." Not useful for Scott's own readings, ever.
+  - **Production / "Limited Access"** is what actually returns real data, and explicitly supports an
+    **individual developer applying for their own personal use** — "Apply for Upgrade" from the app's
+    profile page, reviewed by Dexcom's Strategic Partnerships team, approval comes with a **Data
+    Licensing Agreement Scott would need to sign himself**, capped at 5 authorized users (more than
+    enough — covers him plus the "people who monitor" feature later). ([Dexcom developer
+    docs — scopes & access](https://developer.dexcom.com/docs/dexcom/scopes-access).)
+  - This is the same server-side-polling shape already built for LibreLinkUp (`netlify/functions/cgm-sync.js`)
+    — once Scott has real OAuth client credentials from an approved Dexcom developer app, a second
+    Netlify function hitting Dexcom's endpoints instead of LibreLinkUp's is the natural build, reusing
+    the `glucoseSources` registry exactly as designed for this.
+  - Unofficial alternative exists too (xDrip4iOS on iOS, xDrip on Android, bridging to a self-hosted
+    Nightscout instance) — same tradeoff already written up for Libre: avoids Dexcom's approval process,
+    but adds a self-hosting step. Official path is recommended first, same reasoning as the Libre choice.
+
+**Needs Scott, before any real Dexcom sync can be built (can't do this for him — it's his identity and
+his signature):** register a Dexcom developer account and apply for Limited Access on
+`developer.dexcom.com`; that review+signature step is the real lead time here, not anything code-side.
+
+**Not blocking the device-register work:** "My devices" (backlog item 5, build order above) can still
+list "Dexcom ONE+" as a selectable type and let Scott record its serial/nickname now — same pattern as
+Libre/Accu-Chek already in the registry before their real connections existed — manual entry stays the
+fallback either way.
