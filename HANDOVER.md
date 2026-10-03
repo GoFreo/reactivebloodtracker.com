@@ -2,6 +2,7 @@
 
 ## Status: 🟢 live, in daily use, heading public — reactivebloodtracker.com
 
+- **2026-10-03 deploys #5–#6 (evening) — video fixed, Help guide, Export rebuilt (Scott: "video still not loading in help"; "a deeper explanation… credits of where the info came from… a single back page of sources"; "the downloading… too basic, just a download"):** `38c734a` ships `public/explainer.mp4` (720p, 8.3 MB). It had **never been deployed**, so `revealTourVideo()` kept the player hidden and Scott saw only the ▶ glyph on the Help button; a no-mock test now fails if the file goes missing again. `7a30869` ships the **Help guide** (`src/guide/`: 14 chapters + a numbered Sources page, **41 sources each opened and read on 2026-10-03**, 14 annotated pictures, two lazy chunks) and the **Export rebuild** (`src/report.js`: live summary of the chosen dates, a real doctor report, notes for the appointment, Share, CSV `Source`/`Device` columns). `npm test` 1060 passed / 20 skipped / 0 failed; live bundle `index-CFF0Kjt6.js` confirmed; `cgm-sync`/`food-bank` 401. **Scott's feedback on the video, not built yet:** voice robotic and flat ("no peaks or troughs"), pauses between screens, zoom in with a box on each point, "not a small PowerPoint", tighter script; he is trying Suno with `video/narration-script.md`. Full detail in the 2026-10-03 (evening) entry at the bottom.
 - **2026-10-03 deploy #4 — Readings → Compare (Scott: "yes please build the comparison view"):** `3a3709d`, 876 passed / 0 failed, live bundle `index-XDKxpZhO.js`. `src/sensorCompare.js`: Libre (teal) and Dexcom (purple, new `--dexcom` colour since orange means "high") as unsmoothed lines, finger-pricks (meter + manual) as diamonds, low line; 24h/3d/7d/30d. Per-sensor summary vs the finger-prick (average difference, MARD, bias, 15/15 band, closer-sensor count) and a row per finger-prick. Context: the Libre alarmed low overnight 02–03/10 and the Dexcom ONE+ didn't; Scott did a finger-prick after the alarm, so that morning's row is the first real comparison once the Dexcom data (3h delay) has synced. Scott is using up the ONE+ sensors first (G7s kept at home, stock take 04/10) and may drop the Libre depending on what this shows. Descriptive only: it never tells him which device to use.
 - **2026-10-03 deploy #3 — Keep my devices in sync (Scott: "yes please"):** `e7f9e28`, 852 passed / 0 failed, live bundle `index-gfBn6kQo.js`. Settings → **Keep my devices in sync**, OFF by default (privacy rule 1 — opt-in). Shares glucose, food and diary records via `netlify/functions/data-sync.js` (Netlify Blobs store `personal-data`, one shard per store per month + an `index`, ETag-safe writes, same `CGM_SYNC_PASSCODE`). Union merge (`src/recordMerge.js`); the same CGM/meter reading pulled on two devices is kept once (source + time). **Not synced yet:** food photos (stay on the device; `hadPhoto` flag travels), saved meals, spike answers, thresholds/settings. The sync passcode must be saved with "Remember on this device". The service worker no longer caches any `/.netlify/functions/` response (cache v3). The Help/tour button moved to the top left of the header as "▶ Help". **Needs Scott:** switch it on on the phone AND the Mac; the first switch-on uploads everything already on that device. Not end-to-end encrypted (Netlify encrypts at rest); possible later step.
 - **2026-10-03 deploy #2:** pulled cloud-session PR #1 (`2505a05`, How it works view + header Sync dot/tour button) that hadn't reached this Mac; 812 passed / 20 skipped / 0 failed; live bundle `index-DhQXQ8LO.js`. **Gotcha:** a leftover `vite preview` on port 4173 made Playwright test the OLD build (`reuseExistingServer`) — run `CI=1 npm test` or kill port 4173 first. `public/explainer.mp4` not yet added, so the video stays hidden. **Open decision for Scott:** data is per-device (IndexedDB) by design, so phone and Mac each show their own last sync; he expected one shared cloud copy — see chat 03/10.
@@ -16,9 +17,9 @@ as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
 **Live:** `reactivebloodtracker.com` serves `main` (always confirm by matching the live
 `assets/index-*.js` name against a fresh `dist/`). `main` == `origin/main` on
 `github.com/GoFreo/reactivebloodtracker.com`.
-**Health:** `npm test` **734 passed / 14 skipped / 0 failed** on `main` as of 2026-10-03 (skips: WebKit
+**Health:** `npm test` **1060 passed / 20 skipped / 0 failed** on `main` as of 2026-10-03 evening (skips: WebKit
 photo-save gaps, the opt-in live food check ×4, the phone-only install-tip test on desktop ×2, and the
-Bluetooth-sequence test on WebKit ×2) across 4 browser projects.
+Bluetooth-sequence tests on WebKit) across 4 browser projects.
 **➡️ Dexcom (2026-10-03):** Connect Dexcom is built and live; waiting on Scott to put `DEXCOM_CLIENT_ID` /
 `DEXCOM_CLIENT_SECRET` into Netlify, then on Dexcom's Limited Access approval. See the 2026-10-03 entry at the bottom.
 **Deploy (manual, from this Mac):** `npm test` → `npm run build` →
@@ -2104,3 +2105,75 @@ hardware until his next sync.
 - **Verified:** 798 passed / 14 skipped / 0 failed; live bundle `index-CQ4RWzB1.js`.
 - **Still open:** Dexcom test-mode Connect not yet tried by Scott; whether his meter's own "timeout" message persists
   with the meter-first order.
+
+## 2026-10-03 (evening) — video actually deployed; Help is now a sourced, illustrated guide; Export rebuilt; video v2 started
+
+**Scott's messages this turn** (dictated, so garbled in places): "video still not loading in help… I've just seen the help
+with a video play arrow, but nothing happens"; Help should stay basic but "offer a deeper insight along with credits… a single
+back page of where all the information came from with small numbers or notes throughout"; "best practices for installation and
+using" for each device; "why this app is helpful rather than just use the app that comes with the devices"; "illustrations of
+the program at work, the graphs, where the information is entered"; why enter things manually / use the barcode / use portion
+sizing / track carbs; "a lot more meat… to help give a complete or as good as an app can assistance with people to understand
+their diabetes, their reactive hypoglycemic or any other syndrome". Then, mid-turn: the video "needs to be more like a natural
+human voice with pauses between lines when changing screens and… zoom in with a box to highlight"; "the downloading needs work,
+it's too basic with no information, just a download, huge missed opportunity"; "not just a small PowerPoint presentation";
+"the voice has no peaks or troughs, it's very flat"; and "show me the script, I'm going to run it through Suno".
+
+**1. The video bug (shipped, `38c734a`).** Root cause was not code: `public/explainer.mp4` was never added, the player is hidden
+whenever `HEAD /explainer.mp4` isn't a `video/*`, so the page looked fine in every test. Fix: the 1080p master (`video/out/`, gitignored)
+is re-encoded to a **720p, CRF 26, faststart copy (8.3 MB, was 23.8 MB)** shipped as `public/explainer.mp4` + `explainer-poster.jpg`; `video/record.mjs`
+now writes both after the master. New test in `tests/tour.spec.js` runs against the real build with **nothing mocked** (range request → 206 `video/mp4`,
+poster loads, player visible). Verified live in a real browser (decodes 1280×720, plays, seeks).
+
+**2. The Help guide (`7a30869`).**
+- **Where things are:** `src/guide/chapters/NN-*.html` (the text; add a chapter by adding a file), `sources.js` (the registry),
+  `render.js` (pure: `[[id]]` → numbered raised links by first appearance, Sources page, contents, figures), `index.js` (loads when
+  Help opens: contents, search, footnote jump + back-arrows, Open/Close all), `content.js` (bundles the chapter files),
+  `figures.js` (**written by** `scripts/guide-screenshots.mjs`: each picture's size and how many numbered markers it has).
+  `index.html` `#view-help` keeps "Your setup" and the "what this app is, and isn't" callout, then `#guide-root`. The tour page links to the guide.
+  Two lazy chunks (`guide-*.js` 21 KB, `content-*.js` 86 KB, ~33 KB gzipped together); the main bundle grew by ~12 KB (the Export work), not the guide.
+- **Rules enforced by `tests/guide.spec.js` (68 runs):** an unknown `[[id]]` throws; a source nobody cites fails; every source has an https link,
+  publisher and "used for"; chapter tags balance; every figure exists in light and dark, has alt text and a caption with **as many callouts as the
+  picture has markers**; a lint bans dosing/portion/"safe amount" phrasing (negated sentences allowed).
+- **Pictures:** `node scripts/guide-screenshots.mjs [names…]` photographs the real app on the made-up demo patient with numbered amber markers (needs
+  `npm run build && npm run preview -- --port 4173`, Python 3 + Pillow, and `demo-data-full-fidelity.json`). 14 figures × light/dark ≈ 1.4 MB. **Re-run it
+  whenever a pictured screen changes** and look at the images (the Read tool opens WebP).
+- **Content:** why use this alongside device apps; low-now first aid (Diabetes Australia/healthdirect); conditions (reactive hypoglycaemia, diabetes,
+  surgery, alcohol; Whipple's triad; Shah 2019: healthy people spend a median 1.1% below 3.9); reading the graph + Meals; entering data; food (why carbs,
+  barcodes, portions, photo estimates, GI; Brazeau 2013, Joubert 2021, Evert 2019, FSANZ, Open Food Facts terms); sensor vs finger-prick (Abbott AU "5 to 10 minutes",
+  Dexcom ±20% / ±1.1 mmol/L, two Libre 2 studies); **devices** (Libre 2 Plus, Dexcom ONE+, Accu-Chek Guide Me: fitting, wearing, using, connecting, from the makers'
+  own pages and manuals); "what happened?" prompts; thresholds; reports; data/privacy/backups (WebKit 7-day rule, MDN eviction); troubleshooting; glossary; Sources.
+- **Corrections to the old Help text:** lag is "5 to 10 minutes" (Abbott AU), not 5–15; the "9 to 13%" accuracy line is gone because its source (Vaughan 2025, SAGE) sits behind a
+  bot check and I couldn't read it, so it is replaced by two small published studies I could (12.9% in healthy men; 27.5% overall and 69.5% in the low range in healthy women, both
+  flagged as small healthy-volunteer studies). Old sources **not carried over** because I couldn't re-read them: NDSS fact sheet, Baker, StatPearls/Endocrine Connections/Frontiers
+  (post-bariatric), Alcohol & Alcoholism, AUSNUT, Vaughan 2025. The Food guidance page still has its own seven.
+- **Fetch notes:** diabetesjournals.org and SAGE answer WebFetch with 403 and the in-app browser with a Cloudflare challenge. I did **not** try to get past it; the ADA 2026 Standards
+  (section 6) and other papers were read from PubMed Central / Europe PMC copies. Mayo Clinic needed the in-app browser. WebFetch can't read PDFs (it saves them): use `pdftotext` on the saved file.
+- **Honest limits / for the lawyer review (still outstanding, now covers far more text):** the TGA paragraph in chapter 1 (explicitly "not legal advice"); the device instructions are
+  summarised from the **US** Libre quick-reference and the **US** Accu-Chek manual (the 12-hour first-day caution is US labelling; the guide says to follow the leaflet in the box);
+  statements about what Dexcom/Abbott/Roche say are paraphrases of pages read on 2026-10-03 and will drift; the guide says it is independent of, and not endorsed by, the makers.
+  Scott's remark that the Dexcom iPhone app is "in beta": Dexcom's own page only says testing of the newest phone OS versions can lag and to check its compatibility chart first; that's what the guide says.
+
+**3. Export rebuilt (`7a30869`) — my reading of "the downloading".** The Export screen was two date boxes and "Download CSV" / "Printable summary". I read "downloading… too basic with no information, just a download"
+as that screen and asked Scott to confirm (he could instead have meant the phone install step or the landing page; both untouched). Now: quick ranges (7/14/30 days, 3 months, all), a **live summary of the chosen
+dates** before anything is made (counts by device, sensor average/lowest/highest, share of readings around his warning lines, low spells), **notes for the appointment** (kept on the phone, printed at the top), a
+**doctor report** (`src/report.js`: summary table; the 7-day graph; **every low spell with the meal before it, notes around it and the nearby finger-prick**; meals and what followed; finger-pricks vs the sensor;
+notes and symptoms; every entry; a how-to-read note), plain-English "what's in each column", a **Share…** button where the browser can share files, and a clearer Restore box. The report is descriptive only. Averages/shares use one sensor
+(most readings) so two sensors are never blended; shares count readings, not minutes. **CSV format changed (additive):** `Source` and `Device` columns, so restoring a file keeps sensor readings as sensor readings
+(before, every restored reading came back as a typed-in finger-prick, which would have broken the graph). Old files still import. A CSV still doesn't hold food photos, saved meals, devices or settings (the Export screen says so).
+`tests/report.spec.js` (18) and `tests/exportScreen.spec.js` (10 × 4) cover it; `tests/smoke.spec.js`'s 7-day-graph check now targets the heading by text.
+
+**4. The video, v2 — started, not finished.** Scott's list: natural, expressive voice; pauses between screens; zoom + highlight box on each point; not slide-like; tighter. Done so far: `video/narration-script.md`
+(Version A = what's live, 459 words; **Version B = recommended, 275 words, ~2 min**, written for zoom-ins); `video/demo.mjs` (the demo patient, shared with the guide pictures); `video/stage.html` rewritten
+(**uncommitted**: camera `#world` with `focus()/unfocus()`, amber spotlight + label chip, one big phrase at a time, quick teal cut, title/end cards). **`video/record.mjs` is still v1**, so the new stage and the live
+recorder don't match until v2 of the recorder lands. Plan: scenes with beats keyed to sentence timing, `VOICE_ENGINE=say|files`, 4K capture (`deviceScaleFactor` 2) delivered at 1080p so close-ups stay sharp, a clear gap between scenes.
+**Voice:** the Mac's built-in voices (Karen is a compact voice) are the robotic part; nothing better is installed. Offered Scott a local open-source neural voice (Kokoro: `kokoro-v1.0.onnx` 310 MB + `voices-v1.0.bin`
+about 30 MB from GitHub, MIT/Apache-2.0, plus the small `kokoro-onnx` pip package; `onnxruntime` is already installed) and asked him to say "yes voice" — **not downloaded**, no answer yet; he is trying Suno instead.
+Hand-back convention if he does: one recording per scene in `video/voice/01-….mp3` … `08-….mp3` (any audio format; one long take also works) and `VOICE_ENGINE=files node video/record.mjs`: the picture is re-timed to the audio.
+
+**Needs Scott:** (1) "yes voice", or his Suno audio; (2) confirm "the downloading" = the Export screen; (3) the demo-data files (`demo-data-*.json/csv/README`): the video, the guide pictures and `scripts/guide-screenshots.mjs`
+all load `demo-data-full-fidelity.json`, so it should be committed (it is synthetic; the repo is public); (4) lawyer review of the guide wording and the Help/welcome text; (5) the two Dexcom Netlify steps and Limited Access approval (unchanged).
+**Gotchas this session:** shell `sleep` is blocked in this harness: background tasks notify on completion; Node 24 has no `localStorage` (tests that call `formatDate` stub it with `Object.defineProperty`); Playwright's
+`toContainText` reads `textContent`, so text inside a closed `<details>` still matches (use `toBeVisible`/`toBeHidden` for open/closed); wide screenshot contexts must not be `isMobile`; a `data-wide` figure attribute must come after `data-alt` (a
+test now counts figure tags so a misordered one can't hide).
+

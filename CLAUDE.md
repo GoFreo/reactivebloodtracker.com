@@ -244,7 +244,7 @@ but is secondary. Keep that priority in mind for any framework/UI decisions once
 
 ## Testing — run before every deploy (added 2026-09-12, grown heavily 2026-09-14)
 
-> **Current count (2026-09-28, 21:02):** 18 test files; `npm test` = 390 passed / 6 skipped / 0 failed on `main`. The file-by-file description below is the original 2026-09-14 set; newer files
+> **Current count (2026-10-03, evening):** 29 test files; `npm test` = **1060 passed / 20 skipped / 0 failed** on `main` (the 2026-09-28 note below describes the original set). The file-by-file description below is the original 2026-09-14 set; newer files
 > cover the meal builder, My foods, the food bank function, the readings filter, the pantry fixture, the
 > welcome screen, spike detection, meal outcomes and CGM sync. On iCloud the build can outlast Playwright's
 > 60 s web-server wait: start `npm run preview -- --port 4173` by hand and Playwright reuses it.
@@ -281,6 +281,14 @@ element, you need a matching `.the-class[hidden] { display: none; }` rule too �
 default hidden-handling silently loses to a same-specificity, later-declared rule otherwise. Bit
 three separate elements before this pattern was recognized (`.timeline-list`, `.latest-reading`,
 guarded against pre-emptively for `#barcode-scanner`) — see HANDOVER.md's 2026-09-14 entry.
+
+## The Help guide (added 2026-10-03 — read before editing Help)
+
+Help is a sourced, illustrated guide, not a page of paragraphs. Text lives in `src/guide/chapters/NN-*.html`; every fact that comes from outside the app carries a `[[source-id]]`
+that must exist in `src/guide/sources.js`, and **a source goes in only after someone has opened and read it** (its `usedFor` says what the guide takes from it). `tests/guide.spec.js` enforces:
+unknown ids fail, uncited sources fail, figure captions must list as many callouts as the picture has markers, and a lint bans dosing / portion / "safe amount" advice
+(this file's "Descriptive, not prescriptive" rule applies to the guide too). Pictures are generated, not hand-made: `node scripts/guide-screenshots.mjs` (see its header); re-run it when a pictured screen
+changes. The guide's wording is part of the outstanding lawyer review (see `HANDOVER.md`).
 
 ## Next steps (PICK UP HERE) — updated 2026-09-14
 
