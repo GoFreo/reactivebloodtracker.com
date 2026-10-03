@@ -173,3 +173,34 @@ test("Libre and Dexcom worn together draw as two separate sensor lines, not one 
   await expect(page.locator("#readings-graph-container polyline.graph-line")).toHaveCount(2);
   await expect(page.locator("#readings-graph-container .graph-prick")).toHaveCount(0);
 });
+
+test.describe("device status lights on Home", () => {
+  test("after a good sync, Libre and Dexcom show green lights", async ({ page }) => {
+    await stubNoBluetooth(page);
+    await seedConnection(page, "eu");
+    await mockDexcom(page, { sync: () => [200, { configured: true, env: "eu", readings: recentReadings(), transmitterId: "TX1" }] });
+    await page.goto("/");
+    await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("Dexcom: 2 new readings", { timeout: 10000 });
+    await expect(page.locator('#device-lights [data-device="libre"]')).toHaveClass(/light-green/);
+    await expect(page.locator('#device-lights [data-device="dexcom"]')).toHaveClass(/light-green/);
+    await expect(page.locator('#device-lights [data-device="meter"]')).toHaveCount(0);
+  });
+
+  test("a failed sync turns that device red, and tapping it says why", async ({ page }) => {
+    await stubNoBluetooth(page);
+    await seedConnection(page, "eu");
+    await mockDexcom(page, { sync: () => [502, { error: "Dexcom request failed (503)." }] });
+    await page.goto("/");
+    await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("Dexcom: failed", { timeout: 10000 });
+    const dexcom = page.locator('#device-lights [data-device="dexcom"]');
+    await expect(dexcom).toHaveClass(/light-red/);
+    await dexcom.click();
+    await expect(page.locator("#device-light-detail")).toContainText("Dexcom: last sync failed");
+    await expect(page.locator("#device-light-detail")).toContainText("Dexcom request failed (503).");
+    // Lights survive a reload.
+    await page.reload();
+    await expect(page.locator('#device-lights [data-device="libre"]')).toHaveClass(/light-green/);
+  });
+});

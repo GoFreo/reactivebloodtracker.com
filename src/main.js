@@ -33,6 +33,7 @@ import {
   DEXCOM_LAST_SYNC_KEY, DEXCOM_CALLBACK_PATH,
 } from "./dexcom.js";
 import { mealOutcome, formatAfter, OUTCOME_HOURS } from "./mealOutcome.js";
+import { DEVICE_LIGHTS, getSyncStatus, recordSyncResult, forgetSyncResult, lightFor, LIGHT_WORDS } from "./syncStatus.js";
 import { itemCarbs, mealTotals, mealToText, productToItem, emptyItem, cleanItems, PORTIONS, portionGrams } from "./mealBuilder.js";
 import { hasAccepted, getProfile, acceptWelcome, acceptedAt, CONDITION_LABELS } from "./welcome.js";
 import { listSavedMeals, saveMeal, deleteSavedMeal, mealToBuilderItems } from "./savedMeals.js";
@@ -167,6 +168,7 @@ async function refreshAllCaches() {
 
 async function refreshHome() {
   await refreshAllCaches();
+  renderDeviceLights(); // a green light turns amber as time passes
   updateReminderBanner();
   renderLatestReading();
   renderFoodSuggestions();
@@ -1429,6 +1431,8 @@ document.getElementById("dexcom-connect-btn").addEventListener("click", async (e
 document.getElementById("dexcom-disconnect-btn").addEventListener("click", () => {
   if (!confirm("Disconnect Dexcom on this device? Readings already saved stay. To fully withdraw access, also remove this app in your Dexcom account.")) return;
   disconnectDexcom();
+  forgetSyncResult("dexcom");
+  renderDeviceLights();
   dexcomMessage = "Disconnected.";
   renderDexcomStatus();
 });
@@ -1471,6 +1475,57 @@ async function syncDexcomStep(onStatus) {
   }
 }
 
+// --- Device status lights (Scott, 2026-10-03) ---
+// One light per device the person actually uses: Libre once a passcode is
+// saved or it has synced, Dexcom once connected, the meter where Bluetooth
+// works or it has synced before. Tapping a light says what it means.
+let syncingLight = null;
+
+function deviceInUse(key, status) {
+  if (status[key]) return true;
+  if (key === "libre") return Boolean(getSavedPasscode());
+  if (key === "dexcom") return Boolean(getDexcomConnection());
+  if (key === "meter") return isBluetoothAvailable() && Boolean(activeDeviceOfType("bluetooth-meter"));
+  return false;
+}
+
+function lightDetail(label, entry, light) {
+  if (light === "syncing") return `${label}: syncing now…`;
+  if (light === "grey") return `${label}: not set up yet. Use Sync devices once to start.`;
+  const when = formatRelativeTime(entry.at);
+  if (light === "red") return `${label}: last sync failed ${when} — ${entry.message}`;
+  const ok = formatRelativeTime(entry.lastOkAt || entry.at);
+  return light === "green" ? `${label}: working, last synced ${ok}.` : `${label}: last synced ${ok}. Tap Sync devices to update.`;
+}
+
+function renderDeviceLights() {
+  const container = document.getElementById("device-lights");
+  const detail = document.getElementById("device-light-detail");
+  const status = getSyncStatus();
+  container.innerHTML = "";
+  for (const { key, label } of DEVICE_LIGHTS) {
+    if (!deviceInUse(key, status) && syncingLight !== key) continue;
+    const light = lightFor(status[key], { syncing: syncingLight === key });
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `device-light light-${light}`;
+    btn.dataset.device = key;
+    btn.setAttribute("aria-label", `${label}: ${LIGHT_WORDS[light]}`);
+    btn.title = LIGHT_WORDS[light];
+    btn.innerHTML = '<span class="dot" aria-hidden="true"></span><span class="name"></span>';
+    btn.querySelector(".name").textContent = label;
+    btn.addEventListener("click", () => {
+      const text = lightDetail(label, status[key], light);
+      const showing = !detail.hidden && detail.dataset.device === key;
+      detail.hidden = showing;
+      detail.dataset.device = key;
+      detail.textContent = text;
+    });
+    container.appendChild(btn);
+  }
+}
+renderDeviceLights();
+
 // --- Unified sync (Scott's spec, 2026-10-02): one button, not one per
 // device. Libre runs first (nothing physical needed); the Bluetooth meter
 // runs second, with its own manual-action prompt, so Scott isn't left
@@ -1487,15 +1542,34 @@ async function runUnifiedSync(btn, statusEl) {
     // the Libre result (or a passcode-prompt skip) off-screen until then.
     let done = "";
     const onStatus = (msg) => (statusEl.textContent = done ? `${done} ${msg}` : msg);
-    done = await syncLibreStep(onStatus);
+    // Each step lights its device: pulsing while it runs, then green/red from
+    // its one-line summary. Skips and "different meter" cancels aren't
+    // recorded, so they never turn a working device's light red.
+    const lit = async (key, run) => {
+      syncingLight = key;
+      renderDeviceLights();
+      try {
+        const summary = await run();
+        if (summary) {
+          const failed = summary.match(/: failed — (.*)$/);
+          if (failed) recordSyncResult(key, { ok: false, message: failed[1] });
+          else if (!/skipped|cancelled/.test(summary)) recordSyncResult(key, { ok: true, message: summary });
+        }
+        return summary;
+      } finally {
+        syncingLight = null;
+        renderDeviceLights();
+      }
+    };
+    done = await lit("libre", () => syncLibreStep(onStatus));
     statusEl.textContent = done;
-    const dexcomResult = await syncDexcomStep(onStatus);
+    const dexcomResult = getDexcomConnection() ? await lit("dexcom", () => syncDexcomStep(onStatus)) : null;
     if (dexcomResult) {
       done = `${done} ${dexcomResult}`;
       statusEl.textContent = done;
     }
     if (isBluetoothAvailable()) {
-      const meterResult = await syncBluetoothStep(onStatus);
+      const meterResult = await lit("meter", () => syncBluetoothStep(onStatus));
       done = `${done} ${meterResult}`;
       statusEl.textContent = done;
     }
