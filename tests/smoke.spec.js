@@ -936,32 +936,31 @@ test.describe("CGM sync from Home", () => {
     expect(await page.evaluate(() => localStorage.getItem("rht-cgm-passcode"))).toBeNull();
   });
 
-  test("skipping a device doesn't block the rest of the sync sequence (Libre, then the Bluetooth meter)", async ({ page, browserName }) => {
-    // Deliberately NOT stubNoBluetooth here — this is the one test covering
-    // the real two-device sequence Scott asked for: Libre first, then the
-    // meter, each independently skippable, without the whole thing hanging.
-    // WebKit never implements Web Bluetooth at all (real platform limit, not
-    // a bug — see isBluetoothAvailable()), so there's no meter step to skip
-    // there; Chrome is where this sequence actually matters.
+  test("the meter goes first; a meter not found shows red and doesn't block the Libre step after it", async ({ page, browserName }) => {
+    // Deliberately NOT stubNoBluetooth: this covers the real sequence on Chrome.
+    // Meter first (2026-10-03: the Accu-Chek's broadcast window is short, so the
+    // device list must open straight from the Sync tap), then Libre. Chrome's
+    // list is browser UI a test can't click, so closing it is simulated the way
+    // Chrome reports it: requestDevice rejects with NotFoundError.
+    // WebKit has no Web Bluetooth at all (real platform limit), so no meter step there.
     test.skip(browserName === "webkit", "WebKit has no Web Bluetooth — isBluetoothAvailable() is false, so there's no meter step in the sequence to test here");
+    await page.addInitScript(() => {
+      navigator.bluetooth.requestDevice = async () => {
+        throw new DOMException("User cancelled the requestDevice() chooser.", "NotFoundError");
+      };
+    });
     await page.goto("/");
+    await expect(page.locator("#home-sync-meter-hint")).toBeVisible();
     await page.locator("#home-sync-btn").click();
+    await expect(page.locator("#home-sync-status")).toContainText("Meter: failed — no meter chosen");
+    await expect(page.locator("#home-sync-manual-step")).toBeHidden();
 
     await expect(page.locator("#home-cgm-pass")).toBeVisible();
     await page.locator("#home-cgm-pass-cancel").click();
-    await expect(page.locator("#home-cgm-pass")).toBeHidden();
     await expect(page.locator("#home-sync-status")).toContainText("Libre: skipped.");
-
-    // Skipping the meter's manual-action prompt happens before any real
-    // Bluetooth API call is made (see syncBluetoothStep), so this is safe to
-    // exercise even though there's no real meter in this environment.
-    await expect(page.locator("#home-sync-manual-step")).toBeVisible();
-    await expect(page.locator("#home-sync-manual-prompt")).toContainText("Turn on your Bluetooth meter");
-    await page.locator("#home-sync-skip-btn").click();
-    await expect(page.locator("#home-sync-manual-step")).toBeHidden();
-
-    await expect(page.locator("#home-sync-status")).toContainText("Libre: skipped. Meter: skipped.");
     await expect(page.locator("#home-sync-btn")).toBeEnabled();
+    // Scott's rule (2026-10-03): meter can't be found → solid red light.
+    await expect(page.locator('#device-lights [data-device="meter"]')).toHaveClass(/light-red/);
   });
 });
 

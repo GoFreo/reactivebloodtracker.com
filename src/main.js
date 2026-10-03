@@ -1067,14 +1067,13 @@ function renderGlucoseSources() {
   }
 }
 
-// One Sync step for the Bluetooth meter (Scott's spec, 2026-10-02: "turn on
-// your Accu-Chek... then it scans all devices" — a manual-action prompt
-// first, since the meter isn't advertising until woken, then the same
-// connect/right-device-check/save flow as before unification). Returns a
+// One Sync step for the Bluetooth meter. Runs *first*, straight from the Sync
+// tap (Scott, 2026-10-03: the Accu-Chek only broadcasts for a few seconds after
+// it's switched on, and the old order — Libre's network round-trip, then a
+// "turn it on, tap Continue" prompt, then the picker — used that window up).
+// Home's hint says to switch the meter on before tapping Sync. Returns a
 // one-line summary for the unified status message; never throws.
 async function syncBluetoothStep(onStatus) {
-  const proceed = await waitForManualStep("Turn on your Bluetooth meter (e.g. Accu-Chek Guide Me), then tap Continue.");
-  if (!proceed) return "Meter: skipped.";
   try {
     const { readings, serial, deviceName } = await connectAndFetchReadings({
       onStatus,
@@ -1525,6 +1524,7 @@ function renderDeviceLights() {
   }
 }
 renderDeviceLights();
+document.getElementById("home-sync-meter-hint").hidden = !isBluetoothAvailable();
 
 // --- Unified sync (Scott's spec, 2026-10-02): one button, not one per
 // device. Libre runs first (nothing physical needed); the Bluetooth meter
@@ -1561,18 +1561,16 @@ async function runUnifiedSync(btn, statusEl) {
         renderDeviceLights();
       }
     };
-    done = await lit("libre", () => syncLibreStep(onStatus));
-    statusEl.textContent = done;
-    const dexcomResult = getDexcomConnection() ? await lit("dexcom", () => syncDexcomStep(onStatus)) : null;
-    if (dexcomResult) {
-      done = `${done} ${dexcomResult}`;
+    const add = (result) => {
+      if (!result) return;
+      done = done ? `${done} ${result}` : result;
       statusEl.textContent = done;
-    }
-    if (isBluetoothAvailable()) {
-      const meterResult = await lit("meter", () => syncBluetoothStep(onStatus));
-      done = `${done} ${meterResult}`;
-      statusEl.textContent = done;
-    }
+    };
+    // Meter first: Chrome only opens its device list straight after a tap, and
+    // the meter's broadcast window is short (see syncBluetoothStep).
+    if (isBluetoothAvailable()) add(await lit("meter", () => syncBluetoothStep(onStatus)));
+    add(await lit("libre", () => syncLibreStep(onStatus)));
+    if (getDexcomConnection()) add(await lit("dexcom", () => syncDexcomStep(onStatus)));
     updateSyncBadge();
     await refreshHome();
   } finally {
