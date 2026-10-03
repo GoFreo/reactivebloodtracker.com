@@ -72,6 +72,7 @@ const VIEW_TITLES = {
   export: "Export report",
   "food-guidance": "Food Guidance",
   "my-foods": "My foods",
+  tour: "How it works",
   help: "Help & sources",
   settings: "Settings",
 };
@@ -142,11 +143,28 @@ function showView(name) {
   } else if (name === "settings") {
     loadThresholdSettings();
     renderDexcomStatus();
+  } else if (name === "tour") {
+    revealTourVideo();
   } else if (name === "help") {
     renderHelpSetup();
   } else if (name === "my-foods") {
     renderMyFoods();
     refreshFoodBank();
+  }
+}
+
+// The tour video is a plain file (public/explainer.mp4). Show the player only
+// if the file is actually deployed, so a missing file never looks broken.
+let tourVideoChecked = false;
+async function revealTourVideo() {
+  if (tourVideoChecked) return;
+  tourVideoChecked = true;
+  try {
+    const res = await fetch("/explainer.mp4", { method: "HEAD" });
+    const type = res.headers.get("content-type") || "";
+    if (res.ok && type.startsWith("video/")) document.getElementById("tour-video-wrap").hidden = false;
+  } catch {
+    tourVideoChecked = false;
   }
 }
 
@@ -984,14 +1002,23 @@ function updateSyncBadge() {
     .at(-1); // ISO timestamps sort correctly as strings
   badge.hidden = false;
   badge.classList.remove("synced", "stale");
+  // The header shows just the dot and the word "Sync"; when it last worked is the tooltip.
+  text.textContent = "Sync";
   if (!lastSync) {
-    text.textContent = "Not synced yet";
+    badge.title = badge.ariaLabel = "Sync devices (not synced yet)";
     return;
   }
   const diffHr = (Date.now() - new Date(lastSync).getTime()) / 3600000;
   badge.classList.add(diffHr < 6 ? "synced" : "stale");
-  text.textContent = `Synced ${formatRelativeTime(lastSync)}`;
+  badge.title = badge.ariaLabel = `Sync devices (synced ${formatRelativeTime(lastSync)})`;
 }
+
+// Header Sync: go to Home, where the progress and any prompts show, and run the same sync.
+document.getElementById("sync-status-badge").addEventListener("click", () => {
+  showView("home");
+  const btn = document.getElementById("home-sync-btn");
+  if (!btn.disabled) btn.click();
+});
 
 // --- My devices (Scott's spec, 2026-09-28 22:43) ---
 const lastFour = (serial) => (serial ? `…${serial.slice(-4)}` : "unknown serial");
