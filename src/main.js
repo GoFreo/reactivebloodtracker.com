@@ -1497,10 +1497,27 @@ function lightDetail(label, entry, light) {
   return light === "green" ? `${label}: working, last synced ${ok}.` : `${label}: last synced ${ok}. Tap Sync devices to update.`;
 }
 
+// Syncs from before the lights existed only left a "last synced" time: count
+// those as a working sync then, so a device that synced this morning isn't grey.
+const LAST_SYNC_KEYS = { libre: CGM_LAST_SYNC_KEY, dexcom: DEXCOM_LAST_SYNC_KEY, meter: BLUETOOTH_LAST_SYNC_KEY };
+
+function statusWithHistory() {
+  const status = getSyncStatus();
+  for (const [key, storageKey] of Object.entries(LAST_SYNC_KEYS)) {
+    if (status[key]) continue;
+    let at = null;
+    try {
+      at = localStorage.getItem(storageKey);
+    } catch {}
+    if (at) status[key] = { ok: true, at, lastOkAt: at, message: "" };
+  }
+  return status;
+}
+
 function renderDeviceLights() {
   const container = document.getElementById("device-lights");
   const detail = document.getElementById("device-light-detail");
-  const status = getSyncStatus();
+  const status = statusWithHistory();
   container.innerHTML = "";
   for (const { key, label } of DEVICE_LIGHTS) {
     if (!deviceInUse(key, status) && syncingLight !== key) continue;

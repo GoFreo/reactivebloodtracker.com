@@ -1493,3 +1493,7 @@ h2 {
 @media (prefers-reduced-motion: reduce) {
   .device-light.light-syncing .dot { animation: none; }
 }
+
+#home-sync-meter-hint {
+  margin: 12px 0 2px;
+}
