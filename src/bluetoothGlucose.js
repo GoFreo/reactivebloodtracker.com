@@ -249,7 +249,9 @@ export async function connectAndFetchReadings({ onStatus = () => {}, confirmPick
     } catch (err) {
       // Chrome reports both "cancelled" and "nothing to pick" as NotFoundError.
       if (err?.name === "NotFoundError") {
-        throw new Error("no meter chosen. If yours wasn't listed, switch it on until it shows the Bluetooth symbol, then sync again.");
+        // Chrome's own wording kept in brackets: "cancelled" and "nothing matched"
+        // need different fixes, and only the browser knows which it was.
+        throw new Error(`no meter chosen (Chrome said: "${err.message}"). If yours wasn't listed, switch it on until it shows the Bluetooth symbol, then sync again.`);
       }
       throw err;
     }
