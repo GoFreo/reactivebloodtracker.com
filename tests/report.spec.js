@@ -69,6 +69,42 @@ test.describe("summariseRange", () => {
     expect(s.lowestLow.extreme).toBe(3.6);
   });
 
+  test("a low lists up to three meals from the five hours before it, nearest first", () => {
+    const d = morning();
+    // The low starts at 09:15. Five meals sit before it: one is outside the 5-hour window and one is a fourth-nearest.
+    d.food = [
+      { id: "m0", type: "food", text: "Long-ago supper", timestamp: at(3, 0) }, // 375 min before: outside the window
+      { id: "m1", type: "food", text: "Cereal", timestamp: at(5, 30) }, // 225 min before: in the window, but only the nearest three are listed
+      { id: "m2", type: "food", text: "Toast with honey", timestamp: at(7, 0), carbsTotal: 38 },
+      { id: "m3", type: "food", text: "Banana", timestamp: at(8, 45) },
+      { id: "m4", type: "food", text: "Biscuit", timestamp: at(9, 10) },
+    ];
+    const s = summariseRange({ ...d, from: FROM, to: TO, thresholds: THRESHOLDS });
+    const low = s.lows[0];
+    expect(low.meals.map((m) => m.text)).toEqual(["Biscuit", "Banana", "Toast with honey"]);
+    expect(low.meals[0].minutesBefore).toBeLessThan(low.meals[1].minutesBefore);
+    expect(low.meal).toEqual(low.meals[0]); // the single-meal field is the nearest one
+    const html = buildReportHTML({
+      summary: s,
+      unit: "mmol/L",
+      entries: [],
+      graphHTML: "",
+      profile: {},
+      appointmentNotes: "",
+      entryRow: () => "",
+    });
+    for (const text of ["Biscuit", "Banana", "Toast with honey"]) expect(html).toContain(text);
+    expect(html.split("<h2>Meals and what followed</h2>")[0]).not.toContain("Cereal");
+  });
+
+  test("a low with no meal before it lists none", () => {
+    const d = morning();
+    d.food = [];
+    const s = summariseRange({ ...d, from: FROM, to: TO, thresholds: THRESHOLDS });
+    expect(s.lows[0].meals).toEqual([]);
+    expect(s.lows[0].meal).toBeNull();
+  });
+
   test("a sensor gap splits one low into two instead of bridging it", () => {
     const glucose = [
       reading(at(1, 0), 3.5),

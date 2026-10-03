@@ -14,7 +14,8 @@ import { splitAtGaps } from "./timeline.js";
 import { formatDate } from "./dateformat.js";
 
 const MIN = 60000;
-const MEAL_LOOKBACK_MIN = 300; // a low is described with the latest meal in the 5 hours before it, matching Meals
+const MEAL_LOOKBACK_MIN = 300; // a low is described with the meals in the 5 hours before it, matching Meals
+const MEALS_PER_LOW = 3; // ...up to this many, nearest first
 const NOTE_BEFORE_MIN = 90; // notes from this long before a low...
 const NOTE_AFTER_MIN = 30; // ...to this long after it
 const PRICK_NEAR_MIN = 30; // a finger-prick this close to a low is mentioned beside it
@@ -113,7 +114,12 @@ export function summariseRange({ glucose = [], food = [], diary = [], from, to, 
       const prickNear = g
         .filter((e) => !isCgmSource(e.sourceId) && ts(e) >= s.startT - PRICK_NEAR_MIN * MIN && ts(e) <= s.endT + PRICK_NEAR_MIN * MIN)
         .sort((a, b) => Math.abs(ts(a) - extremeT) - Math.abs(ts(b) - extremeT))[0];
-      const meal = [...meals].reverse().find((m) => ts(m) <= s.startT && s.startT - ts(m) <= MEAL_LOOKBACK_MIN * MIN);
+      // Up to three meals from the lookback window, nearest first, so a low after a snack that followed lunch shows both.
+      const mealsBefore = [...meals]
+        .reverse()
+        .filter((m) => ts(m) <= s.startT && s.startT - ts(m) <= MEAL_LOOKBACK_MIN * MIN)
+        .slice(0, MEALS_PER_LOW)
+        .map((m) => ({ text: m.text || "", minutesBefore: Math.round((s.startT - ts(m)) / MIN), carbs: m.carbsTotal ?? null }));
       lows.push({
         startT: s.startT,
         endT: s.endT,
@@ -121,7 +127,8 @@ export function summariseRange({ glucose = [], food = [], diary = [], from, to, 
         minutes: Math.round((s.endT - s.startT) / MIN),
         readings: inSpan.length,
         source: sensorSource,
-        meal: meal ? { text: meal.text || "", minutesBefore: Math.round((s.startT - ts(meal)) / MIN), carbs: meal.carbsTotal ?? null } : null,
+        meal: mealsBefore[0] || null, // the nearest one, kept for anything that wants just one
+        meals: mealsBefore,
         notes: notes
           .filter((d) => ts(d) >= s.startT - NOTE_BEFORE_MIN * MIN && ts(d) <= s.endT + NOTE_AFTER_MIN * MIN)
           .map((d) => ({ text: d.text, t: ts(d) })),
@@ -261,7 +268,7 @@ export function buildReportHTML({ summary, unit, entries, graphHTML, profile = {
       const rows = S.lows
         .map((l) => {
           const logged = [];
-          if (l.meal) logged.push(`Meal ${formatAfter(l.meal.minutesBefore)} before: ${clip(l.meal.text || "(no description)", 90)}${l.meal.carbs != null ? ` (${l.meal.carbs} g carbs)` : ""}`);
+          for (const m of l.meals) logged.push(`Meal ${formatAfter(m.minutesBefore)} before: ${clip(m.text || "(no description)", 90)}${m.carbs != null ? ` (${m.carbs} g carbs)` : ""}`);
           for (const n of l.notes) logged.push(`Note at ${when(n.t)}: ${clip(n.text, 90)}`);
           if (l.prick) logged.push(`Finger-prick ${g(l.prick.v)} ${unit} at ${when(l.prick.t)}`);
           return `<tr><td>${escapeHtml(when(l.startT))}</td><td>${escapeHtml(g(l.extreme))} ${escapeHtml(unit)}</td><td>${escapeHtml(l.readings === 1 ? "1 reading" : `${formatAfter(l.minutes)} (${l.readings} readings)`)}</td><td>${logged.length ? logged.map(escapeHtml).join("<br>") : "Nothing logged"}</td></tr>`;
