@@ -4,7 +4,8 @@
 // and joins picture and sound into an MP4 with ffmpeg.
 //
 // Run:  npm run build && npm run preview -- --port 4173   (in another terminal)
-//       node video/record.mjs            → video/out/reactive-blood-tracker-explainer.mp4
+//       node video/record.mjs            → video/out/reactive-blood-tracker-explainer.mp4 (1080p master, not in git)
+//                                          + public/explainer.mp4 and public/explainer-poster.jpg (what the site serves)
 //       node video/record.mjs --shots    → screenshots of each scene only, no video
 //
 // Narration is one audio clip per sentence, and each sentence's subtitle is shown
@@ -449,7 +450,21 @@ async function main() {
     "-c:a", "aac", "-b:a", "160k", mp4,
   ]);
   for (const f of readdirSync(BUILD)) if (f.endsWith(".webm")) rmSync(path.join(BUILD, f));
-  console.log(`Done: ${mp4} (${(end / 1000).toFixed(1)} s)`);
+
+  // The 1080p file above is the master (kept out of git). What the site serves is a lean
+  // 720p copy, about a third of the size, so it starts quickly on a phone's mobile data and
+  // doesn't weigh down the repository. Text and the chart stay sharp at that size.
+  const web = path.join(ROOT, "public", "explainer.mp4");
+  execFileSync("ffmpeg", [
+    "-y", "-v", "error", "-i", mp4,
+    "-vf", "scale=1280:720:flags=lanczos",
+    "-c:v", "libx264", "-preset", "slow", "-crf", "26", "-pix_fmt", "yuv420p",
+    "-c:a", "copy", "-movflags", "+faststart", web,
+  ]);
+  // Poster frame: the title card, shown before anyone presses play.
+  const poster = path.join(ROOT, "public", "explainer-poster.jpg");
+  execFileSync("ffmpeg", ["-y", "-v", "error", "-ss", "6", "-i", web, "-frames:v", "1", "-vf", "scale=1280:-2", "-q:v", "4", poster]);
+  console.log(`Done: ${mp4} (${(end / 1000).toFixed(1)} s)\nWeb copy: ${web}\nPoster: ${poster}`);
 }
 
 main().catch((err) => {
