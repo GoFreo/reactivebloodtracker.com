@@ -1029,3 +1029,39 @@ test("text boxes start empty, so their example placeholders show", async ({ page
   const values = await page.locator("textarea").evaluateAll((els) => els.map((el) => ({ id: el.id, value: el.value })));
   expect(values.filter((v) => v.value !== "")).toEqual([]);
 });
+
+// Scott, 2026-10-03: "can we make [Chrome's reconnect setting] available in setup?"
+// A site can't flip a Chrome flag, so Settings explains how, only while it's off.
+test.describe("Chrome reconnect-setting guidance", () => {
+  test("Settings shows the steps and a copy button while the setting is off", async ({ page, browserName }) => {
+    test.skip(browserName === "webkit", "No Web Bluetooth in WebKit, so there's no meter guidance to show");
+    await page.addInitScript(() => {
+      delete Object.getPrototypeOf(navigator.bluetooth).getDevices;
+    });
+    await page.goto("/");
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await expect(page.locator("#settings-bt-auto-off")).toBeVisible();
+    await expect(page.locator("#settings-bt-auto-on")).toBeHidden();
+    await page.locator("#settings-bt-auto-off .bt-auto-copy").click();
+    await expect(page.locator("#settings-bt-auto-off .bt-auto-copied")).toContainText(/Copied|chrome:\/\/flags/);
+  });
+
+  test("Settings says automatic reconnect is on once Chrome supports it", async ({ page, browserName }) => {
+    test.skip(browserName === "webkit", "No Web Bluetooth in WebKit");
+    await page.addInitScript(() => {
+      navigator.bluetooth.getDevices = async () => [];
+    });
+    await page.goto("/");
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await expect(page.locator("#settings-bt-auto-on")).toBeVisible();
+    await expect(page.locator("#settings-bt-auto-off")).toBeHidden();
+  });
+
+  test("no meter guidance at all where there's no Web Bluetooth", async ({ page, browserName }) => {
+    test.skip(browserName !== "webkit", "Only WebKit genuinely lacks Web Bluetooth");
+    await page.goto("/");
+    await page.locator('button.nav-btn[data-nav="settings"]').click();
+    await expect(page.locator("#settings-bt-auto")).toBeHidden();
+    await expect(page.locator("#home-bt-auto-tip")).toBeHidden();
+  });
+});

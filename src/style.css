@@ -1497,3 +1497,17 @@ h2 {
 #home-sync-meter-hint {
   margin: 12px 0 2px;
 }
+
+.bt-auto p,
+.bt-auto-settings p {
+  margin: 0;
+}
+.bt-auto-steps {
+  margin: 4px 0;
+  padding-left: 20px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.bt-auto-settings[hidden] {
+  display: none;
+}

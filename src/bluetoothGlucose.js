@@ -143,6 +143,11 @@ function saveDeviceId(id) {
   }
 }
 
+// Whether this browser can reconnect to an already-allowed meter with no picker
+// (Chrome's getDevices(); behind chrome://flags, see BT_AUTO_FLAG_URL).
+export const canReconnectSilently = () => typeof navigator.bluetooth?.getDevices === "function";
+export const BT_AUTO_FLAG_URL = "chrome://flags/#enable-web-bluetooth-new-permissions-backend";
+
 // Chrome can hand back devices this site was granted before, with no picker —
 // but only where its getDevices() is switched on (in Chrome it has been behind a
 // setting, chrome://flags "Web Bluetooth new permissions backend"; Safari/iPhone

@@ -23,7 +23,7 @@ import {
 import { getFoodSuggestions, shortLabel } from "./foodSuggestions.js";
 import { getDateFormat, saveDateFormat, formatDate } from "./dateformat.js";
 import { getSoundEnabled, saveSoundEnabled, playTone } from "./sound.js";
-import { connectAndFetchReadings, isBluetoothAvailable } from "./bluetoothGlucose.js";
+import { connectAndFetchReadings, isBluetoothAvailable, canReconnectSilently, BT_AUTO_FLAG_URL } from "./bluetoothGlucose.js";
 import { lookupBarcode, productToFoodText } from "./nutrition.js";
 import { readPhotoTimestamps, toStorableBlob } from "./photoImport.js";
 import { shrinkForStorage } from "./imageForAI.js";
@@ -1114,6 +1114,7 @@ async function syncBluetoothStep(onStatus) {
       imported++;
     }
     localStorage.setItem(BLUETOOTH_LAST_SYNC_KEY, new Date().toISOString());
+    showBtAutoTip();
     return `Meter: ${imported} new reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.`;
   } catch (err) {
     if (err.message === "skipped.") return "Meter: skipped.";
@@ -1542,6 +1543,49 @@ function renderDeviceLights() {
 }
 renderDeviceLights();
 document.getElementById("home-sync-meter-hint").hidden = !isBluetoothAvailable();
+
+// --- "Skip Chrome's device list" guidance (Scott, 2026-10-03) ---
+// A website can't switch on Chrome's flag itself, so after a meter has synced
+// (and in Settings) the app explains the three steps, and only while the flag
+// is still off in this browser.
+const BT_AUTO_TIP_KEY = "rht-bt-auto-tip-dismissed";
+
+function showBtAutoTip() {
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(BT_AUTO_TIP_KEY) === "1";
+  } catch {}
+  document.getElementById("home-bt-auto-tip").hidden = dismissed || canReconnectSilently();
+}
+
+function renderBtAutoSettings() {
+  const show = isBluetoothAvailable();
+  document.getElementById("settings-bt-auto").hidden = !show;
+  if (!show) return;
+  const on = canReconnectSilently();
+  document.getElementById("settings-bt-auto-on").hidden = !on;
+  document.getElementById("settings-bt-auto-off").hidden = on;
+}
+renderBtAutoSettings();
+
+for (const btn of document.querySelectorAll(".bt-auto-copy")) {
+  btn.addEventListener("click", async () => {
+    const note = btn.closest(".bt-auto, #settings-bt-auto-off").querySelector(".bt-auto-copied");
+    try {
+      await navigator.clipboard.writeText(BT_AUTO_FLAG_URL);
+      note.textContent = "Copied. Paste it into Chrome's address bar and press Enter.";
+    } catch {
+      note.textContent = `Couldn't copy here. Type this into the address bar: ${BT_AUTO_FLAG_URL}`;
+    }
+  });
+}
+
+document.getElementById("home-bt-auto-dismiss").addEventListener("click", () => {
+  try {
+    localStorage.setItem(BT_AUTO_TIP_KEY, "1");
+  } catch {}
+  document.getElementById("home-bt-auto-tip").hidden = true;
+});
 
 // --- Unified sync (Scott's spec, 2026-10-02): one button, not one per
 // device. Libre runs first (nothing physical needed); the Bluetooth meter

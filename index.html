@@ -104,6 +104,20 @@
           <div id="device-lights" class="device-lights" aria-label="Device status"></div>
           <p class="field-hint" id="device-light-detail" hidden></p>
           <p class="field-hint" id="home-sync-status"></p>
+          <div id="home-bt-auto-tip" class="cgm-pass bt-auto" hidden>
+            <p><strong>Skip Chrome's device list next time?</strong> Chrome can reconnect to your meter by itself if you
+              switch on one of its settings. A website isn't allowed to change it for you, so it's three quick steps:</p>
+            <ol class="bt-auto-steps">
+              <li>Tap <strong>Copy address</strong>, then paste it into Chrome's address bar and press Enter.</li>
+              <li>Next to "Web Bluetooth new permissions backend", choose <strong>Enabled</strong>.</li>
+              <li>Click <strong>Relaunch</strong>. Sync once more as usual; after that, your meter reconnects without the list.</li>
+            </ol>
+            <div class="button-row">
+              <button type="button" class="bt-auto-copy">Copy address</button>
+              <button type="button" id="home-bt-auto-dismiss" class="secondary-btn">Don't show again</button>
+            </div>
+            <p class="field-hint bt-auto-copied" aria-live="polite"></p>
+          </div>
           <form id="home-cgm-pass" class="cgm-pass" hidden>
             <label>
               Libre sync passcode
@@ -582,6 +596,23 @@
           </label>
           <button type="submit">Add device</button>
         </form>
+
+        <div id="settings-bt-auto" class="bt-auto-settings" hidden>
+          <h3>Meter: reconnect without the device list</h3>
+          <p class="field-hint" id="settings-bt-auto-on" hidden>✅ Automatic reconnect is on in this browser.</p>
+          <div id="settings-bt-auto-off" hidden>
+            <p class="field-hint">Chrome makes you pick the meter from its list each time, unless one of its settings is
+              switched on. A website can't change Chrome's settings, so here's how to do it yourself (Chrome on a Mac or
+              Android only):</p>
+            <ol class="bt-auto-steps">
+              <li>Tap <strong>Copy address</strong>, then paste it into Chrome's address bar and press Enter.</li>
+              <li>Next to "Web Bluetooth new permissions backend", choose <strong>Enabled</strong>.</li>
+              <li>Click <strong>Relaunch</strong>. Sync once more as usual; after that, your meter reconnects without the list.</li>
+            </ol>
+            <button type="button" class="bt-auto-copy secondary-btn">Copy address</button>
+            <p class="field-hint bt-auto-copied" aria-live="polite"></p>
+          </div>
+        </div>
 
         <h2>Glucose source</h2>
         <div id="glucose-source-list"></div>
