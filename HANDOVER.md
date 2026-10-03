@@ -2057,3 +2057,11 @@ Scott's first test-mode Connect + Sync on his phone.
 already saved", then the unified sequence moved on to "Connecting to meter+40956850…" — first real Bluetooth run of the
 Accu-Chek step; result not yet seen. Dexcom not in the line because this browser hasn't done Connect Dexcom yet.
 (Also: earlier entries/commits this session said 2026-10-04 — wrong; it was still Saturday 3 Oct. Fixed in docs.)
+
+**2026-10-03 ~10:00 am — first confirmed real Bluetooth meter sync.** Same unified run finished: "Meter: 0 new readings,
+57 already saved" — the Accu-Chek Guide Me connected and all 57 stored records were read and de-duplicated correctly
+(0 new = no finger-prick since the last sync). Scott (dictating) says the meter "seems to be timing out all the time":
+most likely the meter's own display reacting to the app disconnecting right after the transfer (by design —
+`connectAndFetchReadings` reads then disconnects). Unconfirmed: asked him for the exact on-meter wording, and to
+finger-prick then sync to see "1 new reading". Not yet known whether the serial check / save-this-meter prompt
+appeared. Dexcom test-mode connect still not tried.
