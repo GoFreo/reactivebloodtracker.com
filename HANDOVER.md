@@ -2065,3 +2065,16 @@ most likely the meter's own display reacting to the app disconnecting right afte
 `connectAndFetchReadings` reads then disconnects). Unconfirmed: asked him for the exact on-meter wording, and to
 finger-prick then sync to see "1 new reading". Not yet known whether the serial check / save-this-meter prompt
 appeared. Dexcom test-mode connect still not tried.
+
+**2026-10-03 ~10:15 am — Bluetooth picker cleaned up (Scott: "a heap of unknown devices… you basically have to re-pair
+each time… anything that doesn't deal with glucose shouldn't even be on the list").** Shipped `bf6544b`, live
+`index-CxzuZBME.js`, 774 passed / 14 skipped / 0 failed. The picker was `acceptAllDevices` (set 2026-09-14 because the
+meter didn't show under a service filter); now `filters: [{services:["glucose"]}, {namePrefix:"meter+"}]` — OR'd, and
+Scott's screenshot confirmed his Guide Me advertises as `meter+40956850`, so the name filter catches it either way.
+The last meter that synced is remembered (`rht-bluetooth-device-id`) and preferred among `getDevices()` results; a
+remembered meter that won't connect within 8 s falls back to the picker instead of failing. Cancelling / nothing
+listed now says "no meter chosen… switch it on until it shows the Bluetooth symbol".
+**Re-pairing every time is probably Chrome, not the app:** silent reconnect needs `navigator.bluetooth.getDevices()`,
+which Chrome has kept behind chrome://flags "Web Bluetooth new permissions backend". Not changed on Scott's Mac (his
+browser setting, his call). With the filter, the picker is now one tap on the only listed device. Unverified on real
+hardware until his next sync.
