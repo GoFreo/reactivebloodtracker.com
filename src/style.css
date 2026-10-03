@@ -183,11 +183,37 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.header-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.header-tour {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .bt-badge {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font: inherit;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -1511,3 +1537,8 @@ h2 {
 .bt-auto-settings[hidden] {
   display: none;
 }
+
+/* --- How it works (tour) --- */
+#tour-video-wrap[hidden] { display: none; }
+#tour-video { width: 100%; border-radius: 12px; background: #000; display: block; }
+.tour-steps, .tour-benefits { padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 10px; line-height: 1.55; }

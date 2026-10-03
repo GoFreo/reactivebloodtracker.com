@@ -42,12 +42,15 @@
   <div id="app">
     <header class="app-header">
       <div class="header-text">
-        <h1 id="view-title">Reactive Blood Tracker</h1>
+        <div class="header-title-row">
+          <h1 id="view-title">Reactive Blood Tracker</h1>
+          <button type="button" id="sync-status-badge" class="bt-badge" hidden>
+            <span class="bt-dot"></span><span id="sync-status-badge-text">Sync</span>
+          </button>
+        </div>
         <p id="header-now" class="header-now"></p>
       </div>
-      <div id="sync-status-badge" class="bt-badge" hidden>
-        <span class="bt-dot"></span><span id="sync-status-badge-text"></span>
-      </div>
+      <button type="button" id="header-tour-btn" class="header-tour" data-nav="tour" aria-label="How it works: video and help">▶</button>
     </header>
 
     <div id="install-tip" class="install-tip" role="note" hidden>
@@ -222,8 +225,41 @@
           <button type="button" data-nav="export">📤 Export</button>
           <button type="button" data-nav="food-guidance">🍎 Food guidance</button>
           <button type="button" data-nav="my-foods">🗂 My foods</button>
+          <button type="button" data-nav="tour">▶ How it works</button>
           <button type="button" data-nav="help">❓ Help</button>
         </div>
+      </section>
+
+      <section id="view-tour" class="view help tour" data-view="tour" hidden>
+        <button type="button" class="back-link" data-nav="home">‹ Back to Home</button>
+
+        <div id="tour-video-wrap" hidden>
+          <video id="tour-video" controls playsinline preload="none" src="/explainer.mp4"></video>
+          <p class="field-hint">Short video tour. It uses made-up demonstration data, not a real patient.</p>
+        </div>
+
+        <h2>What it does</h2>
+        <p>Glucose, food and notes on one timeline, so you and your doctors can see why sugar went high or low. Built first
+        for reactive hypoglycaemia, where a meal sends glucose up and a crash follows an hour or two later.</p>
+
+        <h2>How to use it</h2>
+        <ol class="tour-steps">
+          <li><strong>Open it from your home screen.</strong> No account. Your records stay on your phone unless you choose to share them.</li>
+          <li><strong>Log in seconds.</strong> Home has quick entry for a glucose reading, a meal or a note. Type or say what you ate, photograph the plate, or scan a barcode and the label's carbs fill in. Build a meal from ingredients and pick a portion.</li>
+          <li><strong>Tap Sync devices.</strong> One button pulls in a FreeStyle Libre sensor and an Accu-Chek meter over Bluetooth. Dexcom connects through Dexcom's own sign-in. Add each sensor under My devices.</li>
+          <li><strong>Answer "what happened?"</strong> When the sensor shows a rise or drop with nothing logged before it, the app asks. A couple of biscuits, a whisky after the footy, or a sensor glitch: whatever the answer, it goes on the record.</li>
+          <li><strong>Read the pattern.</strong> Readings → Graph shows peaks, troughs and low spells, with finger-pricks as diamonds and meals along the bottom. Readings → Meals shows what each meal did over the next five hours.</li>
+          <li><strong>Take it to the doctor.</strong> Export prints a clean report for the dates you choose. Nothing leaves your phone unless you send it.</li>
+        </ol>
+
+        <h2>Why it helps</h2>
+        <ul class="tour-benefits">
+          <li><strong>The crash is on the record.</strong> It is hard to describe a low to a doctor from memory.</li>
+          <li><strong>People forget. Sensors don't.</strong> The app notices what you didn't log and asks.</li>
+          <li><strong>One timeline.</strong> Your devices, meals and notes together, not in separate apps.</li>
+          <li><strong>You stay in control.</strong> Local by default, no account, shared only when you decide.</li>
+          <li><strong>Plain facts.</strong> It shows what happened. It never tells you what to eat or how much insulin to take. That stays between you and your doctors.</li>
+        </ul>
       </section>
 
       <section id="view-readings" class="view" data-view="readings" hidden>
