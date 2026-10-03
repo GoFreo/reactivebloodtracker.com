@@ -2078,3 +2078,24 @@ listed now says "no meter chosen… switch it on until it shows the Bluetooth sy
 which Chrome has kept behind chrome://flags "Web Bluetooth new permissions backend". Not changed on Scott's Mac (his
 browser setting, his call). With the filter, the picker is now one tap on the only listed device. Unverified on real
 hardware until his next sync.
+
+**2026-10-03 ~10:20–10:40 am — meter sync confirmed again, then device lights + meter-first order (all shipped).**
+- **Meter worked with the filtered picker:** sync at 10:21 saved Scott's new 10:16 finger-prick (5.2) — 60 meter
+  readings now. Checked from a Claude-in-Chrome tab on his own Chrome: `navigator.bluetooth.getDevices` is **not
+  available** (the chrome://flags "Web Bluetooth new permissions backend" is off), so the app never tries a silent
+  reconnect there and every sync goes through the (now meter-only) picker. Scott may turn the flag on himself; the
+  code already uses it when present (`watchAdvertisements` then connect, 8 s cap, then a fresh tap before the picker,
+  since Chrome only opens the picker straight after a tap — `confirmPicker`, `d6bbdb0`).
+- **Timeouts:** the record transfer now waits for 15 s of *silence* (restarts on every record) instead of 15 s total,
+  and failures name the step ("— while receiving stored readings (12 received)") and Chrome's own wording when no meter
+  is chosen (`d6bbdb0`, `6277bc6`).
+- **Meter syncs first (`485d06f`)** — Scott's diagnosis: the Accu-Chek only broadcasts briefly after switching on, and
+  Libre's round-trip + a Continue prompt used that window up. Now Sync opens Chrome's list straight from the tap, then
+  Libre, then Dexcom. Home hint above the button: switch the meter on first. Meter not found / list closed = red.
+- **Device status lights (`8ecf18a`, `791e881`)** — Scott's spec: one light per device in use (Libre, Dexcom once
+  connected, Accu-Chek): pulsing blue while syncing, green = worked in the last 12 h, amber = older, red = last try
+  failed (tap for the reason), grey = not set up. `src/syncStatus.js` (`rht-sync-status`); earlier last-sync times
+  count, so lights are right from the first load. Checked on his real data: Libre green, Accu-Chek green.
+- **Verified:** 798 passed / 14 skipped / 0 failed; live bundle `index-CQ4RWzB1.js`.
+- **Still open:** Dexcom test-mode Connect not yet tried by Scott; whether his meter's own "timeout" message persists
+  with the meter-first order.
