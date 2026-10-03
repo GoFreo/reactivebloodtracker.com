@@ -2,6 +2,9 @@
 
 ## Status: 🟢 live, in daily use, heading public — reactivebloodtracker.com
 
+- **2026-10-03 deploy #2:** pulled cloud-session PR #1 (`2505a05`, How it works view + header Sync dot/tour button) that hadn't reached this Mac; 812 passed / 20 skipped / 0 failed; live bundle `index-DhQXQ8LO.js`. **Gotcha:** a leftover `vite preview` on port 4173 made Playwright test the OLD build (`reuseExistingServer`) — run `CI=1 npm test` or kill port 4173 first. `public/explainer.mp4` not yet added, so the video stays hidden. **Open decision for Scott:** data is per-device (IndexedDB) by design, so phone and Mac each show their own last sync; he expected one shared cloud copy — see chat 03/10.
+- **2026-10-03 deploy:** `main` @ `60fd999` ("Guide the user to Chrome's reconnect setting"). `npm test` = 804 passed / 20 skipped / 0 failed. Deployed with `--skip-functions-cache`; live bundle `index-BdnIDKLM.js` confirmed on reactivebloodtracker.com.
+
 Read the **At a glance** block below first. Everything after it is dated history (read bottom-up for
 detail). **Scope changed 2026-09-28:** public app, bring-your-own Anthropic key, diabetes and insulin
 as well as reactive hypoglycemia. See the top of `CLAUDE.md`.
