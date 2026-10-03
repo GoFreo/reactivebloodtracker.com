@@ -1074,7 +1074,10 @@ async function syncBluetoothStep(onStatus) {
   const proceed = await waitForManualStep("Turn on your Bluetooth meter (e.g. Accu-Chek Guide Me), then tap Continue.");
   if (!proceed) return "Meter: skipped.";
   try {
-    const { readings, serial, deviceName } = await connectAndFetchReadings({ onStatus });
+    const { readings, serial, deviceName } = await connectAndFetchReadings({
+      onStatus,
+      confirmPicker: () => waitForManualStep("Couldn't reconnect to your meter by itself. Tap Continue to choose it from the list."),
+    });
 
     // Right-device check (Scott's spec, 2026-09-28 22:43): only meaningful
     // when both sides actually have a serial to compare — an unknown serial
@@ -1112,6 +1115,7 @@ async function syncBluetoothStep(onStatus) {
     localStorage.setItem(BLUETOOTH_LAST_SYNC_KEY, new Date().toISOString());
     return `Meter: ${imported} new reading${imported === 1 ? "" : "s"}${skipped ? `, ${skipped} already saved` : ""}.`;
   } catch (err) {
+    if (err.message === "skipped.") return "Meter: skipped.";
     return `Meter: failed — ${err.message}`;
   }
 }

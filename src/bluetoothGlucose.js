@@ -167,6 +167,24 @@ export async function getRememberedDevice() {
   }
 }
 
+// A remembered device usually has to be *seen* advertising before Chrome will
+// connect to it, so listen for its next advertisement first where the browser
+// supports that, then connect.
+async function reconnect(device) {
+  if (typeof device.watchAdvertisements === "function") {
+    const seen = new Promise((resolve) => device.addEventListener("advertisementreceived", resolve, { once: true }));
+    try {
+      await device.watchAdvertisements();
+      await seen;
+    } catch {
+      // Not supported here; just try connecting.
+    } finally {
+      try { device.unwatchAdvertisements?.(); } catch {}
+    }
+  }
+  return device.gatt.connect();
+}
+
 // A remembered meter that's switched off or out of range can leave connect()
 // hanging, so give up after a few seconds and use the picker instead.
 function withTimeout(promise, ms, message) {
@@ -205,7 +223,7 @@ async function readDeviceSerial(server) {
 // { readings, serial, deviceName } — serial is null when the device doesn't
 // expose it (see readDeviceSerial); caller decides how to save/de-duplicate
 // readings and whether to check serial against a registered device.
-export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
+export async function connectAndFetchReadings({ onStatus = () => {}, confirmPicker = async () => true } = {}) {
   if (!isBluetoothAvailable()) {
     throw new Error("Web Bluetooth isn't available in this browser — this only works in Chrome (Mac or Android), not Safari/iPhone.");
   }
@@ -215,10 +233,14 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
   if (device) {
     onStatus(`Reconnecting to ${device.name || "your meter"}…`);
     try {
-      server = await withTimeout(device.gatt.connect(), 8000, "reconnect timed out");
+      server = await withTimeout(reconnect(device), 8000, "reconnect timed out");
     } catch {
       device = null; // fall through to the picker
     }
+    // Chrome only opens its device picker straight after a tap (Scott's syncs
+    // failed 2026-10-03 because the reconnect attempt above used up that window),
+    // so a failed reconnect asks for one more tap before showing the picker.
+    if (!server && !(await confirmPicker())) throw new Error("skipped.");
   }
   if (!server) {
     onStatus("Choose your meter in the browser's device picker…");
@@ -235,48 +257,76 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
     server = await device.gatt.connect();
   }
   saveDeviceId(device.id);
-  const serial = await readDeviceSerial(server);
-  const service = await server.getPrimaryService(GLUCOSE_SERVICE);
-  const measurementChar = await service.getCharacteristic(MEASUREMENT_CHAR);
-  const racpChar = await service.getCharacteristic(RACP_CHAR);
-
+  // Which step was running when something failed — added to the error so a
+  // "Meter: failed" on Scott's screen says *where* (2026-10-03: intermittent
+  // timeouts with the real Guide Me, cause not yet known).
+  let step = "reading the meter's serial number";
   const readings = [];
-  const measurementListener = (event) => {
-    const parsed = parseGlucoseMeasurement(event.target.value);
-    if (parsed) readings.push(parsed);
-  };
-
-  await measurementChar.startNotifications();
-  measurementChar.addEventListener("characteristicvaluechanged", measurementListener);
-
-  onStatus("Requesting stored readings…");
-  const done = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Meter didn't respond in time — try again with it closer to the device.")), 15000);
-    racpChar.addEventListener("characteristicvaluechanged", function onRacp(event) {
-      const opCode = event.target.value.getUint8(0);
-      if (opCode === 6) {
-        // Response Code notification = the meter has finished responding —
-        // but "responded" isn't "succeeded". Byte 3 is the actual outcome.
-        clearTimeout(timeout);
-        racpChar.removeEventListener("characteristicvaluechanged", onRacp);
-        const responseValue = event.target.value.getUint8(3);
-        const problem = RACP_RESPONSE_PROBLEMS[responseValue];
-        if (problem) {
-          reject(new Error(`Meter responded but sent no records: ${problem}.`));
-        } else {
-          resolve();
-        }
-      }
-    });
-  });
-  await racpChar.startNotifications();
-  await racpChar.writeValue(new Uint8Array([0x01, 0x01]));
-
+  let serial = null;
   try {
-    await done;
+    serial = await readDeviceSerial(server);
+    step = "opening the meter's glucose records";
+    const service = await server.getPrimaryService(GLUCOSE_SERVICE);
+    const measurementChar = await service.getCharacteristic(MEASUREMENT_CHAR);
+    const racpChar = await service.getCharacteristic(RACP_CHAR);
+
+    // Gives up only after this long with *nothing* arriving: a meter with a long
+    // history keeps sending records, and a fixed total time could cut it off mid-way.
+    const QUIET_MS = 15000;
+    let timeout;
+    let fail;
+    const restartTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => fail(new Error("the meter stopped responding")), QUIET_MS);
+    };
+    const done = new Promise((resolve, reject) => {
+      fail = reject;
+      racpChar.addEventListener("characteristicvaluechanged", function onRacp(event) {
+        const opCode = event.target.value.getUint8(0);
+        if (opCode === 6) {
+          // Response Code notification = the meter has finished responding —
+          // but "responded" isn't "succeeded". Byte 3 is the actual outcome.
+          clearTimeout(timeout);
+          racpChar.removeEventListener("characteristicvaluechanged", onRacp);
+          const responseValue = event.target.value.getUint8(3);
+          const problem = RACP_RESPONSE_PROBLEMS[responseValue];
+          if (problem) {
+            reject(new Error(`the meter answered but sent no records: ${problem}`));
+          } else {
+            resolve();
+          }
+        }
+      });
+    });
+    const measurementListener = (event) => {
+      restartTimer();
+      const parsed = parseGlucoseMeasurement(event.target.value);
+      if (parsed) readings.push(parsed);
+    };
+
+    step = "turning on reading notifications";
+    await measurementChar.startNotifications();
+    measurementChar.addEventListener("characteristicvaluechanged", measurementListener);
+    await racpChar.startNotifications();
+
+    step = "asking for stored readings";
+    onStatus("Requesting stored readings…");
+    restartTimer();
+    await racpChar.writeValue(new Uint8Array([0x01, 0x01]));
+    step = `receiving stored readings (${readings.length} so far)`;
+    try {
+      await done;
+    } finally {
+      clearTimeout(timeout);
+      measurementChar.removeEventListener("characteristicvaluechanged", measurementListener);
+    }
+  } catch (err) {
+    if (step.startsWith("receiving")) step = `receiving stored readings (${readings.length} received)`;
+    throw new Error(`${err.message || err} — while ${step}. Turn the meter off and on, keep it close, and sync again.`);
   } finally {
-    measurementChar.removeEventListener("characteristicvaluechanged", measurementListener);
-    device.gatt.disconnect();
+    try {
+      device.gatt.disconnect();
+    } catch {}
   }
 
   return { readings, serial, deviceName: device.name || null };
