@@ -5,9 +5,11 @@ picture can zoom and highlight as each point is made). Version A is word for wor
 says today (2 min 42 s, Mac voice).
 
 How to hand audio back: one file per scene is easiest (name them `01`, `02`, ... in order, any format:
-mp3, wav, m4a), but one long recording works too. Put them in `video/voice/` or tell me where they are.
-I re-time the picture to the real audio, so the voice sets the pace. Leave about a second of silence
-at the end of each scene; I add the pauses between screens.
+mp3, wav, m4a), but one long recording works too (I cut it at the scene breaks). Put them in `video/voice/`
+or tell me where they are. I re-time the picture to the real audio, so the voice sets the pace. Inside a
+scene, leave a clear pause (half a second or more) between sentences: I find where each sentence starts
+from those pauses and move the zoom and highlight box on cue. Leave about a second of silence at the end of
+each scene; I add the pauses between screens.
 
 Delivery notes: warm and conversational, like telling a friend. Lean on the words in *italics*.
 Slightly slower at the three dash pauses. Australian accent if you can get one.

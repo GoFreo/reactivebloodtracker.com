@@ -3,81 +3,115 @@
 <head>
 <meta charset="utf-8">
 <title>Reactive Blood Tracker explainer stage</title>
-<!-- The 1920×1080 "set" the explainer video is recorded on: the real app runs
-     in the phone frame (an iframe of a local build), and the narration's
-     headline and subtitles sit beside it. Driven by video/record.mjs. -->
+<!-- The 1920x1080 "set" the explainer video is recorded on, driven by video/record.mjs.
+     The real app runs in the phone (an iframe of a local build). A "camera" (#world) can push in on any part
+     of the screen while an amber box and a short label point at it; between those moments one big phrase at a
+     time sits beside the phone. Nothing here is a slide: the app is the picture. -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-  :root { --teal: #1b6e6a; --teal-deep: #0e3b39; --teal-light: #3fb6ae; --cream: #f7f5f1; --red: #d2453a; }
+  :root { --teal: #1b6e6a; --teal-deep: #0e3b39; --teal-light: #3fb6ae; --cream: #f7f5f1; --amber: #ffb81c; --z: 1; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; }
-  body {
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
-    color: var(--cream);
-    background: radial-gradient(1200px 900px at 20% 30%, #19534f 0%, var(--teal-deep) 60%, #082624 100%);
-  }
-  .phone {
-    position: absolute; left: 190px; top: 46px;
-    width: 470px; height: 988px; border-radius: 64px;
-    background: #0b0f0f; padding: 20px;
-    box-shadow: 0 40px 90px rgba(0,0,0,.45), inset 0 0 0 2px #2a3534;
-  }
-  .screen { width: 430px; height: 948px; border-radius: 46px; overflow: hidden; background: #fff; position: relative; }
-  /* Native size, no CSS scaling: a scaled iframe throws off where Playwright clicks. */
-  .screen iframe { border: 0; width: 430px; height: 948px; display: block; }
-  .copy { position: absolute; left: 790px; top: 150px; width: 1010px; }
-  .eyebrow {
-    font-size: 26px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
-    color: var(--teal-light); margin-bottom: 22px; min-height: 34px;
-  }
-  .headline {
-    font-family: 'Fraunces', Georgia, serif; font-weight: 700;
-    font-size: 76px; line-height: 1.06; letter-spacing: -.01em; margin: 0;
-    text-wrap: balance;
-  }
-  .subtitle {
-    position: absolute; left: 790px; top: 640px; width: 1010px; min-height: 230px;
-    font-size: 38px; line-height: 1.38; font-weight: 500; color: #fff;
-    border-left: 6px solid var(--teal-light); padding: 6px 0 6px 30px;
-    transition: opacity .25s;
-  }
-  .footer {
-    position: absolute; left: 790px; bottom: 54px; width: 1010px;
-    display: flex; justify-content: space-between; font-size: 24px; color: #9fc9c5;
-  }
-  .footer .demo { color: #f3c98b; }
-  .fade { transition: opacity .45s ease; }
-  .hidden { opacity: 0; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #082624; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; color: var(--cream); position: relative; }
 
-  /* Full-screen title / end cards */
-  .card {
-    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: radial-gradient(1100px 800px at 50% 40%, #19534f 0%, var(--teal-deep) 65%, #082624 100%);
-    text-align: center; transition: opacity .6s ease; z-index: 10;
+  #bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 700px at 22% 40%, rgba(63,182,174,.20) 0%, rgba(63,182,174,0) 70%),
+      radial-gradient(1100px 800px at 85% 90%, rgba(27,110,106,.35) 0%, rgba(27,110,106,0) 70%),
+      linear-gradient(135deg, #0e3b39 0%, #082624 100%);
   }
-  .card.off { opacity: 0; pointer-events: none; }
-  .card .drop { width: 120px; height: 150px; margin-bottom: 34px; }
-  .card h1 { font-family: 'Fraunces', Georgia, serif; font-size: 112px; margin: 0; line-height: 1; }
-  .card h1 span { color: var(--teal-light); }
-  .card p { font-size: 40px; color: #cfe6e3; margin: 28px 0 0; max-width: 1300px; line-height: 1.35; }
-  .card .url { margin-top: 52px; font-size: 44px; font-weight: 600; color: #fff; letter-spacing: .02em; }
-  .card .small { font-size: 26px; color: #f3c98b; margin-top: 40px; }
+
+  /* The camera: everything inside zooms together. Its transform is set from the recorder. */
+  #world {
+    position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0;
+  }
+  #phone {
+    position: absolute; left: 250px; top: 48px; width: 472px; height: 985px; border-radius: 62px;
+    background: #0b0f0f; padding: 16px;
+    box-shadow: 0 40px 100px rgba(0,0,0,.5), inset 0 0 0 2px #2a3534;
+  }
+  #screen { width: 440px; height: 953px; border-radius: 46px; overflow: hidden; background: #fff; position: relative; }
+  /* The app runs at 400 x 866 and is scaled up 1.1x, so the phone fills the frame. */
+  #app { border: 0; width: 400px; height: 866px; display: block; transform: scale(1.1); transform-origin: 0 0; }
+
+  /* The amber box that points at something; the rest of the screen dims around it. */
+  #spot {
+    position: absolute; opacity: 0; pointer-events: none; border-radius: 18px;
+    border: calc(5px / var(--z)) solid var(--amber);
+    box-shadow: 0 0 0 4000px rgba(4, 22, 21, .58), 0 0 calc(34px / var(--z)) rgba(255,184,28,.55);
+    transition: opacity 500ms ease, left 700ms cubic-bezier(.22,.8,.24,1), top 700ms cubic-bezier(.22,.8,.24,1), width 700ms cubic-bezier(.22,.8,.24,1), height 700ms cubic-bezier(.22,.8,.24,1);
+  }
+  #chip {
+    position: absolute; opacity: 0; pointer-events: none; white-space: nowrap;
+    transform-origin: left bottom;
+    background: var(--amber); color: #2a1c00; font-weight: 600; font-size: 28px; letter-spacing: .01em;
+    padding: 8px 18px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    transition: opacity 400ms ease;
+  }
+
+  /* One big phrase at a time, beside the phone. */
+  #side { position: absolute; left: 860px; top: 0; width: 960px; height: 1080px; display: flex; flex-direction: column; justify-content: center; transition: opacity 500ms ease; }
+  #big { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 104px; line-height: 1.04; letter-spacing: -.015em; text-wrap: balance; }
+  #big em { font-style: normal; color: var(--teal-light); }
+  #small { margin-top: 30px; font-size: 40px; line-height: 1.35; color: #cfe6e3; max-width: 880px; }
+  .pop { animation: pop 700ms cubic-bezier(.22,.8,.24,1) both; }
+  @keyframes pop { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+  .off { opacity: 0 !important; }
+
+  #chapter {
+    position: absolute; left: 860px; top: 70px; font-size: 26px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--teal-light); transition: opacity 500ms ease;
+  }
+
+  #sub {
+    position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%); max-width: 1400px; min-height: 0;
+    font-size: 34px; line-height: 1.3; font-weight: 500; text-align: center; color: #fff;
+    background: rgba(6, 30, 28, .78); border-radius: 18px; padding: 12px 28px; transition: opacity 250ms;
+    z-index: 11; /* above the title and end cards, so every spoken line is also written */
+  }
+  #sub:empty { opacity: 0; padding: 0; }
+  #foot {
+    position: absolute; left: 0; right: 0; bottom: 18px; padding: 0 60px; display: flex; justify-content: space-between;
+    font-size: 22px; color: #8fbfba; pointer-events: none;
+  }
+  #foot .demo { color: #f3c98b; }
+
+  /* A quick dip to teal while the screen changes. */
+  #cut { position: absolute; inset: 0; background: #0b3330; opacity: 0; pointer-events: none; transition: opacity 260ms ease; z-index: 8; }
+  #cut.on { opacity: 1; }
+
+  /* Title and end cards */
+  #card {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+    background: radial-gradient(1100px 800px at 50% 40%, #19534f 0%, var(--teal-deep) 65%, #082624 100%);
+    text-align: center; transition: opacity .7s ease;
+  }
+  #card.off { pointer-events: none; }
+  #card .drop { width: 120px; height: 150px; margin-bottom: 34px; }
+  #card h1 { font-family: 'Fraunces', Georgia, serif; font-size: 112px; margin: 0; line-height: 1; }
+  #card h1 span { color: var(--teal-light); }
+  #card p { font-size: 40px; color: #cfe6e3; margin: 28px 0 0; max-width: 1300px; line-height: 1.35; }
+  #card .url { margin-top: 52px; font-size: 52px; font-weight: 600; color: #fff; letter-spacing: .02em; }
+  #card .small { font-size: 26px; color: #f3c98b; margin-top: 40px; }
 </style>
 </head>
 <body>
-  <div class="phone"><div class="screen"><iframe id="app" title="Reactive Blood Tracker"></iframe></div></div>
+  <div id="bg"></div>
 
-  <div class="copy fade" id="copy">
-    <div class="eyebrow" id="eyebrow"></div>
-    <h2 class="headline" id="headline"></h2>
-  </div>
-  <div class="subtitle" id="subtitle"></div>
-  <div class="footer">
-    <span class="demo">Demonstration data, not a real patient</span>
-    <span>reactivebloodtracker.com</span>
+  <div id="world">
+    <div id="phone"><div id="screen"><iframe id="app" title="Reactive Blood Tracker"></iframe></div></div>
+    <div id="spot"></div>
+    <div id="chip"></div>
   </div>
 
-  <div class="card" id="card">
+  <div id="chapter" class="off"></div>
+  <div id="side" class="off"><div id="big"></div><div id="small"></div></div>
+  <div id="sub"></div>
+  <div id="foot"><span class="demo">Demonstration data, not a real patient</span><span>reactivebloodtracker.com</span></div>
+  <div id="cut"></div>
+
+  <div id="card">
     <svg class="drop" viewBox="0 0 120 150" aria-hidden="true">
       <path d="M60 6 C60 6 14 64 14 96 a46 46 0 0 0 92 0 C106 64 60 6 60 6 Z" fill="#d2453a"/>
       <ellipse cx="44" cy="92" rx="9" ry="15" fill="rgba(255,255,255,.35)"/>
@@ -90,23 +124,92 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
+  // Where the app's top-left corner sits on the stage, and how much it is scaled (see #phone, #app).
+  const SX = 266, SY = 64, S = 1.1;
+  let zoomNow = 1;
+
+  // The camera: where it looks (cx, cy, in the world) and how close (z). A move eases from here to there,
+  // and is driven frame by frame from script (not a CSS transition) so the picture is drawn sharp at every
+  // step. A transition would stretch the first frame, and a push-in would look soft until it stopped.
+  let cam = { z: 1, cx: 960, cy: 540 };
+  let raf = 0;
+  const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  function drawCamera() {
+    document.documentElement.style.setProperty("--z", cam.z);
+    $("world").style.transform = `translate(${960 - cam.cx * cam.z}px, ${540 - cam.cy * cam.z}px) scale(${cam.z})`;
+  }
+  function camera(z, cx, cy, ms = 1150) {
+    zoomNow = z;
+    const from = { ...cam };
+    const t0 = performance.now();
+    cancelAnimationFrame(raf);
+    const tick = (now) => {
+      const k = Math.min(1, (now - t0) / ms);
+      const e = easeInOut(k);
+      cam = { z: from.z * Math.pow(z / from.z, e), cx: from.cx + (cx - from.cx) * e, cy: from.cy + (cy - from.cy) * e };
+      drawCamera();
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
   window.stage = {
-    scene(eyebrow, headline) {
-      $("copy").classList.add("hidden");
-      setTimeout(() => {
-        $("eyebrow").textContent = eyebrow;
-        $("headline").textContent = headline;
-        $("copy").classList.remove("hidden");
-      }, 300);
+    // Push in on a rectangle of the app (r, in the app's own pixels), box it, and optionally label it.
+    focus(r, { zoom, label = "", pad = 10, up = 0 } = {}) {
+      const x = SX + r.x * S - pad, y = SY + r.y * S - pad, w = r.w * S + pad * 2, h = r.h * S + pad * 2;
+      Object.assign($("spot").style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, opacity: 1 });
+      const z = zoom || Math.max(1.25, Math.min(2.6, 780 / w));
+      camera(z, x + w / 2, y + h / 2 + up);
+      const chip = $("chip");
+      if (label) {
+        chip.textContent = label;
+        chip.style.left = `${x}px`;
+        chip.style.top = `${y - 14 / z}px`;
+        chip.style.transform = `translateY(-100%) scale(${1 / z})`;
+        chip.style.opacity = 1;
+      } else chip.style.opacity = 0;
+      $("side").classList.add("off");
+      $("chapter").classList.add("off");
     },
-    subtitle(text) { $("subtitle").textContent = text; },
+    // Pull back to the whole phone.
+    unfocus() {
+      $("spot").style.opacity = 0;
+      $("chip").style.opacity = 0;
+      camera(1, 960, 540);
+    },
+    // The big phrase beside the phone: html allowed (use <em> for the teal word).
+    // If the camera is still sliding back from a close-up, the phrase waits until the phone is nearly its
+    // normal size, so it never appears under it.
+    say(big, small = "") {
+      const show = () => {
+        const s = $("side");
+        $("big").innerHTML = big;
+        $("small").textContent = small;
+        s.classList.remove("off");
+        for (const el of [$("big"), $("small")]) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+      };
+      const t0 = performance.now();
+      const wait = () => (cam.z > 1.12 && performance.now() - t0 < 1300 ? requestAnimationFrame(wait) : show());
+      wait();
+    },
+    sayOut() { $("side").classList.add("off"); },
+    chapter(text) {
+      const c = $("chapter");
+      c.textContent = text;
+      c.classList.toggle("off", !text);
+    },
+    subtitle(text) { $("sub").textContent = text; },
+    // A dip to teal and back, to mark a change of screen: cutOn(), change the screen, then cutOff().
+    cutOn() { $("cut").classList.add("on"); },
+    cutOff() { $("cut").classList.remove("on"); },
     card({ text = "", url = "", small = "" } = {}) {
       $("card-text").textContent = text;
       $("card-url").textContent = url;
       $("card-small").textContent = small;
       $("card").classList.remove("off");
+      $("card").style.opacity = 1;
     },
-    hideCard() { $("card").classList.add("off"); },
+    hideCard() { $("card").style.opacity = 0; $("card").classList.add("off"); },
   };
 </script>
 </body>
