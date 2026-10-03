@@ -244,7 +244,7 @@ but is secondary. Keep that priority in mind for any framework/UI decisions once
 
 ## Testing — run before every deploy (added 2026-09-12, grown heavily 2026-09-14)
 
-> **Current count (2026-10-03, evening):** 29 test files; `npm test` = **1060 passed / 20 skipped / 0 failed** on `main` (the 2026-09-28 note below describes the original set). The file-by-file description below is the original 2026-09-14 set; newer files
+> **Current count (2026-10-03, night):** 29 test files; `npm test` = **1068 passed / 20 skipped / 0 failed** on `main` (the 2026-09-28 note below describes the original set). The file-by-file description below is the original 2026-09-14 set; newer files
 > cover the meal builder, My foods, the food bank function, the readings filter, the pantry fixture, the
 > welcome screen, spike detection, meal outcomes and CGM sync. On iCloud the build can outlast Playwright's
 > 60 s web-server wait: start `npm run preview -- --port 4173` by hand and Playwright reuses it.
