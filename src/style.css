@@ -12,6 +12,7 @@
   --low: #b8443c;
   --high: #c4842c;
   --inrange: #3e8f5b;
+  --dexcom: #6a4fb3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +30,7 @@
     --low: #e27a70;
     --high: #e3a85b;
     --inrange: #67c48c;
+    --dexcom: #a990f2;
   }
 }
 
@@ -1550,3 +1552,35 @@ h2 {
   font-weight: 600;
   color: var(--text);
 }
+
+/* Readings → Compare: Libre teal, Dexcom purple (orange is already "high"). */
+.cmp-line { stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.cmp-libre { stroke: var(--accent); fill: var(--accent); }
+.cmp-dexcom { stroke: var(--dexcom); fill: var(--dexcom); }
+polyline.cmp-libre, polyline.cmp-dexcom { fill: none; }
+.cmp-lg-libre { height: 0; border-top: 2.5px solid var(--accent); }
+.cmp-lg-dexcom { height: 0; border-top: 2.5px solid var(--dexcom); }
+.cmp-head-libre { color: var(--accent); }
+.cmp-head-dexcom { color: var(--dexcom); }
+#compare-container h3 { margin: 18px 0 8px; font-size: 1rem; }
+.cmp-summary, .cmp-rows {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.cmp-summary th, .cmp-summary td, .cmp-rows th, .cmp-rows td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.cmp-summary tbody th, .cmp-rows tbody th { font-weight: 500; color: var(--text-muted); }
+.cmp-rows small { color: var(--text-muted); }
+.cmp-prick { font-weight: 700; }
+.cmp-close { color: var(--inrange); }
+.cmp-far { color: var(--low); }
+.cmp-best::after { content: " ✓"; font-weight: 700; color: var(--text); }
+.cmp-summary + .field-hint, .cmp-rows + .field-hint, #compare-container > .field-hint { margin-top: 10px; }
+.cmp-rows tbody th { white-space: nowrap; }
+.cmp-none { color: var(--text-muted); font-style: italic; }

@@ -43,6 +43,7 @@ import { DEVICE_TYPES, DEVICE_STATUSES, listDevices, addDevice, updateDevice, re
 import {
   saveMyFood, deleteMyFood, listMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
 } from "./myFoods.js";
+import { buildCompareHTML } from "./sensorCompare.js";
 import { isCloudSyncOn, setCloudSyncOn, runCloudSync, lastCloudSync } from "./cloudSync.js";
 import {
   findUnexplainedExcursions,
@@ -214,12 +215,12 @@ function setReadingsMode(mode, merged) {
   lastReadingsMode = mode;
   const listEl = document.getElementById("timeline-list");
   const graphWrap = document.getElementById("readings-graph-wrap");
-  const split = SPLIT_QUERY.matches && mode !== "meals";
+  const split = SPLIT_QUERY.matches && mode !== "meals" && mode !== "compare";
   document.getElementById("view-readings").classList.toggle("split", split);
   const showList = mode === "list" || split;
   const showGraph = mode === "graph" || split;
   for (const btn of document.querySelectorAll("#readings-view-toggle button")) {
-    btn.classList.toggle("active", split ? btn.dataset.mode !== "meals" : btn.dataset.mode === mode);
+    btn.classList.toggle("active", split ? btn.dataset.mode === "list" || btn.dataset.mode === "graph" : btn.dataset.mode === mode);
   }
   const galleryEl = document.getElementById("meal-gallery");
   listEl.hidden = !showList;
@@ -229,6 +230,27 @@ function setReadingsMode(mode, merged) {
   if (showGraph) renderGraph();
   if (showList) renderFilteredList(listEl, merged);
   if (mode === "meals") renderMealGallery(galleryEl);
+  document.getElementById("compare-wrap").hidden = mode !== "compare";
+  if (mode === "compare") renderCompare();
+}
+
+// Readings → Compare: Libre, Dexcom and finger-pricks side by side (sensorCompare.js).
+const COMPARE_RANGE_KEY = "rht-compare-range-hours";
+function renderCompare() {
+  const hours = Number(localStorage.getItem(COMPARE_RANGE_KEY)) || 24;
+  for (const btn of document.querySelectorAll("#compare-range-toggle button")) {
+    btn.classList.toggle("active", Number(btn.dataset.hours) === hours);
+  }
+  document.getElementById("compare-container").innerHTML = buildCompareHTML(cachedGlucose, {
+    unit: localStorage.getItem("rht-default-unit") || "mmol/L",
+    hours,
+  });
+}
+for (const btn of document.querySelectorAll("#compare-range-toggle button")) {
+  btn.addEventListener("click", () => {
+    localStorage.setItem(COMPARE_RANGE_KEY, btn.dataset.hours);
+    renderCompare();
+  });
 }
 
 // Rotating the phone re-lays Readings straight away, without a reload.

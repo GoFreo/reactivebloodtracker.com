@@ -267,6 +267,7 @@
           <button type="button" data-mode="list" class="active">List</button>
           <button type="button" data-mode="graph">Graph</button>
           <button type="button" data-mode="meals">Meals</button>
+          <button type="button" data-mode="compare">Compare</button>
         </div>
         <div id="readings-filter" class="filter-chips" role="group" aria-label="Show in the list"></div>
         <div id="timeline-list" class="timeline-list"></div>
@@ -281,6 +282,15 @@
             <button type="button" data-hours="168">7d</button>
           </div>
           <div id="readings-graph-container"></div>
+        </div>
+        <div id="compare-wrap" hidden>
+          <div class="view-toggle" id="compare-range-toggle">
+            <button type="button" data-hours="24" class="active">24h</button>
+            <button type="button" data-hours="72">3d</button>
+            <button type="button" data-hours="168">7d</button>
+            <button type="button" data-hours="720">30d</button>
+          </div>
+          <div id="compare-container"></div>
         </div>
       </section>
 
