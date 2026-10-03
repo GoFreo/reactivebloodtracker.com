@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { hasAccepted, acceptWelcome, getProfile, TERMS_VERSION } from "../src/welcome.js";
+import { SOURCES } from "../src/guide/sources.js";
 
 function fakeStorage() {
   const m = new Map();
@@ -74,14 +75,16 @@ test.describe("welcome screen (first run)", () => {
 });
 
 test.describe("help page", () => {
-  test("reachable from Home, with the limits, the meter-vs-Libre note and sources", async ({ page }) => {
+  test("reachable from Home, with the limits, the meter-vs-Libre chapter and numbered sources", async ({ page }) => {
     await page.goto("/");
     await page.locator('#view-home button[data-nav="help"]').click();
     const help = page.locator("#view-help");
     await expect(help).toContainText("does not diagnose");
-    await expect(help).toContainText("Why the Libre and a finger-prick disagree");
     await expect(help).toContainText("call 000");
-    await expect(help.locator(".sources a")).toHaveCount(19);
+    // The long guide is built on first open; wait for it, then check the sensor-vs-finger-prick chapter and the Sources.
+    await expect(help.locator("#ch-accuracy")).toBeAttached();
+    await expect(help.locator("#ch-accuracy > summary")).toContainText("Sensor or finger-prick? Why they differ");
+    await expect(help.locator(".g-source .g-source-title a")).toHaveCount(SOURCES.length);
     await help.locator("#help-show-welcome").click();
     await expect(page.locator("#welcome")).toBeVisible();
     await expect(page.locator("#welcome-accept")).toBeChecked();

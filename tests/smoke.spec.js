@@ -627,7 +627,7 @@ test.describe("export", () => {
     // #print-summary is display:none outside @media print (same reason the
     // existing printable-summary test above checks text content, not
     // visibility) — assert presence/content, not toBeVisible().
-    await expect(page.locator("#print-summary h2")).toHaveText("Last 7 days");
+    await expect(page.locator("#print-summary h2", { hasText: "Last 7 days" })).toHaveCount(1);
     await expect(page.locator("#print-summary .readings-graph")).toHaveCount(1);
     await expect(page.locator("#print-summary .graph-legend")).toContainText("Smoothed average");
     expect(await page.evaluate(() => window.__printed)).toBe(true);

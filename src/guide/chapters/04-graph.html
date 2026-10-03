@@ -1,0 +1,64 @@
+<details class="g-chapter" id="ch-graph" data-teaser="Peaks, troughs, finger-pricks, and what each meal did.">
+  <summary>Reading the graph and the Meals view</summary>
+  <div class="g-body">
+    <p><strong>Readings → Graph</strong> draws your glucose over time. The main line is your sensor's <em>smoothed</em> average, which calms sensor noise so the shape is easy to see. Grey dots are the raw readings, diamonds are finger-pricks, triangles along the bottom are meals, and pink shading marks stretches below your low line.</p>
+
+    <figure class="g-figure" data-fig="graph-24h" data-alt="The 24-hour graph on a phone, with seven numbered markers: the smoothed line, a labelled peak, a labelled trough, a red finger-prick diamond, a meal marker, the low line, and the list of low spells underneath.">
+      <figcaption>
+        The 24-hour graph. Made-up demonstration data, not a real patient.
+        <ol class="g-callouts">
+          <li><strong>The smoothed line:</strong> a 30-minute average of the sensor's readings.</li>
+          <li><strong>A peak,</strong> labelled with its value.</li>
+          <li><strong>A trough,</strong> labelled with its value.</li>
+          <li><strong>A finger-prick.</strong> It turns red when it is below your low line.</li>
+          <li><strong>A meal,</strong> placed at the time you logged it.</li>
+          <li><strong>Your low line,</strong> set in Settings. Your high line is the dashed amber one at the top.</li>
+          <li><strong>Low spells,</strong> listed under the graph: the lowest value, how long it lasted, and when.</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <p>The graph shows what happened. It doesn't say whether a number is good or bad. A sensor also runs a few minutes behind a finger-prick, so the two won't always match, especially during a fast rise or fall (see the chapter on sensors and finger-pricks).</p>
+
+    <details class="g-deeper">
+      <summary>Go deeper: how the app chooses what to mark</summary>
+      <div class="g-deeper-body">
+        <ul>
+          <li><strong>The smoothed line</strong> is a centred 30-minute average, worked out separately for each stretch of continuous data. It never draws across a gap, so it can't invent readings where the sensor had none.</li>
+          <li><strong>Peaks and troughs</strong> are labelled only when they stand out by at least 1.5 mmol/L from the readings around them, so small wobbles aren't labelled.</li>
+          <li><strong>Shaded low and high spells</strong> come from the raw readings, not the smoothed line, so a short low still shows. Finger-pricks aren't counted in a spell. They are too sparse to say how long anything lasted, so each one has its own diamond.</li>
+          <li><strong>Grey "No data" bands</strong> show where the sensor had no readings.</li>
+        </ul>
+        <p>None of this is a diagnosis. It marks what the numbers did so you can look.</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: time ranges, units and the sideways view</summary>
+      <div class="g-deeper-body">
+        <p>The buttons above the graph switch between 2 hours, 4, 6, 12, 24 hours and 7 days. Turn your phone sideways and Readings shows the graph on the left and the list on the right, so you can match a reading to the curve.</p>
+        <p>Glucose can be shown in mmol/L or mg/dL; choose under Settings, Unit. The two differ by a factor of about 18: for example 3.9 mmol/L is 70 mg/dL, and 3.0 mmol/L is 54 mg/dL.[[ada-2026-s6]]</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: the Meals view, five hours after each meal</summary>
+      <div class="g-deeper-body">
+        <figure class="g-figure" data-fig="meals-view" data-alt="One meal card from the Meals view: a meal title, three boxes labelled Before, Peak and Lowest, with the lowest in red, and a line of timing underneath.">
+          <figcaption>
+            One meal card. Made-up demonstration data.
+            <ol class="g-callouts">
+              <li><strong>The meal</strong> you logged, and when.</li>
+              <li><strong>Before:</strong> your latest reading in the hour before the meal.</li>
+              <li><strong>Peak:</strong> the highest reading in the next five hours.</li>
+              <li><strong>Lowest:</strong> the lowest reading in the next five hours. It turns red if it was below your low line.</li>
+              <li><strong>Timing:</strong> how long after the meal the peak and the lowest came, and which device they came from.</li>
+            </ol>
+          </figcaption>
+        </figure>
+        <p>The window is five hours because low sugar after a meal is described as arriving within about four hours of eating, and often two to four.[[mayo-reactive,cleveland-reactive,nhs-northtees]] The app uses sensor readings when there are enough of them, and finger-pricks otherwise.</p>
+        <p>If you eat again within those five hours, the numbers include that meal's effect too. The card reports the facts from your own data. It is not a verdict on the meal.</p>
+      </div>
+    </details>
+  </div>
+</details>

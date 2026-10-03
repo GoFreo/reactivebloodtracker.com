@@ -1,0 +1,69 @@
+<details class="g-chapter" id="ch-accuracy" data-teaser="Which number to trust, and why they sometimes disagree.">
+  <summary>Sensor or finger-prick? Why they differ</summary>
+  <div class="g-body">
+    <p>They measure different things. A finger-prick measures glucose in a drop of blood. A sensor measures it in the fluid under your skin, which trails the blood by about 5 to 10 minutes.[[abbott-au-differences]] When glucose is moving fast, such as after a meal or in a crash, the two can sit well apart.[[abbott-qrg,dexcom-au-bgvscgm]] Sensors can also read less accurately on the first day, when something presses on them while you sleep, and in the low range.[[dexcom-au-mismatch,ada-2026-s6,libre2-women]]</p>
+    <p><strong>Both Abbott and Dexcom say the same thing:</strong> if a reading or an alarm doesn't match how you feel, check with a finger-prick.[[abbott-au-differences,dexcom-au-mismatch]] That is why the graph draws both, and why a finger-prick is the number to trust before you act on a low.</p>
+    <p>Use a clean, dry finger. Unwashed hands are a common cause of a wrong finger-prick,[[dexcom-au-bgvscgm]] and Roche says dirty or wet hands could affect the result.[[roche-guideme]]</p>
+
+    <details class="g-deeper">
+      <summary>Go deeper: blood versus the fluid between your cells</summary>
+      <div class="g-deeper-body">
+        <p>Sensor readings come from interstitial fluid, the thin layer of fluid between the cells under the skin. Glucose takes time to pass from the blood into it, so the sensor shows where your blood glucose <em>was</em> a few minutes ago.[[abbott-au-differences,dexcom-au-bgvscgm]] The American Diabetes Association notes that this lag differs from person to person and with activity and health.[[ada-2026-s6]]</p>
+        <p>Abbott says that when glucose is steady the two readings are similar, though not always identical. When glucose is rising fast the sensor may read lower than blood, and <strong>when it is falling fast the sensor may read higher than blood</strong>.[[abbott-au-differences]] That matters most for the crash this app was built to catch: the sensor may still show a comfortable number while your blood glucose is already lower. Abbott's guide lists after eating, after insulin and during exercise as times when the readings may differ.[[abbott-qrg]]</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: other reasons a sensor can mislead</summary>
+      <div class="g-deeper-body">
+        <ul>
+          <li><strong>A new sensor.</strong> Dexcom says differences from a meter may be greater in the first 24 hours.[[dexcom-au-mismatch]] Abbott's US guide says to confirm readings with a finger-prick before treatment decisions during the first 12 hours of a new Libre 2 sensor.[[abbott-qrg]] Your local leaflet may differ, so follow the one in your box.</li>
+          <li><strong>Pressure.</strong> Lying on a sensor can distort its readings, and they improve once the pressure is off.[[dexcom-au-bgvscgm,dexcom-au-mismatch]] The American Diabetes Association lists compression of a sensor during sleep as a cause of false lows when someone has no symptoms.[[ada-2026-s6]]</li>
+          <li><strong>A loose sensor.</strong> If a Libre sensor loosens or its tip comes out of the skin, you may get no readings or unreliable low ones. Abbott says to replace it and not try to reinsert it.[[abbott-qrg]]</li>
+          <li><strong>What you take.</strong> Taking more than 1000 mg a day of vitamin C can falsely raise Libre 2 Plus readings and could hide a severe low.[[abbott-qrg]] Aspirin can slightly lower them.[[abbott-substances]] The Accu-Chek Guide Me meter warns that abnormally high vitamin C can affect its results too, and that it shouldn't be used for people in severe shock or who are dehydrated.[[roche-guideme]] Ask your pharmacist about anything you take.</li>
+          <li><strong>The finger-prick itself.</strong> Expired or badly stored strips and unwashed hands can give a wrong result.[[dexcom-au-bgvscgm]] Roche warns that moisture damages test strips, so keep the container closed.[[roche-guideme]]</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: how big are the differences?</summary>
+      <div class="g-deeper-body">
+        <p><strong>What the makers say.</strong> Dexcom says a sensor reading should fall within 20% of the meter when the meter reads 3.9 mmol/L or higher, or within 1.1 mmol/L when it reads lower. If it doesn't, use the meter value.[[dexcom-au-mismatch]]</p>
+        <p><strong>What studies found.</strong> Two small studies of healthy volunteers tested the Libre 2:</p>
+        <ul>
+          <li>In 44 healthy men, readings differed from finger-prick capillary glucose by 12.9% on average, and the sensor read lower than the reference at every time point. 67.7% of readings met the ISO 15197:2013 accuracy criteria.[[libre2-men]]</li>
+          <li>In 29 healthy women compared with blood taken from a vein, readings differed by 27.5% on average, and by 69.5% when glucose was below 3.5 mmol/L. The sensor read about 1.14 mmol/L high on average, and agreement was poor while glucose was falling.[[libre2-women]]</li>
+        </ul>
+        <p>These were small groups in a research setting, not everyday life, and people differ. Any one reading can sit further from the truth than an average suggests. Sensors are still useful: the American Diabetes Association notes they can reveal lows you don't feel and help identify patterns.[[ada-2026-s6]] The point is that in the low range, a finger-prick is the check.</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: the Compare view, so your own data can answer</summary>
+      <div class="g-deeper-body">
+        <figure class="g-figure" data-fig="compare-view" data-alt="The Compare view: a graph with a sensor line and finger-prick diamonds, then a table titled How close each sensor was, listing the number of finger-pricks compared, average difference, average percent difference, whether the sensor tends to read high or low, and how many were close. Four numbered markers point to these parts.">
+          <figcaption>
+            Readings → Compare. Made-up demonstration data.
+            <ol class="g-callouts">
+              <li><strong>A sensor's line,</strong> unsmoothed so you see its raw readings. Each sensor you use gets its own colour.</li>
+              <li><strong>A finger-prick,</strong> from your meter or typed in. It is the reference at that moment.</li>
+              <li><strong>Average % difference (MARD):</strong> on average, how far each sensor reading was from its finger-prick, as a percentage.</li>
+              <li><strong>Close to the finger-prick:</strong> how many finger-pricks the sensor matched closely.</li>
+            </ol>
+          </figcaption>
+        </figure>
+        <p>A sensor reading counts as "close" if it is within 0.8 mmol/L (15 mg/dL) when the finger-prick is under 5.6 mmol/L (100 mg/dL), or within 15% when it is higher. Each finger-prick is compared with the sensor's value at that moment, worked out between the two readings either side of it.</p>
+        <p>With only a few finger-pricks the figures are a first look. About ten or more, including some near your low, give a fairer picture. The view reports agreement and nothing more. It doesn't say which device to use.</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: a sanity check when the line is flat</summary>
+      <div class="g-deeper-body">
+        <p>Abbott says sensor and blood readings are most alike when glucose is steady.[[abbott-au-differences]] Roche says the same logic applies to testing from the palm or upper arm, which should only be done when glucose isn't changing quickly.[[roche-guideme]] So one way to check a sensor is to finger-prick when its line has been flat for a while. The two should land close.</p>
+        <p>If it is repeatedly far off, the maker's own steps apply. For the Libre 2, Abbott says: if you believe your readings are inconsistent with how you feel, do a finger-prick to confirm, and if the problem continues, remove the sensor, apply a new one and contact customer service.[[abbott-qrg]] Placement matters too: Abbott says to apply the sensor only to the back of the upper arm, because elsewhere it may not work properly.[[abbott-qrg]] See the chapter on your devices for each maker's fitting instructions.</p>
+      </div>
+    </details>
+  </div>
+</details>

@@ -3,6 +3,11 @@ import { saveGlucoseReading } from "./glucose.js";
 import { saveFoodEntry } from "./food.js";
 import { saveDiaryNote } from "./diary.js";
 import { formatDate } from "./dateformat.js";
+import { getThresholds } from "./thresholds.js";
+import { getProfile, CONDITION_LABELS } from "./welcome.js";
+import { summariseRange, buildReportHTML, escapeHtml as reportEscape, SOURCE_LABELS } from "./report.js";
+
+export const APPOINTMENT_NOTES_KEY = "rht-appointment-notes";
 
 function toCSVField(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
@@ -12,7 +17,10 @@ function toCSVField(value) {
 // unchanged, since that's what's already been shared/printed. Columns 4+ are
 // additive, structured, and exist only so importCSV() below can reconstruct
 // entries losslessly — a plain viewer (Excel, a nurse) can ignore them.
-const HEADER = ["Type", "When", "Detail", "Timestamp", "Value", "Unit", "Note", "Text"];
+// "Source" (which device or way a reading came in: manual, bluetooth-meter, librelinkup, dexcom) and
+// "Device" (the same in plain words) were added so a restored file keeps sensor readings as sensor
+// readings. Files from before they existed still import; their readings come back as typed-in ones.
+const HEADER = ["Type", "When", "Detail", "Timestamp", "Value", "Unit", "Note", "Text", "Source", "Device"];
 
 export function buildCSV(entries) {
   const rows = [HEADER.map(toCSVField).join(",")];
@@ -27,6 +35,8 @@ export function buildCSV(entries) {
         entry._kind === "glucose" ? entry.unit : "",
         entry._kind === "glucose" ? entry.note || "" : "",
         entry._kind === "food" || entry._kind === "diary" ? entry.text || "" : "",
+        entry._kind === "glucose" ? entry.sourceId || "manual" : "",
+        entry._kind === "glucose" ? SOURCE_LABELS[entry.sourceId || "manual"] || entry.sourceId : "",
       ]
         .map(toCSVField)
         .join(",")
@@ -116,7 +126,8 @@ export async function importCSV(text, existing = { glucose: [], food: [], diary:
         skipped++;
         continue;
       }
-      await saveGlucoseReading({ value, unit: row[idx.Unit] || "mmol/L", timestamp, note: row[idx.Note] || "" });
+      const sourceId = idx.Source !== -1 && row[idx.Source] ? row[idx.Source] : "manual";
+      await saveGlucoseReading({ value, unit: row[idx.Unit] || "mmol/L", timestamp, note: row[idx.Note] || "", sourceId });
       imported++;
     } else if (type === "food") {
       const text = row[idx.Text] || "";
@@ -139,42 +150,41 @@ export async function importCSV(text, existing = { glucose: [], food: [], diary:
   return { imported, skipped };
 }
 
-function escapeHtml(str) {
-  return String(str).replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
-  );
-}
+const escapeHtml = reportEscape;
 
-// Renders into a hidden #print-summary element and calls window.print() directly,
+// A plain-words name for each condition the person chose on the welcome screen.
+const conditionLabel = (c) => CONDITION_LABELS[c] || "";
+
+// Renders the report into a hidden #print-summary element and calls window.print() directly,
 // rather than window.open()-ing a new window: a PWA running standalone on an
 // iPhone home screen has no normal browser chrome to put a new window in, and
 // popup blockers can catch window.open() even in a regular browser tab. Printing
 // the current document with a `@media print` rule works everywhere.
 //
-// `allGlucose`/`allFood` are the FULL, unfiltered logs (not just `entries`,
-// which is already cut down to the chosen from/to range) — the graph snapshot
-// is deliberately always "the last 7 days ending now", same as the app's own
-// default view, regardless of what historical range was picked for the table
-// below it. Showing a graph for an arbitrary past date range raised more
-// complexity (the chart's own "now" axis label, title, etc.) than it was
-// worth for a report whose main content is already the full table.
-export function printSummary(entries, { from, to }, allGlucose = [], allFood = []) {
+// `entries` is the merged timeline already cut to the chosen from/to range. `allGlucose`, `allFood`
+// and `allDiary` are the FULL logs: the summary, low spells and meal outcomes are worked out from them
+// (a meal's five hours can run past the end date, a sensor gap needs its neighbours), and the graph
+// snapshot is deliberately always "the last 7 days ending now", whatever range was picked.
+export function printSummary(entries, { from, to }, allGlucose = [], allFood = [], allDiary = []) {
   const container = document.getElementById("print-summary");
-  const rows = entries
-    .map(
-      (e) =>
-        `<tr><td>${escapeHtml(e._kind)}</td><td>${escapeHtml(formatDate(e.timestamp))}</td><td>${escapeHtml(entryBody(e))}</td></tr>`
-    )
-    .join("");
   const unit = localStorage.getItem("rht-default-unit") || "mmol/L";
-  const graphHtml = buildGraphHTML(allGlucose, { unit, hours: 24 * 7, food: allFood });
-  container.innerHTML = `
-    <h1>Glucose &amp; Food Summary</h1>
-    <p>${escapeHtml(from)} to ${escapeHtml(to)}</p>
-    <h2>Last 7 days</h2>
-    <div class="print-graph">${graphHtml}</div>
-    <table><thead><tr><th>Type</th><th>When</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table>
-  `;
+  const summary = summariseRange({
+    glucose: allGlucose,
+    food: allFood,
+    diary: allDiary,
+    from: new Date(`${from}T00:00:00`),
+    to: new Date(`${to}T23:59:59`),
+    thresholds: getThresholds(),
+  });
+  const profile = getProfile();
+  container.innerHTML = buildReportHTML({
+    summary,
+    unit,
+    entries,
+    graphHTML: buildGraphHTML(allGlucose, { unit, hours: 24 * 7, food: allFood }),
+    profile: { name: profile.name, condition: conditionLabel(profile.condition) },
+    appointmentNotes: localStorage.getItem(APPOINTMENT_NOTES_KEY) || "",
+    entryRow: (e) => `<tr><td>${escapeHtml(e._kind)}</td><td>${escapeHtml(formatDate(e.timestamp))}</td><td>${escapeHtml(entryBody(e))}</td></tr>`,
+  });
   window.print();
 }

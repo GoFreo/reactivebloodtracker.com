@@ -1,0 +1,41 @@
+<details class="g-chapter" id="ch-asks" data-teaser="When the sensor sees a sudden change with nothing logged, it asks.">
+  <summary>"What happened?": the app asks about sudden rises and drops</summary>
+  <div class="g-body">
+    <p>People forget to log things. <strong>Sensors don't.</strong> When your sensor shows a sudden rise or drop and nothing was logged before it, Home asks what happened. Your answer goes on the record next to the curve, and into your doctor's report. It is a prompt to record, not a verdict.</p>
+
+    <figure class="g-figure" data-fig="spike-prompt" data-alt="A question card on Home: Your glucose rose from 5.7 to 8.1 mmol/L between 9:20 pm and 10:00 pm. Nothing is logged before it. Do you know why? with four buttons: Yes add it, No or not sure, Sensor glitch, and Dismiss. Six numbered markers point to these parts.">
+      <figcaption>
+        The question card. Made-up demonstration data.
+        <ol class="g-callouts">
+          <li><strong>What the app saw:</strong> the rise or drop, and when it happened.</li>
+          <li><strong>The question.</strong></li>
+          <li><strong>Yes, add it:</strong> asks "What was it?" and "Roughly when". It saves that food at that time, and a note explaining the change.</li>
+          <li><strong>No / not sure:</strong> saves a note that the change is unexplained.</li>
+          <li><strong>Sensor glitch:</strong> saves a note that you think it was a sensor error.</li>
+          <li><strong>Dismiss:</strong> hides the question on this phone without saving anything.</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <details class="g-deeper">
+      <summary>Go deeper: how the app decides to ask</summary>
+      <div class="g-deeper-body">
+        <p>The starting settings are a rise or a fall of at least 2.0 mmol/L within 60 minutes. For a rise, the app asks only if nothing was logged in the 2 hours before it. For a drop it looks back 4 hours, because a post-meal low is described as arriving about two to four hours after eating.[[mayo-reactive,cleveland-reactive,nhs-northtees]] Without that longer look-back, every crash that had a meal right there in the log would be flagged.</p>
+        <ul>
+          <li><strong>Sensors only.</strong> Finger-pricks are too sparse to show the shape of a change over an hour.</li>
+          <li><strong>One sensor at a time.</strong> If you wear two, the app uses the one with the most readings, so the small gap between two sensors can't look like a rise or a drop.</li>
+          <li><strong>Recent only.</strong> It looks at the last 7 days, and shows at most three questions at once, so a long first sync doesn't bury Home.</li>
+          <li><strong>Yours to change.</strong> The amounts and the look-back times can be edited in Settings, and the question can be switched off.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: why asking helps</summary>
+      <div class="g-deeper-body">
+        <p>A rise or a fall with nothing logged is exactly where memory fails, hours later or at the doctor's. One tap records either what it was or that you don't know. Both are useful: a pattern of unexplained changes at the same time of day is something your doctor can look at.</p>
+        <p>The question never judges the number or suggests what to do. It reports what the readings did and asks.</p>
+      </div>
+    </details>
+  </div>
+</details>

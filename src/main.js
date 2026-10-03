@@ -10,7 +10,8 @@ import {
 } from "./reminders.js";
 import { mergeTimeline, renderReadingsList, renderReadingsGraph } from "./timeline.js";
 import { compareRecentFirst } from "./db.js";
-import { downloadCSV, printSummary, importCSV } from "./export.js";
+import { downloadCSV, printSummary, importCSV, buildCSV, APPOINTMENT_NOTES_KEY } from "./export.js";
+import { summariseRange, buildPreviewHTML } from "./report.js";
 import {
   getThresholds,
   saveThresholds,
@@ -145,10 +146,14 @@ function showView(name) {
   } else if (name === "settings") {
     loadThresholdSettings();
     renderDexcomStatus();
+  } else if (name === "export") {
+    renderExportPreview();
   } else if (name === "tour") {
     revealTourVideo();
   } else if (name === "help") {
     renderHelpSetup();
+    // The long guide is its own chunk, fetched the first time Help is opened.
+    import("./guide/index.js").then((m) => m.mountGuide(document.getElementById("guide-root")));
   } else if (name === "my-foods") {
     renderMyFoods();
     refreshFoodBank();
@@ -963,26 +968,87 @@ diaryForm.addEventListener("submit", async (e) => {
 
 // --- Export form ---
 const exportForm = document.getElementById("export-form");
-document.getElementById("export-from").value = localDateStr(new Date(Date.now() - 30 * 86400000));
-document.getElementById("export-to").value = localDateStr(new Date());
+const exportFrom = document.getElementById("export-from");
+const exportTo = document.getElementById("export-to");
+exportFrom.value = localDateStr(new Date(Date.now() - 30 * 86400000));
+exportTo.value = localDateStr(new Date());
 
-exportForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const from = document.getElementById("export-from").value;
-  const to = document.getElementById("export-to").value;
+async function exportRange() {
+  const from = exportFrom.value;
+  const to = exportTo.value;
   const fromDate = new Date(`${from}T00:00:00`);
   const toDate = new Date(`${to}T23:59:59`);
-
   const [glucose, food, diary] = await Promise.all([listGlucoseReadings(), listFoodEntries(), listDiaryNotes()]);
   const merged = mergeTimeline({ glucose, food, diary }).filter((entry) => {
     const t = new Date(entry.timestamp);
     return t >= fromDate && t <= toDate;
   });
+  return { from, to, fromDate, toDate, glucose, food, diary, merged };
+}
 
+// The box under the dates: what's in the chosen period, before anything is made.
+const exportPreview = document.getElementById("export-preview");
+async function renderExportPreview() {
+  const { fromDate, toDate, glucose, food, diary } = await exportRange();
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime()) || fromDate > toDate) {
+    exportPreview.innerHTML = '<p class="field-hint">Choose a start date that is on or before the end date.</p>';
+    return;
+  }
+  const summary = summariseRange({ glucose, food, diary, from: fromDate, to: toDate, thresholds: getThresholds() });
+  exportPreview.innerHTML = buildPreviewHTML(summary, localStorage.getItem("rht-default-unit") || "mmol/L");
+}
+exportFrom.addEventListener("change", renderExportPreview);
+exportTo.addEventListener("change", renderExportPreview);
+
+for (const chip of document.querySelectorAll(".export-presets [data-days]")) {
+  chip.addEventListener("click", async () => {
+    const today = new Date();
+    exportTo.value = localDateStr(today);
+    if (chip.dataset.days === "all") {
+      const [glucose, food, diary] = await Promise.all([listGlucoseReadings(), listFoodEntries(), listDiaryNotes()]);
+      const all = [...glucose, ...food, ...diary].map((e) => new Date(e.timestamp).getTime()).filter(Number.isFinite);
+      exportFrom.value = localDateStr(all.length ? new Date(Math.min(...all)) : today);
+    } else {
+      exportFrom.value = localDateStr(new Date(today.getTime() - (Number(chip.dataset.days) - 1) * 86400000));
+    }
+    renderExportPreview();
+  });
+}
+
+// What to ask or tell the doctor: kept on this phone, printed at the top of the report.
+const exportNotes = document.getElementById("export-notes");
+exportNotes.value = localStorage.getItem(APPOINTMENT_NOTES_KEY) || "";
+exportNotes.addEventListener("input", () => {
+  try {
+    localStorage.setItem(APPOINTMENT_NOTES_KEY, exportNotes.value);
+  } catch {}
+});
+
+exportForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { from, to, glucose, food, diary, merged } = await exportRange();
   if (e.submitter?.id === "export-csv-btn") {
     downloadCSV(merged, `glucose-food-export-${from}-to-${to}.csv`);
   } else {
-    printSummary(merged, { from, to }, glucose, food);
+    printSummary(merged, { from, to }, glucose, food, diary);
+  }
+});
+
+// Share the CSV through the phone's own share sheet (mail, messages, AirDrop...), only where the
+// browser can share a file. A tap by the person, never automatic.
+const exportShareBtn = document.getElementById("export-share-csv");
+try {
+  if (navigator.canShare?.({ files: [new File(["x"], "x.csv", { type: "text/csv" })] })) exportShareBtn.hidden = false;
+} catch {}
+exportShareBtn.addEventListener("click", async () => {
+  const status = document.getElementById("export-status");
+  const { from, to, merged } = await exportRange();
+  const file = new File([buildCSV(merged)], `glucose-food-export-${from}-to-${to}.csv`, { type: "text/csv" });
+  try {
+    await navigator.share({ files: [file], title: "Glucose and food export" });
+    status.textContent = "";
+  } catch (err) {
+    status.textContent = err?.name === "AbortError" ? "" : `Couldn't share: ${err?.message || err}`;
   }
 });
 
@@ -998,6 +1064,7 @@ document.getElementById("import-file").addEventListener("change", async (e) => {
     const { imported, skipped } = await importCSV(text, { glucose: cachedGlucose, food: cachedFood, diary: cachedDiary });
     statusEl.textContent = `Imported ${imported} entr${imported === 1 ? "y" : "ies"}${skipped ? `, skipped ${skipped} already here` : ""}.`;
     await refreshAllCaches();
+    renderExportPreview();
   } catch (err) {
     statusEl.textContent = `Import failed: ${err.message}`;
   } finally {

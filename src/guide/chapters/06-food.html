@@ -1,0 +1,113 @@
+<details class="g-chapter" id="ch-food" data-teaser="How each way works, and why carbs, barcodes and portions.">
+  <summary>Food: type it, scan it, photograph it, build it</summary>
+  <div class="g-body">
+    <p>Food goes in from the <strong>Food</strong> box on Home. Use whichever way is quickest at the time. Each one ends up as a meal marker on your graph.</p>
+    <ul class="g-list">
+      <li><strong>Type or say it.</strong> The fastest way. Good when you only need the gist.</li>
+      <li><strong>Scan a barcode.</strong> For packaged food. The label's carbohydrate numbers fill in for you.</li>
+      <li><strong>Photograph the plate.</strong> For food with no label. The least exact way, and the app treats it that way.</li>
+      <li><strong>Build it from ingredients.</strong> For home cooking. Exact if you weigh what you use.</li>
+    </ul>
+
+    <figure class="g-figure" data-fig="home-food" data-alt="The Food box on Home: a box to describe what you ate, quick-add chips from earlier meals, Camera, Barcode and Import photos buttons, a Build a meal from ingredients bar, a When box and the Parse with AI and Save entry buttons. Eight numbered markers point to these parts.">
+      <figcaption>
+        The Food box. Made-up demonstration data.
+        <ol class="g-callouts">
+          <li><strong>Describe what you ate:</strong> type it, or use your phone's dictation.</li>
+          <li><strong>Quick-add chips:</strong> tap an earlier meal to reuse its words.</li>
+          <li><strong>Camera:</strong> photograph the plate.</li>
+          <li><strong>Barcode:</strong> scan a packaged food.</li>
+          <li><strong>Import photos:</strong> add photos you took earlier. Each is placed at the time it was taken.</li>
+          <li><strong>Build a meal from ingredients:</strong> weigh or measure each part.</li>
+          <li><strong>When:</strong> change it to log a meal you ate earlier.</li>
+          <li><strong>Parse with AI:</strong> asks an AI service to estimate carbohydrate from your words or photo. It says when it isn't sure. Nothing is sent until you tap it.</li>
+        </ol>
+      </figcaption>
+    </figure>
+
+    <details class="g-deeper">
+      <summary>Go deeper: why record carbohydrate at all?</summary>
+      <div class="g-deeper-body">
+        <p>Carbohydrate is the main dietary influence on blood glucose after a meal. Foods that contain it behave differently: some give a long, slow rise and fall, others a quick rise followed by a quick fall.[[evert-2019]] A consensus report on nutrition for people with diabetes names monitoring carbohydrate intake as a key strategy.[[evert-2019]]</p>
+        <p>That is why this app records grams of carbohydrate. It is the number on the label, the figure clinicians most often ask about, and the one most linked to the after-meal curve you are looking at. The app doesn't score your foods and never says what you should eat. It puts the carbohydrate beside what your glucose did.</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: why not just estimate by eye?</summary>
+      <div class="g-deeper-body">
+        <p>Because estimates are often off. In a study of adults with type 1 diabetes, people's own carbohydrate estimates for meals differed from a dietitian's analysis by about 15 g per meal on average, which was about 21% of the meal's carbohydrate. Of the 448 meals studied, 63% were underestimated.[[brazeau-2013]] The bigger the error, the bigger the swings in a person's daily glucose.[[brazeau-2013]]</p>
+        <p>So the app lets you use numbers from the pack and measured grams wherever you can. A typed description is the starting point, not the final word.</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: why scan barcodes?</summary>
+      <div class="g-deeper-body">
+        <p>A packaged food's label already states its carbohydrate. In Australia a nutrition information panel shows energy and six nutrients, including carbohydrate and sugars, both per serving and per 100 g, and its "carbohydrate" includes starches and sugars.[[fsanz-nip]] Scanning pulls those numbers in, so you don't have to type them or guess.</p>
+        <p>Where do the numbers come from? The app looks in <em>My foods</em> (products you have already checked), then your household food bank, then Open Food Facts, a free public database built by its contributors. Its own terms say it may contain errors and its data is indicative only and must not be used for medical purposes.[[off-terms]] So <strong>check the figures against the pack</strong>, correct them if needed, and save the product to My foods. From then on, scanning it uses your checked numbers.</p>
+        <figure class="g-figure" data-fig="barcode-lookup" data-alt="The My foods screen after a barcode lookup: a barcode box, a Look up this barcode button, a message saying Found online and to check the figures against the pack, then name, carbs per 100 g, sugars per 100 g and serving size boxes filled in, and a Save to My foods button. Six numbered markers point to these parts.">
+          <figcaption>
+            Looking up a barcode in My foods. The product here is made up.
+            <ol class="g-callouts">
+              <li><strong>The barcode:</strong> scan it, or type the numbers under it.</li>
+              <li><strong>Look up this barcode.</strong></li>
+              <li><strong>The check you must do:</strong> "Found online. Check the figures against the pack, then save."</li>
+              <li><strong>Carbs per 100 g,</strong> from the pack's "per 100 g" column, not "per serving".</li>
+              <li><strong>Serving size on the pack,</strong> which gives the meal builder its quarter, half and full-serve buttons.</li>
+              <li><strong>Save to My foods,</strong> once the numbers match the pack.</li>
+            </ol>
+          </figcaption>
+        </figure>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: why portions and the meal builder?</summary>
+      <div class="g-deeper-body">
+        <p>A label gives carbohydrate per 100 g and per serving. You ate some amount of it. The meal builder does the sum: grams eaten times the carbohydrate per 100 g, divided by 100. A manufacturer chooses its own serving size, and it varies between products,[[fsanz-nip]] so the quarter, half, three-quarter and full buttons use the pack's own serving size, and you can type exact grams instead.</p>
+        <figure class="g-figure" data-fig="meal-builder" data-alt="The meal builder open with a saved meal loaded: a Usual lunch chip, an ingredient with grams, per 100 g and carbs boxes and quarter, half, three-quarter and full portion buttons, a second ingredient, and a total line giving carbs and sugars. Six numbered markers point to these parts.">
+          <figcaption>
+            The meal builder with a saved meal loaded. Made-up demonstration data.
+            <ol class="g-callouts">
+              <li><strong>A saved meal:</strong> tap it to load its ingredients, then change anything for today.</li>
+              <li><strong>Grams</strong> you actually had (millilitres for drinks).</li>
+              <li><strong>Per 100 g:</strong> the carbohydrate figure on the label.</li>
+              <li><strong>Carbs g:</strong> worked out for you and shown in grey. If you already know an item's carbs, type them here instead.</li>
+              <li><strong>Portion buttons:</strong> a quarter, half, three-quarters or a full serve of the pack's serving size.</li>
+              <li><strong>Total:</strong> the carbohydrate and sugars of the whole meal. It only adds figures you or the pack supplied.</li>
+            </ol>
+          </figcaption>
+        </figure>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: why photo estimates are treated as rough</summary>
+      <div class="g-deeper-body">
+        <p>A study tested two apps on 58 meals. The app that estimated carbohydrate from photos was short by 7.2 g on average, with a typical spread of about 17 g either side, and 30% of its meals were off by more than 20 g. The other app, where the person entered the food and picked from a photo gallery, was closer: 1.4 g off on average.[[joubert-2021]]</p>
+        <p>Photo-based estimates are a help, not a measurement. That is why this app says plainly when it isn't sure instead of guessing, and why you can always edit the result.</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: the glycaemic index, and why this app doesn't score foods</summary>
+      <div class="g-deeper-body">
+        <p>The glycaemic index (GI) ranks carbohydrate foods by how much they raise blood glucose. It is measured in at least 10 healthy people eating a portion with 50 g of digestible carbohydrate, with glucose over the next two hours compared against a reference food. A score of 70 or more is high, and 55 or less is low.[[sydney-gi]]</p>
+        <p>What you eat alongside changes the picture. Fibre, protein, acid such as vinegar or lemon juice, and cooling cooked potato or rice can all lower a food's GI.[[healthdirect-gi]] A 2019 consensus report noted that systematic reviews found GI and glycaemic load had no significant effect on A1C and mixed results on fasting glucose in people with diabetes.[[evert-2019]]</p>
+        <p>Real meals are mixtures, so this app records the actual meal and shows what your glucose did afterwards, instead of scoring foods.</p>
+      </div>
+    </details>
+
+    <details class="g-deeper">
+      <summary>Go deeper: My foods, the household food bank, and saved meals</summary>
+      <div class="g-deeper-body">
+        <ul>
+          <li><strong>My foods</strong> holds products you've checked against the pack. They are kept on your phone.</li>
+          <li><strong>The household food bank</strong> is optional. Once the sync passcode is saved in Settings, your checked products are shared so every device in the household sees the same list. Only product facts leave your phone (barcode, name, carbohydrate, serving size). Your meals never do.</li>
+          <li><strong>Saved meals</strong> let you keep a usual lunch or breakfast and load it with one tap, then change anything for today. It is only saved back if you tap Save meal.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+</details>
