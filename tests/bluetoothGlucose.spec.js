@@ -154,3 +154,46 @@ test.describe("getRememberedDevice (Chrome reconnect-without-picker)", () => {
     expect(await getRememberedDevice()).toBeNull();
   });
 });
+
+// Scott, 2026-10-03: the picker listed every TV and phone nearby, and the meter
+// had to be picked again every sync. The picker is now filtered to meters, and
+// the meter that synced last is preferred when Chrome hands back remembered devices.
+test.describe("meter picker filtering and remembering the meter", () => {
+  test.afterEach(() => {
+    Object.defineProperty(globalThis, "navigator", realNavigatorDescriptor);
+    delete globalThis.localStorage;
+  });
+
+  test("the picker lists only glucose meters: by Glucose Service or a meter name", async () => {
+    const { meterPickerOptions, isMeterName } = await import("../src/bluetoothGlucose.js");
+    const opts = meterPickerOptions();
+    expect(opts.acceptAllDevices).toBeUndefined();
+    expect(opts.filters).toEqual([{ services: ["glucose"] }, { namePrefix: "meter+" }]);
+    expect(opts.optionalServices).toEqual(["glucose", "device_information"]);
+    expect(isMeterName("meter+40956850")).toBe(true);
+    expect(isMeterName("Living Room TV")).toBe(false);
+    expect(isMeterName(undefined)).toBe(false);
+  });
+
+  test("prefers the meter that synced last time, by its saved id", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    const store = { "rht-bluetooth-device-id": "id-2" };
+    globalThis.localStorage = { getItem: (k) => store[k] ?? null, setItem: (k, v) => (store[k] = v) };
+    const devices = [{ id: "id-1", name: "meter+1111" }, { id: "id-2", name: "meter+2222" }, { id: "id-3", name: "TV" }];
+    stubNavigator({ bluetooth: { getDevices: async () => devices } });
+    expect(await getRememberedDevice()).toBe(devices[1]);
+  });
+
+  test("with no saved id, picks the only remembered device that is a meter", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    const devices = [{ id: "a", name: "Phone" }, { id: "b", name: "meter+40956850" }, { id: "c", name: "TV" }];
+    stubNavigator({ bluetooth: { getDevices: async () => devices } });
+    expect(await getRememberedDevice()).toBe(devices[1]);
+  });
+
+  test("two remembered meters and no saved id is ambiguous: use the picker", async () => {
+    const { getRememberedDevice } = await import("../src/bluetoothGlucose.js");
+    stubNavigator({ bluetooth: { getDevices: async () => [{ id: "a", name: "meter+1" }, { id: "b", name: "meter+2" }] } });
+    expect(await getRememberedDevice()).toBeNull();
+  });
+});

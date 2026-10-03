@@ -105,24 +105,76 @@ export function parseGlucoseMeasurement(dataView) {
   return { value: Math.round(mmolL * 10) / 10, unit: "mmol/L", timestamp: timestamp.toISOString() };
 }
 
-// Chrome (desktop + Android) remembers devices the picker already granted
-// this origin, and getDevices() returns them with no prompt — Safari/iPhone
-// doesn't have Web Bluetooth at all (see isBluetoothAvailable), so this is a
-// Chrome-only convenience, feature-detected and never required for the flow
-// to work. Only used when it resolves to exactly one device: with none,
-// there's nothing to reconnect to; with more than one, we don't know which
-// meter Scott means, so the ordinary picker (which does) is the safer choice
-// rather than silently guessing.
+// Names glucose meters advertise. Roche's Accu-Chek Guide / Guide Me / Instant
+// show up as "meter+<serial>" (Scott's own Guide Me: "meter+40956850", seen in
+// the picker 2026-10-03). Add a prefix here when a new meter model is supported.
+export const METER_NAME_PREFIXES = ["meter+"];
+const LAST_DEVICE_KEY = "rht-bluetooth-device-id";
+
+export const isMeterName = (name) => METER_NAME_PREFIXES.some((p) => String(name || "").startsWith(p));
+
+// What Chrome's device picker is allowed to list (Scott, 2026-10-03: it showed
+// every TV, phone and "Unknown or Unsupported Device" nearby). Filters are OR'd:
+// a device appears if it advertises the standard Glucose Service *or* has a known
+// meter name — the name filter matters because many meters (the Guide Me
+// included, going by the 2026-09-14 "nothing shows up" report) don't put the
+// Glucose Service in their advertisement, which is why this used to be
+// acceptAllDevices. optionalServices is what grants access once connected.
+export function meterPickerOptions() {
+  return {
+    filters: [{ services: [GLUCOSE_SERVICE] }, ...METER_NAME_PREFIXES.map((namePrefix) => ({ namePrefix }))],
+    optionalServices: [GLUCOSE_SERVICE, DEVICE_INFO_SERVICE],
+  };
+}
+
+function savedDeviceId() {
+  try {
+    return globalThis.localStorage?.getItem(LAST_DEVICE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDeviceId(id) {
+  try {
+    if (id) globalThis.localStorage?.setItem(LAST_DEVICE_KEY, id);
+  } catch {
+    // Not fatal: the picker just shows next time.
+  }
+}
+
+// Chrome can hand back devices this site was granted before, with no picker —
+// but only where its getDevices() is switched on (in Chrome it has been behind a
+// setting, chrome://flags "Web Bluetooth new permissions backend"; Safari/iPhone
+// has no Web Bluetooth at all). Feature-detected, never required. Choice order:
+// the meter that synced last time (saved id) → the only remembered device with a
+// meter name → the only remembered device at all. Anything more ambiguous uses
+// the picker, which (filtered, above) now lists only meters anyway.
 export async function getRememberedDevice() {
   if (!navigator.bluetooth?.getDevices) return null;
   try {
     const devices = await navigator.bluetooth.getDevices();
+    const saved = savedDeviceId();
+    const byId = saved && devices.find((d) => d.id === saved);
+    if (byId) return byId;
+    const meters = devices.filter((d) => isMeterName(d.name));
+    if (meters.length === 1) return meters[0];
     return devices.length === 1 ? devices[0] : null;
   } catch {
     // Some Chrome builds throw here if the permission policy disallows it —
     // fall back to the ordinary picker rather than fail the whole sync.
     return null;
   }
+}
+
+// A remembered meter that's switched off or out of range can leave connect()
+// hanging, so give up after a few seconds and use the picker instead.
+function withTimeout(promise, ms, message) {
+  let timer;
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    new Promise((_, reject) => (timer = setTimeout(() => reject(new Error(message)), ms))),
+  ]);
 }
 
 // Reads the Device Information Service's serial, if the device exposes it and
@@ -159,25 +211,30 @@ export async function connectAndFetchReadings({ onStatus = () => {} } = {}) {
   }
 
   let device = await getRememberedDevice();
+  let server = null;
   if (device) {
     onStatus(`Reconnecting to ${device.name || "your meter"}…`);
-  } else {
-    onStatus("Choose your meter in the browser's device picker…");
-    // acceptAllDevices, not a service filter: Chrome's picker can only filter by
-    // services a device actively broadcasts in its advertisement packet, and
-    // plenty of BLE health devices (this meter included, going by Scott's
-    // "nothing shows up" report 2026-09-14) don't advertise the Glucose Service
-    // openly even though they support it once connected — a filter would hide
-    // the device entirely rather than fail loudly. optionalServices is what
-    // actually grants access to the service after connecting.
-    device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [GLUCOSE_SERVICE, DEVICE_INFO_SERVICE],
-    });
+    try {
+      server = await withTimeout(device.gatt.connect(), 8000, "reconnect timed out");
+    } catch {
+      device = null; // fall through to the picker
+    }
   }
-
-  onStatus(`Connecting to ${device.name || "meter"}…`);
-  const server = await device.gatt.connect();
+  if (!server) {
+    onStatus("Choose your meter in the browser's device picker…");
+    try {
+      device = await navigator.bluetooth.requestDevice(meterPickerOptions());
+    } catch (err) {
+      // Chrome reports both "cancelled" and "nothing to pick" as NotFoundError.
+      if (err?.name === "NotFoundError") {
+        throw new Error("no meter chosen. If yours wasn't listed, switch it on until it shows the Bluetooth symbol, then sync again.");
+      }
+      throw err;
+    }
+    onStatus(`Connecting to ${device.name || "meter"}…`);
+    server = await device.gatt.connect();
+  }
+  saveDeviceId(device.id);
   const serial = await readDeviceSerial(server);
   const service = await server.getPrimaryService(GLUCOSE_SERVICE);
   const measurementChar = await service.getCharacteristic(MEASUREMENT_CHAR);
