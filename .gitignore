@@ -26,3 +26,7 @@ screenshots/
 # Explainer video build files and output (made by video/record.mjs)
 video/build/
 video/out/
+
+# Narration audio (a voice track made on this Mac or supplied by Scott) and any local text-to-speech model files
+video/voice/
+video/models/
