@@ -41,6 +41,7 @@
 
   <div id="app">
     <header class="app-header">
+      <button type="button" id="header-tour-btn" class="header-tour" data-nav="tour" aria-label="How it works: video and help"><span aria-hidden="true">▶</span> Help</button>
       <div class="header-text">
         <div class="header-title-row">
           <h1 id="view-title">Reactive Blood Tracker</h1>
@@ -50,7 +51,6 @@
         </div>
         <p id="header-now" class="header-now"></p>
       </div>
-      <button type="button" id="header-tour-btn" class="header-tour" data-nav="tour" aria-label="How it works: video and help">▶</button>
     </header>
 
     <div id="install-tip" class="install-tip" role="note" hidden>
@@ -676,6 +676,23 @@
           readings without asking for it each time. Pulls roughly the last 12 hours; readings already
           saved are skipped, so syncing often is fine. The passcode stops anyone else who finds this
           site from reading your glucose.
+        </p>
+
+        <h2>Keep my devices in sync</h2>
+        <div class="entry-form">
+          <label class="checkbox-label">
+            <input type="checkbox" id="cloud-sync-enabled" />
+            Share my readings, food and diary between my devices
+          </label>
+          <button type="button" id="cloud-sync-now" class="secondary-btn" hidden>Sync my devices now</button>
+        </div>
+        <p id="cloud-sync-status" class="field-hint" aria-live="polite"></p>
+        <p class="field-hint">
+          Off unless you switch it on. When it's on, a copy of your glucose readings, food entries and
+          diary notes is kept in this app's private storage on Netlify, locked with the sync passcode
+          above, so your phone, Mac and any other device you switch this on see the same records. Do this
+          on each device. Food photos stay on the device that took them. Switching it off stops sharing
+          from this device.
         </p>
 
         <h2>Dexcom ONE+ (CGM)</h2>

@@ -43,6 +43,7 @@ import { DEVICE_TYPES, DEVICE_STATUSES, listDevices, addDevice, updateDevice, re
 import {
   saveMyFood, deleteMyFood, listMyFoods, rememberFromItems, exportMyFoods, importMyFoods,
 } from "./myFoods.js";
+import { isCloudSyncOn, setCloudSyncOn, runCloudSync, lastCloudSync } from "./cloudSync.js";
 import {
   findUnexplainedExcursions,
   describeExcursion,
@@ -1659,6 +1660,11 @@ async function runUnifiedSync(btn, statusEl) {
     if (isBluetoothAvailable()) add(await lit("meter", () => syncBluetoothStep(onStatus)));
     add(await lit("libre", () => syncLibreStep(onStatus)));
     if (getDexcomConnection()) add(await lit("dexcom", () => syncDexcomStep(onStatus)));
+    if (isCloudSyncOn()) {
+      onStatus("Sharing with your other devices…");
+      const c = await syncWithMyDevices();
+      add(c.ok ? (c.received ? `${c.received} new from your other devices.` : "Your devices are in step.") : `Device sync: ${c.error}`);
+    }
     updateSyncBadge();
     await refreshHome();
   } finally {
@@ -1669,6 +1675,65 @@ async function runUnifiedSync(btn, statusEl) {
 document.getElementById("home-sync-btn").addEventListener("click", () =>
   runUnifiedSync(document.getElementById("home-sync-btn"), document.getElementById("home-sync-status"))
 );
+
+// --- Keep my devices in sync (opt-in; see cloudSync.js) ---
+const cloudSyncBox = document.getElementById("cloud-sync-enabled");
+const cloudSyncNowBtn = document.getElementById("cloud-sync-now");
+const cloudSyncStatusEl = document.getElementById("cloud-sync-status");
+
+function renderCloudSyncStatus(message) {
+  const on = isCloudSyncOn();
+  cloudSyncBox.checked = on;
+  cloudSyncNowBtn.hidden = !on;
+  if (message) cloudSyncStatusEl.textContent = message;
+  else if (!on) cloudSyncStatusEl.textContent = "Off: this device keeps its records to itself.";
+  else {
+    const last = lastCloudSync();
+    cloudSyncStatusEl.textContent = last ? `On. Last shared ${formatRelativeTime(last)}.` : "On. Not shared yet.";
+  }
+}
+
+// One round of sharing; refreshes whatever is on screen if anything arrived.
+async function syncWithMyDevices() {
+  const r = await runCloudSync();
+  if (r.off) return r;
+  if (r.ok && r.received) {
+    await refreshHome();
+    if (!document.getElementById("view-readings").hidden) await refreshReadings();
+  }
+  renderCloudSyncStatus(r.ok ? null : `Not shared: ${r.error}`);
+  return r;
+}
+
+cloudSyncBox.addEventListener("change", async () => {
+  setCloudSyncOn(cloudSyncBox.checked);
+  renderCloudSyncStatus(cloudSyncBox.checked ? "Sharing…" : null);
+  if (cloudSyncBox.checked) {
+    const r = await syncWithMyDevices();
+    if (r.ok) renderCloudSyncStatus(`On. Sent ${r.sent}, received ${r.received}.`);
+  }
+});
+cloudSyncNowBtn.addEventListener("click", async () => {
+  cloudSyncNowBtn.disabled = true;
+  renderCloudSyncStatus("Sharing…");
+  const r = await syncWithMyDevices();
+  if (r.ok) renderCloudSyncStatus(`Done. Sent ${r.sent}, received ${r.received}.`);
+  cloudSyncNowBtn.disabled = false;
+});
+
+// Share new entries a few seconds after they're saved (one round for a burst,
+// e.g. a CGM import), and catch up whenever the app comes back to the front.
+let cloudSyncTimer = null;
+window.addEventListener("rht-record-added", () => {
+  if (!isCloudSyncOn()) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(syncWithMyDevices, 4000);
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && isCloudSyncOn()) syncWithMyDevices();
+});
+renderCloudSyncStatus();
+if (isCloudSyncOn()) syncWithMyDevices();
 
 const reminderEnabled = document.getElementById("reminder-enabled");
 const reminderTime = document.getElementById("reminder-time");

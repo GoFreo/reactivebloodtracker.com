@@ -45,10 +45,38 @@ export function compareRecentFirst(a, b) {
 export async function addEntry(storeName, entry) {
   const record = { id: makeId(), ...entry };
   const store = await tx(storeName, "readwrite");
-  return new Promise((resolve, reject) => {
+  await new Promise((resolve, reject) => {
     const req = store.add(record);
-    req.onsuccess = () => resolve(record);
+    req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
+  });
+  // Lets "Keep my devices in sync" send new entries soon after they're saved.
+  try {
+    window.dispatchEvent(new CustomEvent("rht-record-added", { detail: { store: storeName } }));
+  } catch {}
+  return record;
+}
+
+// Saves records that came from another device (see cloudSync.js), keeping
+// their ids. One transaction; an id already here is left as it is.
+export async function addSyncedEntries(storeName, records) {
+  if (!records.length) return 0;
+  const store = await tx(storeName, "readwrite");
+  return new Promise((resolve, reject) => {
+    let added = 0;
+    const t = store.transaction;
+    for (const r of records) {
+      const req = store.add(r);
+      req.onsuccess = () => added++;
+      req.onerror = (e) => {
+        // Already here: skip it. preventDefault stops the duplicate from
+        // aborting the whole transaction; stopPropagation keeps it quiet.
+        e.preventDefault();
+        e.stopPropagation();
+      };
+    }
+    t.oncomplete = () => resolve(added);
+    t.onabort = () => reject(t.error);
   });
 }
 

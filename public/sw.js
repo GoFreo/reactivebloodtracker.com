@@ -1,4 +1,4 @@
-const CACHE_NAME = "rht-shell-v2";
+const CACHE_NAME = "rht-shell-v3";
 const SHELL_FILES = ["/", "/index.html", "/manifest.json", "/icon.svg", "/icon-180.png", "/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -25,6 +25,8 @@ self.addEventListener("fetch", (event) => {
   if (new URL(event.request.url).pathname.endsWith(".mp4")) return;
   // Never cache the Dexcom return page: its URL carries a one-time sign-in code.
   if (new URL(event.request.url).pathname === "/dexcom-callback") return;
+  // Never cache the app's own server calls (synced records, food bank, CGM data).
+  if (new URL(event.request.url).pathname.startsWith("/.netlify/functions/")) return;
   event.respondWith(
     fetch(event.request)
       .then((response) => {
